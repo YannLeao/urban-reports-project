@@ -1,0 +1,145 @@
+# =========================================================
+# ROOT
+# =========================================================
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env files
+.env
+**/.env
+**/.env.*
+!**/.env.example
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# Coverage
+coverage/
+
+# =========================================================
+# FRONTEND (React + Vite + Tailwind)
+# =========================================================
+
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+
+# Vite
+frontend/.vite/
+
+# Cache
+frontend/.cache/
+frontend/.eslintcache
+
+# Package managers
+frontend/.pnpm-store/
+
+# TypeScript
+frontend/*.tsbuildinfo
+
+# =========================================================
+# BACKEND (Spring Boot / Java)
+# =========================================================
+
+# Maven
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+
+# Gradle
+backend/.gradle/
+backend/build/
+backend/out/
+
+# Java
+backend/*.class
+backend/*.jar
+backend/*.war
+backend/*.ear
+
+# Spring Boot
+backend/logs/
+backend/*.log
+
+# =========================================================
+# IDEs
+# =========================================================
+
+# IntelliJ / WebStorm
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# VS Code
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# =========================================================
+# SECURITY / SECRETS
+# =========================================================
+
+# Keys
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Certificates
+*.crt
+*.csr
+
+# Secrets
+secrets/
+credentials/
+*.secret
+
+# =========================================================
+# DATABASES
+# =========================================================
+
+*.db
+*.sqlite
+*.sqlite3
+*.mv.db
+
+# =========================================================
+# TESTS
+# =========================================================
+
+test-output/
+reports/
+
+# =========================================================
+# DOCKER
+# =========================================================
+
+docker-data/
+*.pid
+
+# =========================================================
+# MISC
+# =========================================================
+
+.cache/
+tmp/
+temp/
