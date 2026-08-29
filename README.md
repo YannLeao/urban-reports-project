@@ -62,9 +62,12 @@ Os comandos abaixo representam o fluxo acordado e serão habilitados pelos cards
 correspondentes da Sprint 1:
 
 ```bash
-# Backend (após a inicialização do Spring Boot)
+# Backend
 cd backend
 ./mvnw spring-boot:run
+
+# Testes do backend
+./mvnw test
 
 # Frontend (após a inicialização do React)
 cd frontend
@@ -74,6 +77,12 @@ npm run dev
 # Ambiente completo (após a criação do Compose)
 docker compose up --build
 ```
+
+Com o backend em execução, os recursos iniciais ficam disponíveis em:
+
+- saúde da API: `http://localhost:8080/api/health`;
+- Swagger UI: `http://localhost:8080/swagger`;
+- especificação OpenAPI: `http://localhost:8080/v3/api-docs`.
 
 ## Fluxo de colaboração
 
