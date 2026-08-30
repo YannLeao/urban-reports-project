@@ -15,3 +15,5 @@ quando começar a publicar versões.
 - Exemplo de variáveis para o ambiente local.
 - Backend Spring Boot inicial com health check e documentação OpenAPI.
 - Persistência PostgreSQL com baseline Flyway e testes reais via Testcontainers.
+- Prova técnica de imagens com bucket privado Cloudflare R2, validação de formato
+  e recuperação mediada pelo backend.
