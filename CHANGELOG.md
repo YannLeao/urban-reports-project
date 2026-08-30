@@ -14,3 +14,4 @@ quando começar a publicar versões.
 - Documentação de colaboração e decisões arquiteturais.
 - Exemplo de variáveis para o ambiente local.
 - Backend Spring Boot inicial com health check e documentação OpenAPI.
+- Persistência PostgreSQL com baseline Flyway e testes reais via Testcontainers.
