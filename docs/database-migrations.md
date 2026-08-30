@@ -1,0 +1,60 @@
+# Migrations de banco de dados
+
+O Flyway é a única fonte de verdade do schema. O Hibernate valida se o schema é
+compatível com as entidades existentes, mas não cria, atualiza nem remove
+estruturas.
+
+## Convenção
+
+As migrations ficam em `backend/src/main/resources/db/migration` e seguem o
+formato `V<versão>__<descrição>.sql`, por exemplo:
+
+```text
+V1__create_schema_probe.sql
+V2__create_users.sql
+```
+
+Depois que uma migration for aplicada em qualquer ambiente compartilhado, seu
+conteúdo é imutável. Correções e remoções devem ser feitas em uma nova migration,
+nunca alterando um arquivo anterior.
+
+## Como o checksum protege o histórico
+
+Ao aplicar uma migration, o Flyway registra sua versão, nome e checksum na tabela
+`flyway_schema_history`. Nas próximas inicializações, o conteúdo versionado é
+comparado ao histórico. Se uma migration aplicada tiver sido editada, a validação
+falha e o backend não inicia com um schema de origem ambígua.
+
+## Roteiro manual de demonstração
+
+Este roteiro deve ser executado somente em um banco local descartável e toda
+alteração temporária deve ser desfeita antes de criar um commit.
+
+1. Inicie o PostgreSQL local e o backend para aplicar a `V1` original.
+2. Encerre o backend sem apagar o banco.
+3. Faça uma alteração temporária em `V1__create_schema_probe.sql`.
+4. Inicie o backend novamente e confirme que o Flyway interrompe a inicialização
+   com erro de validação/checksum.
+5. Desfaça integralmente a alteração temporária.
+6. Inicie novamente e confirme que o schema está atualizado sem reaplicar a V1.
+7. Execute `git diff --exit-code` para garantir que a migration original continua
+   intacta.
+
+Não utilize `repair` para aceitar uma edição indevida. Esse comando altera o
+histórico e só pode ser considerado após uma decisão explícita da equipe para
+recuperar um ambiente específico.
+
+## Testes automatizados
+
+Com o Docker ativo:
+
+```bash
+cd backend
+./mvnw test
+```
+
+O Testcontainers inicia PostgreSQL real em uma porta aleatória. O teste de
+migration confirma a aplicação da V1, a existência de `schema_probe`, inserção e
+leitura, o valor padrão de `checked_at`, o registro no histórico e a ausência de
+reaplicação quando o schema já está atualizado.
+
