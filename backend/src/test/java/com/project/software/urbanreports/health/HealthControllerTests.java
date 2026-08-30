@@ -1,13 +1,16 @@
 package com.project.software.urbanreports.health;
 
+import com.project.software.urbanreports.support.TestcontainersConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Import;
 import org.springframework.web.client.RestClient;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@Import(TestcontainersConfiguration.class)
 class HealthControllerTests {
 
     @LocalServerPort
