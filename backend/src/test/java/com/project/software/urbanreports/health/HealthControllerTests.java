@@ -5,7 +5,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
+
+import java.net.http.HttpClient;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -38,7 +41,8 @@ class HealthControllerTests {
 
         assertThat(specification)
                 .contains("Urban Reports API")
-                .contains("/api/health");
+                .contains("/api/health")
+                .contains("/api/storage/images");
     }
 
     @Test
@@ -55,6 +59,12 @@ class HealthControllerTests {
     }
 
     private RestClient restClient() {
-        return RestClient.create("http://localhost:" + port);
+        var httpClient = HttpClient.newBuilder()
+                .followRedirects(HttpClient.Redirect.NEVER)
+                .build();
+        return RestClient.builder()
+                .baseUrl("http://localhost:" + port)
+                .requestFactory(new JdkClientHttpRequestFactory(httpClient))
+                .build();
     }
 }

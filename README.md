@@ -12,9 +12,10 @@ para controlar as migrações. O ambiente completo será executado com Docker
 Compose e validado pelo GitLab CI/CD.
 
 Nesta primeira etapa, o repositório contém a fundação do monorepositório e um
-backend mínimo conectado ao PostgreSQL, com schema versionado pelo Flyway. Os
-demais serviços e comandos passam a funcionar à medida que os respectivos cards
-da Sprint 1 forem integrados.
+backend mínimo conectado ao PostgreSQL, com schema versionado pelo Flyway. O
+backend também contém uma prova técnica de armazenamento privado de imagens no
+Cloudflare R2. Os demais serviços e comandos passam a funcionar à medida que os
+respectivos cards da Sprint 1 forem integrados.
 
 ## Estrutura do repositório
 
@@ -67,6 +68,16 @@ O backend lê opcionalmente `backend/.env` e utiliza as seguintes variáveis:
 | `DB_USERNAME` | Usuário do banco | `urban_reports` |
 | `DB_PASSWORD` | Senha do banco | `local_development_only` |
 | `BACKEND_PORT` | Porta HTTP do backend | `8080` |
+| `IMAGE_STORAGE_ENDPOINT` | Endpoint S3-compatible da conta R2 | `https://...r2.cloudflarestorage.com` |
+| `IMAGE_STORAGE_REGION` | Região exigida pelo cliente S3 | `auto` |
+| `IMAGE_STORAGE_BUCKET` | Bucket privado da prova | `urban-reports-development` |
+| `IMAGE_STORAGE_ACCESS_KEY` | Chave de acesso restrita ao bucket | valor local secreto |
+| `IMAGE_STORAGE_SECRET_KEY` | Segredo da chave de acesso | valor local secreto |
+
+As cinco variáveis de storage ativam a integração. Sem
+`IMAGE_STORAGE_ENDPOINT`, o backend continua disponível para health check e as
+demais funções, mas operações de imagem respondem como storage indisponível.
+Nunca utilize credenciais reais no `.env.example` ou em commits.
 
 ### PostgreSQL local
 
@@ -117,6 +128,13 @@ Com o backend em execução, os recursos iniciais ficam disponíveis em:
 - Swagger UI: `http://localhost:8080/swagger`;
 - especificação OpenAPI: `http://localhost:8080/v3/api-docs`.
 
+A prova técnica recebe uma imagem JPEG, PNG ou WebP de até 5 MB em
+`POST /api/storage/images` (campo multipart `file`) e a recupera em
+`GET /api/storage/images/{id}`. O bucket não é público: os bytes sempre passam
+pelo backend. Esse contrato é temporário e não representa a futura criação de
+ocorrências. O roteiro completo está em
+[`docs/image-storage.md`](docs/image-storage.md).
+
 Na primeira inicialização contra um banco vazio, o Flyway aplica automaticamente
 as migrations em `backend/src/main/resources/db/migration`. Nas inicializações
 seguintes, ele valida o histórico e executa somente migrations ainda não
@@ -152,6 +170,8 @@ de conclusão.
 - Decisões arquiteturais: [`docs/adr`](docs/adr);
 - Convenções e validação de migrations:
   [`docs/database-migrations.md`](docs/database-migrations.md);
+- Configuração e prova manual do storage de imagens:
+  [`docs/image-storage.md`](docs/image-storage.md);
 - Requisitos e planejamento oficial: documentos mantidos pela equipe na
   disciplina;
 - Histórico de versões: [CHANGELOG.md](CHANGELOG.md).
