@@ -151,6 +151,50 @@ docker rm --force urban-reports-postgres
 Os testes não dependem desse container: com o Docker ativo, o Testcontainers cria
 e remove instâncias isoladas de PostgreSQL automaticamente.
 
+## Imagem Docker do backend
+
+O Dockerfile multi-stage gera o JAR com Java 21 e o Maven Wrapper no estágio de
+build. A imagem final utiliza somente o runtime Java 21, contém apenas o JAR
+executável e inicia a aplicação como usuário sem privilégios.
+
+Execute os testes antes de construir a imagem:
+
+```bash
+cd backend
+./mvnw test
+cd ..
+
+docker build --tag urban-reports-backend:local ./backend
+```
+
+PostgreSQL e Cloudflare R2 permanecem serviços externos. Com um PostgreSQL
+acessível pelo container e as configurações locais em `backend/.env`, execute:
+
+```bash
+docker run --rm \
+  --publish 8080:8080 \
+  --add-host host.docker.internal:host-gateway \
+  --env-file backend/.env \
+  urban-reports-backend:local
+```
+
+Dentro de containers, `DB_HOST=localhost` aponta para o próprio container do
+backend, não para a máquina host. Para o comando acima, use
+`DB_HOST=host.docker.internal`. O futuro Docker Compose definirá os nomes e a
+rede dos serviços; esta imagem não embute essas decisões.
+
+A porta padrão exposta é `8080`, mas `BACKEND_PORT` continua configurável em
+runtime. Depois da inicialização, valide:
+
+- `http://localhost:8080/api/health`;
+- `http://localhost:8080/swagger`;
+- `http://localhost:8080/v3/api-docs`.
+
+Credenciais e arquivos `.env` não entram no contexto de build. Toda configuração
+de PostgreSQL e R2 é fornecida somente ao executar o container. Quando o código
+mudar, reconstrua a imagem; ela não oferece hot reload e não substitui a execução
+local pela IDE ou por `./mvnw spring-boot:run`.
+
 ## Fluxo de colaboração
 
 Todo trabalho deve partir da `main`, ser associado a uma issue e chegar à branch
