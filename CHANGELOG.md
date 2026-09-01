@@ -17,3 +17,5 @@ quando começar a publicar versões.
 - Persistência PostgreSQL com baseline Flyway e testes reais via Testcontainers.
 - Prova técnica de imagens com bucket privado Cloudflare R2, validação de formato
   e recuperação mediada pelo backend.
+- Imagem Docker multi-stage do backend com Java 21 e execução como usuário
+  não-root.
