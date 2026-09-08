@@ -15,6 +15,7 @@ function App() {
   const checkApiHealth = useCallback(async () => {
     setIsLoading(true)
     setError(null)
+    setHealth(null)
 
     try {
       if (!apiUrl) {
@@ -23,17 +24,18 @@ function App() {
 
       const response = await fetch(`${apiUrl}/api/health`)
 
-      if (!response.ok) {
-        throw new Error(`A API respondeu com o status ${response.status}.`)
+      if (response.status !== 200) {
+        throw new Error(`A API respondeu com o status HTTP ${response.status}.`)
       }
 
       setHealth((await response.json()) as HealthResponse)
     } catch (requestError) {
-      setHealth(null)
       setError(
-        requestError instanceof Error
-          ? requestError.message
-          : 'Não foi possível conectar à API.',
+        requestError instanceof TypeError
+          ? 'Não foi possível conectar à API. Verifique se o backend está disponível.'
+          : requestError instanceof Error
+            ? requestError.message
+            : 'Não foi possível conectar à API.',
       )
     } finally {
       setIsLoading(false)
