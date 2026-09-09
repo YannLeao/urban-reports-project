@@ -44,6 +44,7 @@ frontend/.vite/
 # Cache
 frontend/.cache/
 frontend/.eslintcache
+frontend/.npm/
 
 # Package managers
 frontend/.pnpm-store/
