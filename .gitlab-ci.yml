@@ -1,11 +1,17 @@
 stages:
   - build
   - test
+  - deploy
 
 workflow:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"'
+      when: never
     - if: '$CI_COMMIT_BRANCH'
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/backend/.m2/repository"
 
 # ---------- BACKEND (Java / Maven) ----------
 
@@ -19,6 +25,10 @@ backend:build:
   script:
     - cd backend
     - ./mvnw -B compile
+  rules:
+    - changes:
+        - backend/**/*
+        - .gitlab-ci.yml
 
 backend:test:
   stage: test
@@ -33,6 +43,8 @@ backend:test:
     key: maven-backend
     paths:
       - backend/.m2/repository
+  needs:
+    - backend:build
   script:
     - cd backend
     - ./mvnw -B test
@@ -42,6 +54,10 @@ backend:test:
       - backend/target/surefire-reports/
     reports:
       junit: backend/target/surefire-reports/TEST-*.xml
+  rules:
+    - changes:
+        - backend/**/*
+        - .gitlab-ci.yml
 
 # ---------- FRONTEND (React / npm) ----------
 
@@ -56,6 +72,10 @@ frontend:build:
     - cd frontend
     - npm ci --cache .npm
     - npm run build
+  rules:
+    - changes:
+        - frontend/**/*
+        - .gitlab-ci.yml
 
 frontend:lint:
   stage: test
@@ -64,7 +84,34 @@ frontend:lint:
     key: npm-frontend
     paths:
       - frontend/.npm
+  needs:
+    - frontend:build
   script:
     - cd frontend
     - npm ci --cache .npm
     - npm run lint
+  rules:
+    - changes:
+        - frontend/**/*
+        - .gitlab-ci.yml
+
+# ---------- DEPLOY (Render) ----------
+
+backend:deploy:
+  stage: deploy
+  image: curlimages/curl:8.22.0
+  needs:
+    - backend:build
+    - backend:test
+  script:
+    - curl --fail --show-error --silent --get --data-urlencode "ref=$CI_COMMIT_SHA" --output /dev/null "$RENDER_DEPLOY_HOOK"
+  environment:
+    name: production
+    url: $BACKEND_PRODUCTION_URL
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - backend/**/*
+        - .gitlab-ci.yml
+      when: manual
+      allow_failure: false

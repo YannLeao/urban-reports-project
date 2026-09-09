@@ -19,3 +19,5 @@ quando começar a publicar versões.
   e recuperação mediada pelo backend.
 - Imagem Docker multi-stage do backend com Java 21 e execução como usuário
   não-root.
+- Pipeline seletivo por serviço e deploy manual do backend no Render, coordenado
+  pelo GitLab CI/CD.
