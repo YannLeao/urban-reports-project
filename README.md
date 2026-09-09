@@ -67,6 +67,7 @@ O backend lê opcionalmente `backend/.env` e utiliza as seguintes variáveis:
 | `DB_NAME` | Nome do banco | `urban_reports` |
 | `DB_USERNAME` | Usuário do banco | `urban_reports` |
 | `DB_PASSWORD` | Senha do banco | `local_development_only` |
+| `DB_URL` | JDBC URL completa; substitui host, porta e nome quando definida | não definida |
 | `BACKEND_PORT` | Porta HTTP do backend | `8080` |
 | `IMAGE_STORAGE_ENDPOINT` | Endpoint S3-compatible da conta R2 | `https://...r2.cloudflarestorage.com` |
 | `IMAGE_STORAGE_REGION` | Região exigida pelo cliente S3 | `auto` |
@@ -78,6 +79,9 @@ As cinco variáveis de storage ativam a integração. Sem
 `IMAGE_STORAGE_ENDPOINT`, o backend continua disponível para health check e as
 demais funções, mas operações de imagem respondem como storage indisponível.
 Nunca utilize credenciais reais no `.env.example` ou em commits.
+
+Mantenha `DB_URL` ausente quando desejar o fallback local por host, porta e nome.
+No Render, defina-a com a URL JDBC completa fornecida pelo Neon.
 
 ### PostgreSQL local
 
@@ -195,6 +199,25 @@ de PostgreSQL e R2 é fornecida somente ao executar o container. Quando o códig
 mudar, reconstrua a imagem; ela não oferece hot reload e não substitui a execução
 local pela IDE ou por `./mvnw spring-boot:run`.
 
+## CI/CD e produção
+
+O GitLab CI valida apenas os serviços afetados por cada alteração. Mudanças em
+`backend/` executam compile e testes do backend; mudanças em `frontend/`
+executam build e lint do frontend. Alterações no próprio `.gitlab-ci.yml`
+validam as duas esteiras. Quando existe uma Merge Request aberta, o pipeline de
+MR substitui o pipeline redundante da branch.
+
+Depois que uma alteração de backend chega à branch padrão com os jobs verdes, o
+job manual `backend:deploy` fica disponível. Ele registra o environment
+`production` no GitLab e solicita ao Render o deploy do mesmo commit validado
+pelo pipeline. O Auto-Deploy do Render deve permanecer desligado.
+
+O Render constrói `backend/Dockerfile`, conecta ao PostgreSQL externo no Neon
+pela variável `DB_URL` e executa o Flyway durante a inicialização do Spring Boot.
+As credenciais do Neon e do Cloudflare R2 pertencem ao ambiente do Render, não
+ao GitLab CI. Configuração, operação e redeploy estão detalhados em
+[`docs/backend-deployment.md`](docs/backend-deployment.md).
+
 ## Fluxo de colaboração
 
 Todo trabalho deve partir da `main`, ser associado a uma issue e chegar à branch
@@ -216,6 +239,8 @@ de conclusão.
   [`docs/database-migrations.md`](docs/database-migrations.md);
 - Configuração e prova manual do storage de imagens:
   [`docs/image-storage.md`](docs/image-storage.md);
+- Pipeline e deploy do backend:
+  [`docs/backend-deployment.md`](docs/backend-deployment.md);
 - Requisitos e planejamento oficial: documentos mantidos pela equipe na
   disciplina;
 - Histórico de versões: [CHANGELOG.md](CHANGELOG.md).
