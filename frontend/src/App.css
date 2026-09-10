@@ -12,12 +12,14 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  min-width: 0;
 }
 
 .topbar { border-bottom: 1px solid #d6d8ca; padding-bottom: 18px; }
 .brand { display: inline-flex; align-items: center; gap: 9px; color: #21312c; font: 700 0.9rem/1.1 Arial, sans-serif; letter-spacing: 0.02em; text-decoration: none; }
 .brand-mark { display: grid; place-items: center; width: 30px; height: 30px; background: #e3a22d; color: #21312c; font-size: 0.72rem; }
 .environment-label, .eyebrow, .state-label { font: 700 0.66rem/1.2 Arial, sans-serif; letter-spacing: 0.1em; text-transform: uppercase; }
+.brand, .environment-label, .intro-copy, .state-content, .footer-note { overflow-wrap: anywhere; }
 .environment-label { color: #68756b; }
 .intro { max-width: 640px; padding: 74px 0 62px; }
 .eyebrow { margin: 0 0 12px; color: #bd5b35; }
@@ -52,3 +54,13 @@ h2 { margin-bottom: 0; font-size: 1.55rem; font-weight: 500; }
 }
 
 @media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
+
+@media (max-width: 420px) {
+  .app-shell { padding: 18px 14px 24px; }
+  .topbar, .section-heading, .ready-content { align-items: flex-start; gap: 10px; }
+  .environment-label { max-width: 38%; text-align: right; }
+  .intro { padding: 56px 0 44px; }
+  h1 { font-size: clamp(2.25rem, 16vw, 3.6rem); }
+  .status-panel { padding: 18px; }
+  .ready-content { flex-direction: column; }
+}
