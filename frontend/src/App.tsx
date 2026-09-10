@@ -5,7 +5,19 @@ type HealthResponse = {
   status: string
 }
 
-const apiUrl = import.meta.env.VITE_API_URL
+const apiUrl = import.meta.env.VITE_API_URL?.replace(/\/+$/, '')
+
+function getApiUrl() {
+  if (!apiUrl) {
+    throw new Error('VITE_API_URL não foi configurada.')
+  }
+
+  if (window.location.protocol === 'https:' && apiUrl.startsWith('http://')) {
+    throw new Error('A API de produção deve usar HTTPS.')
+  }
+
+  return apiUrl
+}
 
 function App() {
   const [health, setHealth] = useState<HealthResponse | null>(null)
@@ -18,11 +30,7 @@ function App() {
     setHealth(null)
 
     try {
-      if (!apiUrl) {
-        throw new Error('VITE_API_URL não foi configurada.')
-      }
-
-      const response = await fetch(`${apiUrl}/api/health`)
+      const response = await fetch(`${getApiUrl()}/api/health`)
 
       if (response.status !== 200) {
         throw new Error(`A API respondeu com o status HTTP ${response.status}.`)
