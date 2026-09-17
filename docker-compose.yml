@@ -1,0 +1,82 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: piec4-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-urban_reports}
+      POSTGRES_USER: ${DB_USERNAME:-urban_reports}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-local_development_only}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-urban_reports} -d ${DB_NAME:-urban_reports}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - piec4-net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: piec4-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-urban_reports}
+      DB_USERNAME: ${DB_USERNAME:-urban_reports}
+      DB_PASSWORD: ${DB_PASSWORD:-local_development_only}
+      BACKEND_PORT: 8080
+      IMAGE_STORAGE_ENDPOINT: ${IMAGE_STORAGE_ENDPOINT}
+      IMAGE_STORAGE_REGION: ${IMAGE_STORAGE_REGION:-auto}
+      IMAGE_STORAGE_BUCKET: ${IMAGE_STORAGE_BUCKET}
+      IMAGE_STORAGE_ACCESS_KEY: ${IMAGE_STORAGE_ACCESS_KEY}
+      IMAGE_STORAGE_SECRET_KEY: ${IMAGE_STORAGE_SECRET_KEY}
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 8080 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - piec4-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8080}
+    container_name: piec4-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "5173:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ > /dev/null || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - piec4-net
+
+networks:
+  piec4-net:
+    driver: bridge
+
+volumes:
+  db_data:
