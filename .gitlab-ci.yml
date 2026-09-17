@@ -95,6 +95,27 @@ frontend:lint:
         - frontend/**/*
         - .gitlab-ci.yml
 
+frontend:pages:
+  stage: deploy
+  image: node:20
+  script:
+    - cd frontend
+    - npm ci
+    - npm run build
+    - mv dist ../public
+  artifacts:
+    paths:
+      - public
+  pages:
+    publish: public
+  environment:
+    name: production
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - frontend/**/*
+        - .gitlab-ci.yml
+
 # ---------- DEPLOY (Render) ----------
 
 backend:deploy:
