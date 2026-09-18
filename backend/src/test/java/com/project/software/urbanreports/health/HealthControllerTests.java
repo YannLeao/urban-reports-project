@@ -12,12 +12,46 @@ import java.net.http.HttpClient;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = "app.cors.allowed-origins=http://localhost:5173,https://frontend.example.com")
 @Import(TestcontainersConfiguration.class)
 class HealthControllerTests {
 
     @LocalServerPort
     private int port;
+
+    @Test
+    void shouldAllowConfiguredFrontendOrigins() {
+        for (var origin : new String[]{"http://localhost:5173", "https://frontend.example.com"}) {
+            var response = restClient().get().uri("/api/health")
+                    .header("Origin", origin).retrieve().toEntity(HealthResponse.class);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getHeaders().getFirst("Access-Control-Allow-Origin"))
+                    .isEqualTo(origin);
+        }
+    }
+
+    @Test
+    void shouldRejectUnconfiguredFrontendOrigin() {
+        var status = restClient().get().uri("/api/health")
+                .header("Origin", "https://untrusted.example.com")
+                .exchange((request, response) -> response.getStatusCode().value());
+
+        assertThat(status).isEqualTo(403);
+    }
+
+    @Test
+    void shouldAllowCorsPreflightFromConfiguredFrontend() {
+        var response = restClient().options().uri("/api/health")
+                .header("Origin", "https://frontend.example.com")
+                .header("Access-Control-Request-Method", "GET")
+                .retrieve().toBodilessEntity();
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getHeaders().getFirst("Access-Control-Allow-Origin"))
+                .isEqualTo("https://frontend.example.com");
+    }
 
     @Test
     void shouldReturnApiHealth() {

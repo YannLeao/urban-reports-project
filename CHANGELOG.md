@@ -23,3 +23,9 @@ quando começar a publicar versões.
   pelo GitLab CI/CD.
 - Validação da primeira fase concluída: frontend público acessa o backend com
   sucesso e o ambiente orquestrado (banco, backend e frontend) está estável.
+
+### Corrigido
+
+- GitLab Pages publica o artefato validado pelo CI, com a URL HTTPS do backend
+  incorporada ao build e assets compatíveis com subpastas.
+- CORS do backend configurável para permitir a origem pública do frontend.

@@ -71,7 +71,11 @@ frontend:build:
   script:
     - cd frontend
     - npm ci --cache .npm
-    - npm run build
+    - node --test scripts/build-ci.test.mjs
+    - node scripts/build-ci.mjs
+  artifacts:
+    paths:
+      - frontend/dist/
   rules:
     - changes:
         - frontend/**/*
@@ -97,19 +101,22 @@ frontend:lint:
 
 frontend:pages:
   stage: deploy
-  image: node:20
+  image: alpine:3.22
+  needs:
+    - job: frontend:build
+      artifacts: true
+    - job: frontend:lint
+      artifacts: false
   script:
-    - cd frontend
-    - npm ci
-    - npm run build
-    - mv dist ../public
+    - test -s frontend/dist/index.html
   artifacts:
     paths:
-      - public
+      - frontend/dist/
   pages:
-    publish: public
+    publish: frontend/dist
   environment:
-    name: production
+    name: production/frontend
+    url: $CI_PAGES_URL
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
       changes:

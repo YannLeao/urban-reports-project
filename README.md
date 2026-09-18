@@ -207,6 +207,13 @@ executam build e lint do frontend. Alterações no próprio `.gitlab-ci.yml`
 validam as duas esteiras. Quando existe uma Merge Request aberta, o pipeline de
 MR substitui o pipeline redundante da branch.
 
+O frontend é publicado automaticamente no GitLab Pages depois de build e lint
+aprovados na branch padrão. `BACKEND_PRODUCTION_URL` é convertida em
+`VITE_API_URL` durante o build; o Pages reutiliza esse artefato sem recompilar.
+Configure `FRONTEND_ALLOWED_ORIGINS` no Render com a origem HTTPS do Pages para
+permitir a comunicação pelo navegador. Consulte
+[`docs/frontend-deployment.md`](docs/frontend-deployment.md).
+
 Depois que uma alteração de backend chega à branch padrão com os jobs verdes, o
 job manual `backend:deploy` fica disponível. Ele registra o environment
 `production` no GitLab e solicita ao Render o deploy do mesmo commit validado
