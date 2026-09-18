@@ -57,7 +57,7 @@ function App() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <a className="brand" href="/" aria-label="Urban Reports, início">
+        <a className="brand" href={import.meta.env.BASE_URL} aria-label="Urban Reports, início">
           <span className="brand-mark" aria-hidden="true">UR</span>
           <span>Urban Reports</span>
         </a>
