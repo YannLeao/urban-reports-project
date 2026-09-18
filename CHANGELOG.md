@@ -21,3 +21,9 @@ quando começar a publicar versões.
   não-root.
 - Pipeline seletivo por serviço e deploy manual do backend no Render, coordenado
   pelo GitLab CI/CD.
+
+### Corrigido
+
+- GitLab Pages publica o artefato validado pelo CI, com a URL HTTPS do backend
+  incorporada ao build e assets compatíveis com subpastas.
+- CORS do backend configurável para permitir a origem pública do frontend.
