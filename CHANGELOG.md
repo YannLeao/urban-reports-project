@@ -21,3 +21,5 @@ quando começar a publicar versões.
   não-root.
 - Pipeline seletivo por serviço e deploy manual do backend no Render, coordenado
   pelo GitLab CI/CD.
+- Validação da primeira fase concluída: frontend público acessa o backend com
+  sucesso e o ambiente orquestrado (banco, backend e frontend) está estável.
