@@ -1,7 +1,8 @@
 import { spawnSync } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
+import type { RunCommand } from './command.ts'
 
-export function resolveBuildEnvironment(environment) {
+export function resolveBuildEnvironment(environment: NodeJS.ProcessEnv) {
   const isDefaultBranch = Boolean(environment.CI_DEFAULT_BRANCH)
     && environment.CI_COMMIT_BRANCH === environment.CI_DEFAULT_BRANCH
   const backendUrl = environment.BACKEND_PRODUCTION_URL?.trim()
@@ -20,21 +21,23 @@ export function resolveBuildEnvironment(environment) {
     if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash) {
       throw new Error('BACKEND_PRODUCTION_URL must use HTTPS without credentials, query parameters or fragments.')
     }
+    if (url.hostname === 'localhost' || url.hostname.endsWith('.localhost')
+      || url.hostname === '[::1]' || url.hostname === '0.0.0.0' || url.hostname.startsWith('127.')) {
+      throw new Error('BACKEND_PRODUCTION_URL must be a public HTTPS URL, not a loopback address.')
+    }
   }
 
   return {
     ...environment,
     // Protected variables may be unavailable in MR pipelines. These builds are
-    // validation-only and are never published by the Pages job.
+    // validation-only and are never published by the Vercel job.
     VITE_API_URL: backendUrl?.replace(/\/+$/, '')
       || environment.VITE_API_URL || 'http://localhost:8080',
   }
 }
 
-export function runBuild(environment = process.env, spawn = spawnSync) {
-  // Preserve the Pages artifact base until hosting migration (#30).
-  // Relative assets do not guarantee refresh at nested URLs.
-  const result = spawn('pnpm', ['run', 'build', '--base=./'], {
+export function runBuild(environment: NodeJS.ProcessEnv = process.env, spawn: RunCommand = spawnSync) {
+  const result = spawn('pnpm', ['run', 'build', '--base=/'], {
     env: resolveBuildEnvironment(environment),
     stdio: 'inherit',
   })
@@ -46,7 +49,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   try {
     process.exitCode = runBuild()
   } catch (error) {
-    console.error(error.message)
+    console.error(error instanceof Error ? error.message : 'Unexpected build failure.')
     process.exitCode = 1
   }
 }

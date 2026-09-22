@@ -47,13 +47,21 @@
   para bootstrap do pnpm; não gerencia dependências/scripts do aplicativo.
 - Preserve TypeScript `strict`, lint e checagem de tipos. O script `build`
   executa `tsc -b && vite build`, além do script explícito `typecheck`.
+- Scripts e testes em `frontend/scripts/` usam `.ts`, NodeNext e strict via
+  `tsconfig.scripts.json`, incluído em `tsc -b`. Node 22 executa-os diretamente
+  por remoção de tipos; isso não substitui typecheck. Preserve imports `.ts`,
+  `erasableSyntaxOnly` e validação de JSON externo antes de uso.
 - `src/app/` compõe providers e rotas; `src/pages/` contém páginas;
   `src/lib/api.ts` concentra fetch/configuração; `src/features/health/` contém
   a consulta validada e sua apresentação. Use Router declarativo, Query para
   estado de servidor e Zod nas fronteiras conforme os padrões implementados.
 - Tailwind 4 está integrado ao Vite; não há design system compartilhado.
-  `pnpm test` executa node:test do script de CI e Vitest/Testing Library;
+  `pnpm test` executa node:test dos scripts de CI/deploy e Vitest/Testing Library;
   use cliente Query novo por caso e fetch controlado, sem API real.
+- Publicação frontend usa Vercel CLI fixada no lockfile, artefato Build Output
+  API v3 e job manual `frontend:deploy` da branch padrão protegida. Preserve
+  `needs` de build/lint/testes, rastreabilidade do pipeline e roteamento na saída
+  prebuilt. Não habilite previews ou deploy paralelo pela integração Git.
 - `VITE_API_URL` é incorporada no build. Valores `VITE_*` são públicos no bundle:
   nunca inclua credenciais. Alterar a URL exige recompilar o frontend.
 
@@ -97,7 +105,7 @@ storage conforme o guia; não reutilize placeholders como credenciais reais.
 
 `docker compose config` valida configuração, não serviços operacionais.
 `pnpm run build` não verifica todas as exigências de produção de
-`frontend/scripts/build-ci.mjs`; confira o script e o guia de deploy quando
+`frontend/scripts/build-ci.ts`; confira o script e o guia de deploy quando
 alterar esse fluxo. Configuração existente não comprova funcionamento remoto.
 
 Selecione verificações pela área e comportamento alterados, com testes

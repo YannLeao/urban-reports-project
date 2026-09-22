@@ -26,6 +26,18 @@ Como alternativa, se desejar uma instalação global na sua máquina, use
 e dependências do aplicativo são geridos por pnpm. Não use `pnpm@latest` no CI.
 O bootstrap CI/Docker lê a versão exata de `packageManager`.
 
+Os scripts de build, empacotamento, deploy e seus testes em `scripts/` usam
+TypeScript strict. `tsconfig.scripts.json` integra `tsc -b` (typecheck e build),
+usa `NodeNext`, tipos Node 22 e `erasableSyntaxOnly`. ESLint também aplica regras
+com informação de tipos aos scripts. Dados JSON externos entram como `unknown`
+e são validados com Zod antes de uso.
+
+O Node 22.23.2 executa esses `.ts` diretamente por remoção de tipos, sem `tsx`
+ou compilação intermediária. Essa execução **não verifica tipos** nem interpreta
+`tsconfig`: mantenha `pnpm run typecheck` no fluxo. Imports locais usam extensão
+`.ts`; enums, parameter properties e aliases de paths não são usados.
+Consulte o [suporte TypeScript do Node 22](https://nodejs.org/docs/latest-v22.x/api/typescript.html).
+
 `pnpm-lock.yaml` foi importado do lockfile npm antes de adicionar as ferramentas
 e é o único lockfile vigente. Instale com `--frozen-lockfile` para reproduzir a
 resolução; mudanças deliberadas de dependências devem atualizar esse arquivo.
@@ -42,7 +54,7 @@ Execute em `frontend/`, com o Node/pnpm acima e dependências instaladas:
 | `pnpm run dev` | Vite local; normalmente http://localhost:5173 |
 | `pnpm run lint` | ESLint |
 | `pnpm run typecheck` | TypeScript strict com `tsc -b` |
-| `pnpm test` | Testes finitos: Node do script de CI, depois Vitest |
+| `pnpm test` | Testes finitos: Node dos scripts de CI/deploy, depois Vitest |
 | `pnpm run build` | `tsc -b && vite build`, gerando `dist/` |
 | `pnpm run preview` | Servir o bundle local após build |
 
@@ -97,7 +109,7 @@ Vitest 3.2.7 foi selecionado por aceitar Vite 6, mantendo React 19 e TypeScript
 consulta real entre Query/fetch/schema, erros, recuperação e cancelamento.
 Cada caso usa QueryClient novo e fetch controlado, sem credenciais ou API real.
 O Vitest descobre somente `src/**/*.test.{ts,tsx}`; a suíte `node:test` em
-`scripts/build-ci.test.mjs` roda separadamente no mesmo `pnpm test`. Falha em
+`scripts/*.test.ts` roda separadamente no mesmo `pnpm test`. Falha em
 qualquer suíte devolve saída não zero. Não há E2E ou meta de cobertura.
 
 O job `frontend:build` compila pelo script de CI; `frontend:lint` executa lint,
@@ -124,16 +136,22 @@ com CORS adequado para essa prova. O Nginx existente aplica fallback para
 `index.html`. `docker compose config --quiet` apenas valida a configuração;
 não atesta serviços operacionais. Nenhum volume precisa ser removido.
 
-O Pages atual foi preservado, inclusive `--base=./` no build de CI. BrowserRouter
-não fornece fallback HTTP e a base relativa não garante assets em URLs
-aninhadas ou subpastas. Nginx local não é o servidor do Pages. O comportamento
-público do Pages permanece pendente de verificação; não se declara corrigido.
-A #30 implementará Vercel e verificará base, fallback, HTTPS, origens e acesso
-direto a `/status`. Não há configuração Vercel nesta entrega.
+O CI usa base `/` e empacota `dist` para Vercel com
+`node scripts/package-vercel.ts`. O pacote inclui regras SPA e 404 para assets
+ausentes; o deploy manual publica esse artefato após as verificações. `.vercel/`
+é gerado e ignorado pelo Git/Docker. Os testes Node cobrem build, empacotamento,
+roteamento declarado e rejeição de artefatos de outro pipeline. Confira o
+[guia de deploy](frontend-deployment.md) para variáveis e validação pública.
+Nginx local não comprova o roteamento da Vercel.
 
-Autenticação, modelo de negócio, identidade visual definitiva e publicação
-Vercel não foram implementados. Uma inspeção local em navegador não substitui
-aceite mobile completo, acessibilidade ou pipeline/deploy remoto.
+Compose recebe `FRONTEND_ALLOWED_ORIGINS` para o backend e `VITE_API_URL` como
+build arg frontend. Variáveis vêm do shell, `.env` da raiz ou `--env-file`, não
+automaticamente dos `.env` de cada aplicação. No celular, localhost aponta ao
+próprio dispositivo; use a API acessível e reconstrua o bundle.
+
+Autenticação, modelo de negócio e identidade visual definitiva não foram
+implementados. A primeira publicação Vercel e a integração pública exigem
+validação após merge; inspeção local não substitui pipeline/deploy remoto.
 
 Referências: [pnpm](https://pnpm.io/installation),
 [importação de lockfile](https://pnpm.io/cli/import),
