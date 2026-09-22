@@ -1,7 +1,8 @@
 import { cp, lstat, mkdir, readdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { resolveBuildEnvironment } from './build-ci.mjs'
+import { resolveBuildEnvironment } from './build-ci.ts'
+import type { Artifact } from './artifact.ts'
 
 export const routing = {
   version: 3,
@@ -13,7 +14,7 @@ export const routing = {
   ],
 }
 
-async function validateStaticTree(directory) {
+async function validateStaticTree(directory: string): Promise<void> {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     // Fail closed rather than uploading hidden config, source maps or symlinks.
     if (entry.name.startsWith('.') || entry.name.endsWith('.map')
@@ -24,7 +25,7 @@ async function validateStaticTree(directory) {
   }
 }
 
-export async function packageVercel(root = process.cwd(), environment = process.env) {
+export async function packageVercel(root = process.cwd(), environment: NodeJS.ProcessEnv = process.env) {
   const dist = join(root, 'dist')
   const output = join(root, '.vercel/output')
   try {
@@ -35,7 +36,7 @@ export async function packageVercel(root = process.cwd(), environment = process.
   }
   await validateStaticTree(dist)
   const resolved = resolveBuildEnvironment(environment)
-  const metadata = {
+  const metadata: Artifact = {
     commit: environment.CI_COMMIT_SHA ?? null,
     pipeline: environment.CI_PIPELINE_ID ?? null,
     ref: environment.CI_COMMIT_REF_NAME ?? null,
@@ -56,7 +57,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   try {
     await packageVercel()
   } catch (error) {
-    console.error(error.message)
+    console.error(error instanceof Error ? error.message : 'Unexpected packaging failure.')
     process.exitCode = 1
   }
 }

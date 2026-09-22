@@ -84,8 +84,8 @@ frontend:build:
   extends: .frontend
   stage: build
   script:
-    - node scripts/build-ci.mjs
-    - node scripts/package-vercel.mjs
+    - node scripts/build-ci.ts
+    - node scripts/package-vercel.ts
   artifacts:
     expire_in: 7 days
     paths:
@@ -113,7 +113,7 @@ frontend:deploy:
     - job: frontend:lint
       artifacts: false
   script:
-    - node scripts/deploy-vercel.mjs
+    - node scripts/deploy-vercel.ts
   environment:
     name: production/frontend
     url: $FRONTEND_PRODUCTION_URL

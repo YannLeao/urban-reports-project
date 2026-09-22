@@ -47,6 +47,10 @@
   para bootstrap do pnpm; não gerencia dependências/scripts do aplicativo.
 - Preserve TypeScript `strict`, lint e checagem de tipos. O script `build`
   executa `tsc -b && vite build`, além do script explícito `typecheck`.
+- Scripts e testes em `frontend/scripts/` usam `.ts`, NodeNext e strict via
+  `tsconfig.scripts.json`, incluído em `tsc -b`. Node 22 executa-os diretamente
+  por remoção de tipos; isso não substitui typecheck. Preserve imports `.ts`,
+  `erasableSyntaxOnly` e validação de JSON externo antes de uso.
 - `src/app/` compõe providers e rotas; `src/pages/` contém páginas;
   `src/lib/api.ts` concentra fetch/configuração; `src/features/health/` contém
   a consulta validada e sua apresentação. Use Router declarativo, Query para
@@ -101,7 +105,7 @@ storage conforme o guia; não reutilize placeholders como credenciais reais.
 
 `docker compose config` valida configuração, não serviços operacionais.
 `pnpm run build` não verifica todas as exigências de produção de
-`frontend/scripts/build-ci.mjs`; confira o script e o guia de deploy quando
+`frontend/scripts/build-ci.ts`; confira o script e o guia de deploy quando
 alterar esse fluxo. Configuração existente não comprova funcionamento remoto.
 
 Selecione verificações pela área e comportamento alterados, com testes

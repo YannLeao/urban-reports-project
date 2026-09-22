@@ -26,6 +26,18 @@ Como alternativa, se desejar uma instalação global na sua máquina, use
 e dependências do aplicativo são geridos por pnpm. Não use `pnpm@latest` no CI.
 O bootstrap CI/Docker lê a versão exata de `packageManager`.
 
+Os scripts de build, empacotamento, deploy e seus testes em `scripts/` usam
+TypeScript strict. `tsconfig.scripts.json` integra `tsc -b` (typecheck e build),
+usa `NodeNext`, tipos Node 22 e `erasableSyntaxOnly`. ESLint também aplica regras
+com informação de tipos aos scripts. Dados JSON externos entram como `unknown`
+e são validados com Zod antes de uso.
+
+O Node 22.23.2 executa esses `.ts` diretamente por remoção de tipos, sem `tsx`
+ou compilação intermediária. Essa execução **não verifica tipos** nem interpreta
+`tsconfig`: mantenha `pnpm run typecheck` no fluxo. Imports locais usam extensão
+`.ts`; enums, parameter properties e aliases de paths não são usados.
+Consulte o [suporte TypeScript do Node 22](https://nodejs.org/docs/latest-v22.x/api/typescript.html).
+
 `pnpm-lock.yaml` foi importado do lockfile npm antes de adicionar as ferramentas
 e é o único lockfile vigente. Instale com `--frozen-lockfile` para reproduzir a
 resolução; mudanças deliberadas de dependências devem atualizar esse arquivo.
@@ -97,7 +109,7 @@ Vitest 3.2.7 foi selecionado por aceitar Vite 6, mantendo React 19 e TypeScript
 consulta real entre Query/fetch/schema, erros, recuperação e cancelamento.
 Cada caso usa QueryClient novo e fetch controlado, sem credenciais ou API real.
 O Vitest descobre somente `src/**/*.test.{ts,tsx}`; a suíte `node:test` em
-`scripts/*.test.mjs` roda separadamente no mesmo `pnpm test`. Falha em
+`scripts/*.test.ts` roda separadamente no mesmo `pnpm test`. Falha em
 qualquer suíte devolve saída não zero. Não há E2E ou meta de cobertura.
 
 O job `frontend:build` compila pelo script de CI; `frontend:lint` executa lint,
@@ -125,7 +137,7 @@ com CORS adequado para essa prova. O Nginx existente aplica fallback para
 não atesta serviços operacionais. Nenhum volume precisa ser removido.
 
 O CI usa base `/` e empacota `dist` para Vercel com
-`node scripts/package-vercel.mjs`. O pacote inclui regras SPA e 404 para assets
+`node scripts/package-vercel.ts`. O pacote inclui regras SPA e 404 para assets
 ausentes; o deploy manual publica esse artefato após as verificações. `.vercel/`
 é gerado e ignorado pelo Git/Docker. Os testes Node cobrem build, empacotamento,
 roteamento declarado e rejeição de artefatos de outro pipeline. Confira o

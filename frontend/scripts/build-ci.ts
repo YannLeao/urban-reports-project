@@ -1,7 +1,8 @@
 import { spawnSync } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
+import type { RunCommand } from './command.ts'
 
-export function resolveBuildEnvironment(environment) {
+export function resolveBuildEnvironment(environment: NodeJS.ProcessEnv) {
   const isDefaultBranch = Boolean(environment.CI_DEFAULT_BRANCH)
     && environment.CI_COMMIT_BRANCH === environment.CI_DEFAULT_BRANCH
   const backendUrl = environment.BACKEND_PRODUCTION_URL?.trim()
@@ -35,7 +36,7 @@ export function resolveBuildEnvironment(environment) {
   }
 }
 
-export function runBuild(environment = process.env, spawn = spawnSync) {
+export function runBuild(environment: NodeJS.ProcessEnv = process.env, spawn: RunCommand = spawnSync) {
   const result = spawn('pnpm', ['run', 'build', '--base=/'], {
     env: resolveBuildEnvironment(environment),
     stdio: 'inherit',
@@ -48,7 +49,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   try {
     process.exitCode = runBuild()
   } catch (error) {
-    console.error(error.message)
+    console.error(error instanceof Error ? error.message : 'Unexpected build failure.')
     process.exitCode = 1
   }
 }

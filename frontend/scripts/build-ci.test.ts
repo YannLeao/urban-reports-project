@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { resolveBuildEnvironment, runBuild } from './build-ci.mjs'
+import { resolveBuildEnvironment, runBuild } from './build-ci.ts'
+import type { RunCommand } from './command.ts'
 
 const production = { CI_DEFAULT_BRANCH: 'main', CI_COMMIT_BRANCH: 'main' }
 
-test('maps the GitLab backend URL to Vite and removes trailing slashes', () => {
+await test('maps the GitLab backend URL to Vite and removes trailing slashes', () => {
   const result = resolveBuildEnvironment({
     ...production,
     BACKEND_PRODUCTION_URL: ' https://backend.example.com/// ',
@@ -13,7 +14,7 @@ test('maps the GitLab backend URL to Vite and removes trailing slashes', () => {
   assert.equal(result.VITE_API_URL, 'https://backend.example.com')
 })
 
-test('production rejects missing or blank backend variables', () => {
+await test('production rejects missing or blank backend variables', () => {
   for (const value of [undefined, '', '   ']) {
     assert.throws(() => resolveBuildEnvironment({
       ...production, BACKEND_PRODUCTION_URL: value,
@@ -21,13 +22,13 @@ test('production rejects missing or blank backend variables', () => {
   }
 })
 
-test('production does not silently use a local Vite URL', () => {
+await test('production does not silently use a local Vite URL', () => {
   assert.throws(() => resolveBuildEnvironment({
     ...production, VITE_API_URL: 'http://localhost:8080',
   }), /must be available/)
 })
 
-test('rejects malformed, insecure or credential-bearing URLs', () => {
+await test('rejects malformed, insecure or credential-bearing URLs', () => {
   for (const value of [
     '$BACKEND_PRODUCTION_URL', 'not-a-url', 'http://backend.example.com',
     'https://user:password@backend.example.com',
@@ -40,12 +41,12 @@ test('rejects malformed, insecure or credential-bearing URLs', () => {
   }
 })
 
-test('MR builds work without protected production variables', () => {
+await test('MR builds work without protected production variables', () => {
   const result = resolveBuildEnvironment({ CI_DEFAULT_BRANCH: 'main' })
   assert.equal(result.VITE_API_URL, 'http://localhost:8080')
 })
 
-test('validation branches preserve an explicitly configured Vite URL', () => {
+await test('validation branches preserve an explicitly configured Vite URL', () => {
   const result = resolveBuildEnvironment({
     CI_DEFAULT_BRANCH: 'main', CI_COMMIT_BRANCH: 'fix/pages',
     VITE_API_URL: 'http://localhost:9090',
@@ -54,26 +55,28 @@ test('validation branches preserve an explicitly configured Vite URL', () => {
 })
 
 
-test('invokes pnpm with the domain root base and validated environment', () => {
-  let invocation
+await test('invokes pnpm with the domain root base and validated environment', () => {
+  const invocations: Parameters<RunCommand>[] = []
   const status = runBuild({ ...production, BACKEND_PRODUCTION_URL: 'https://api.example.com/' }, (...args) => {
-    invocation = args
+    invocations.push(args)
     return { status: 0 }
   })
   assert.equal(status, 0)
+  const invocation = invocations[0]
+  assert.ok(invocation)
   assert.deepEqual(invocation.slice(0, 2), ['pnpm', ['run', 'build', '--base=/']])
-  assert.equal(invocation[2].env.VITE_API_URL, 'https://api.example.com')
+  assert.equal(invocation[2].env?.VITE_API_URL, 'https://api.example.com')
   assert.equal(invocation[2].stdio, 'inherit')
 })
 
-test('propagates failed, interrupted and unlaunchable builds', () => {
+await test('propagates failed, interrupted and unlaunchable builds', () => {
   assert.equal(runBuild({}, () => ({ status: 2 })), 2)
   assert.equal(runBuild({}, () => ({ status: null })), 1)
   assert.throws(() => runBuild({}, () => ({ error: new Error('spawn failed') })), /spawn failed/)
 })
 
-test('invalid production configuration prevents starting the build', () => {
+await test('invalid production configuration prevents starting the build', () => {
   let started = false
-  assert.throws(() => runBuild(production, () => { started = true }), /must be available/)
+  assert.throws(() => runBuild(production, () => { started = true; return { status: 0 } }), /must be available/)
   assert.equal(started, false)
 })

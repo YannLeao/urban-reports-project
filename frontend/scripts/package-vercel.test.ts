@@ -3,9 +3,11 @@ import { mkdtemp, mkdir, readFile, writeFile, readdir, rm, symlink } from 'node:
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { packageVercel } from './package-vercel.mjs'
+import type { TestContext } from 'node:test'
+import { z } from 'zod'
+import { packageVercel } from './package-vercel.ts'
 
-async function fixture(t) {
+async function fixture(t: TestContext) {
   const root = await mkdtemp(join(tmpdir(), 'vercel-package-'))
   t.after(() => rm(root, { recursive: true, force: true }))
   await mkdir(join(root, 'dist/assets'), { recursive: true })
@@ -14,7 +16,7 @@ async function fixture(t) {
   return root
 }
 
-test('packages static bytes deterministically, clears stale output and preserves project link', async (t) => {
+await test('packages static bytes deterministically, clears stale output and preserves project link', async (t) => {
   const root = await fixture(t)
   await mkdir(join(root, '.vercel/output'), { recursive: true })
   await writeFile(join(root, '.vercel/output/stale'), 'old')
@@ -32,7 +34,7 @@ test('packages static bytes deterministically, clears stale output and preserves
   assert.equal(await readFile(join(root, '.vercel/output/config.json'), 'utf8'), config)
 })
 
-test('rejects missing/empty dist and hidden files, source maps and symlinks', async (t) => {
+await test('rejects missing/empty dist and hidden files, source maps and symlinks', async (t) => {
   const root = await fixture(t)
   await writeFile(join(root, 'dist/index.html'), '')
   await assert.rejects(packageVercel(root, {}), /valid dist\/index.html/)
@@ -48,15 +50,21 @@ test('rejects missing/empty dist and hidden files, source maps and symlinks', as
   await assert.rejects(packageVercel(root, {}), /valid dist\/index.html/)
 })
 
-test('generated routes serve files first, reject absent assets and route pages to the SPA', async (t) => {
+await test('generated routes serve files first, reject absent assets and route pages to the SPA', async (t) => {
   const root = await fixture(t)
   await packageVercel(root, {})
-  const { routes, version } = JSON.parse(await readFile(join(root, '.vercel/output/config.json'), 'utf8'))
+  const { routes, version } = z.object({
+    version: z.literal(3),
+    routes: z.array(z.union([
+      z.object({ handle: z.literal('filesystem') }),
+      z.object({ src: z.string(), status: z.number().optional(), dest: z.string().optional() }),
+    ])),
+  }).parse(JSON.parse(await readFile(join(root, '.vercel/output/config.json'), 'utf8')))
   assert.equal(version, 3)
   // Contract simulation, not a substitute for the Vercel remote routing check.
-  function resolve(path) {
+  function resolve(path: string) {
     for (const route of routes) {
-      if (route.handle === 'filesystem') {
+      if ('handle' in route) {
         if (['/index.html', '/assets/app.js'].includes(path)) return path
       } else if (new RegExp(`^(?:${route.src})$`).test(path)) return route.status ?? route.dest
     }

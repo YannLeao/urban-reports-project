@@ -7,15 +7,19 @@ import tseslint from 'typescript-eslint'
 export default tseslint.config(
   { ignores: ['dist', '.vercel'] },
   {
-    files: ['scripts/**/*.mjs'],
-    extends: [js.configs.recommended],
+    files: ['scripts/**/*.ts'],
+    extends: [js.configs.recommended, ...tseslint.configs.recommendedTypeChecked],
     languageOptions: {
       globals: globals.node,
+      parserOptions: {
+        project: './tsconfig.scripts.json',
+        tsconfigRootDir: import.meta.dirname,
+      },
     },
   },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
-    files: ['**/*.{ts,tsx}'],
+    files: ['src/**/*.{ts,tsx}', 'vite.config.ts'],
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,

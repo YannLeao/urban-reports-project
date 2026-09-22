@@ -16,9 +16,11 @@ haver uma segunda publicação automática.
 Os jobs usam Node 22.23.2, pnpm 10.34.5 e `pnpm install --frozen-lockfile`.
 Vercel CLI 59.25.4 é uma devDependency exata, resolvida pelo mesmo lockfile.
 O bootstrap npm instala apenas o pnpm definido em `packageManager`.
+Os scripts `.ts` são executados diretamente pelo Node; a checagem strict é
+realizada por `tsc -b`, incluindo `tsconfig.scripts.json`, antes da publicação.
 
 `frontend:build` executa TypeScript/Vite uma vez, com base `/`, e empacota `dist`
-com `scripts/package-vercel.mjs`. A saída segue Build Output API v3:
+com `scripts/package-vercel.ts`. A saída segue Build Output API v3:
 
 - `.vercel/output/static/`: bytes de `dist`, incluindo HTML, JS e CSS;
 - `.vercel/output/config.json`: versão e regras de roteamento;
@@ -99,7 +101,7 @@ serviço só podem ser comprovadas no primeiro deploy autenticado.
 
 ## API, rotas e CORS
 
-`scripts/build-ci.mjs` converte `BACKEND_PRODUCTION_URL` em `VITE_API_URL`.
+`scripts/build-ci.ts` converte `BACKEND_PRODUCTION_URL` em `VITE_API_URL`.
 Na branch padrão, exige URL HTTPS válida sem credenciais, query ou fragmento,
 rejeitando também localhost e endereços de loopback.
 Não usa fallback local em produção. Nas branches/MRs sem variável protegida,
@@ -145,9 +147,9 @@ pnpm run lint
 pnpm run typecheck
 pnpm test
 CI_DEFAULT_BRANCH=main CI_COMMIT_BRANCH=main \
-  BACKEND_PRODUCTION_URL=https://api.example.com node scripts/build-ci.mjs
+  BACKEND_PRODUCTION_URL=https://api.example.com node scripts/build-ci.ts
 CI_DEFAULT_BRANCH=main CI_COMMIT_BRANCH=main \
-  BACKEND_PRODUCTION_URL=https://api.example.com node scripts/package-vercel.mjs
+  BACKEND_PRODUCTION_URL=https://api.example.com node scripts/package-vercel.ts
 ```
 
 Esse exemplo usa uma URL fictícia e gera evidência local, não artefato publicável
