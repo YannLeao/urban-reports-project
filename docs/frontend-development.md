@@ -42,7 +42,7 @@ Execute em `frontend/`, com o Node/pnpm acima e dependências instaladas:
 | `pnpm run dev` | Vite local; normalmente http://localhost:5173 |
 | `pnpm run lint` | ESLint |
 | `pnpm run typecheck` | TypeScript strict com `tsc -b` |
-| `pnpm test` | Testes finitos: Node do script de CI, depois Vitest |
+| `pnpm test` | Testes finitos: Node dos scripts de CI/deploy, depois Vitest |
 | `pnpm run build` | `tsc -b && vite build`, gerando `dist/` |
 | `pnpm run preview` | Servir o bundle local após build |
 
@@ -97,7 +97,7 @@ Vitest 3.2.7 foi selecionado por aceitar Vite 6, mantendo React 19 e TypeScript
 consulta real entre Query/fetch/schema, erros, recuperação e cancelamento.
 Cada caso usa QueryClient novo e fetch controlado, sem credenciais ou API real.
 O Vitest descobre somente `src/**/*.test.{ts,tsx}`; a suíte `node:test` em
-`scripts/build-ci.test.mjs` roda separadamente no mesmo `pnpm test`. Falha em
+`scripts/*.test.mjs` roda separadamente no mesmo `pnpm test`. Falha em
 qualquer suíte devolve saída não zero. Não há E2E ou meta de cobertura.
 
 O job `frontend:build` compila pelo script de CI; `frontend:lint` executa lint,
@@ -124,16 +124,22 @@ com CORS adequado para essa prova. O Nginx existente aplica fallback para
 `index.html`. `docker compose config --quiet` apenas valida a configuração;
 não atesta serviços operacionais. Nenhum volume precisa ser removido.
 
-O Pages atual foi preservado, inclusive `--base=./` no build de CI. BrowserRouter
-não fornece fallback HTTP e a base relativa não garante assets em URLs
-aninhadas ou subpastas. Nginx local não é o servidor do Pages. O comportamento
-público do Pages permanece pendente de verificação; não se declara corrigido.
-A #30 implementará Vercel e verificará base, fallback, HTTPS, origens e acesso
-direto a `/status`. Não há configuração Vercel nesta entrega.
+O CI usa base `/` e empacota `dist` para Vercel com
+`node scripts/package-vercel.mjs`. O pacote inclui regras SPA e 404 para assets
+ausentes; o deploy manual publica esse artefato após as verificações. `.vercel/`
+é gerado e ignorado pelo Git/Docker. Os testes Node cobrem build, empacotamento,
+roteamento declarado e rejeição de artefatos de outro pipeline. Confira o
+[guia de deploy](frontend-deployment.md) para variáveis e validação pública.
+Nginx local não comprova o roteamento da Vercel.
 
-Autenticação, modelo de negócio, identidade visual definitiva e publicação
-Vercel não foram implementados. Uma inspeção local em navegador não substitui
-aceite mobile completo, acessibilidade ou pipeline/deploy remoto.
+Compose recebe `FRONTEND_ALLOWED_ORIGINS` para o backend e `VITE_API_URL` como
+build arg frontend. Variáveis vêm do shell, `.env` da raiz ou `--env-file`, não
+automaticamente dos `.env` de cada aplicação. No celular, localhost aponta ao
+próprio dispositivo; use a API acessível e reconstrua o bundle.
+
+Autenticação, modelo de negócio e identidade visual definitiva não foram
+implementados. A primeira publicação Vercel e a integração pública exigem
+validação após merge; inspeção local não substitui pipeline/deploy remoto.
 
 Referências: [pnpm](https://pnpm.io/installation),
 [importação de lockfile](https://pnpm.io/cli/import),

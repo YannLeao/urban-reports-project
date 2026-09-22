@@ -16,3 +16,4 @@ um novo ADR que substitui o anterior.
 - [0003 — Cloudflare R2](0003-adotar-cloudflare-r2-para-armazenamento-de-imagens.md)
 - [0004 — Deploy backend pelo GitLab](0004-centralizar-deploy-do-backend-no-gitlab-ci-cd.md)
 - [0005 — Base frontend](0005-padronizar-base-frontend.md)
+- [0006 — Frontend na Vercel pelo GitLab](0006-publicar-frontend-na-vercel-pelo-gitlab.md)

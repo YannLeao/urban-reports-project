@@ -52,8 +52,12 @@
   a consulta validada e sua apresentação. Use Router declarativo, Query para
   estado de servidor e Zod nas fronteiras conforme os padrões implementados.
 - Tailwind 4 está integrado ao Vite; não há design system compartilhado.
-  `pnpm test` executa node:test do script de CI e Vitest/Testing Library;
+  `pnpm test` executa node:test dos scripts de CI/deploy e Vitest/Testing Library;
   use cliente Query novo por caso e fetch controlado, sem API real.
+- Publicação frontend usa Vercel CLI fixada no lockfile, artefato Build Output
+  API v3 e job manual `frontend:deploy` da branch padrão protegida. Preserve
+  `needs` de build/lint/testes, rastreabilidade do pipeline e roteamento na saída
+  prebuilt. Não habilite previews ou deploy paralelo pela integração Git.
 - `VITE_API_URL` é incorporada no build. Valores `VITE_*` são públicos no bundle:
   nunca inclua credenciais. Alterar a URL exige recompilar o frontend.
 

@@ -209,17 +209,21 @@ executam build, lint, typecheck e testes do frontend. Mudanças em
 `.gitlab-ci.yml` validam as duas esteiras. Quando existe uma Merge Request aberta, o pipeline de
 MR substitui o pipeline redundante da branch.
 
-O fluxo configurado publica o frontend no GitLab Pages depois de build, lint,
-typecheck e testes aprovados na branch padrão. `BACKEND_PRODUCTION_URL` é
-convertida em `VITE_API_URL` durante o build; o Pages reutiliza esse artefato sem recompilar.
-Configure `FRONTEND_ALLOWED_ORIGINS` no Render com a origem HTTPS do Pages para
-permitir a comunicação pelo navegador. Consulte
-[`docs/frontend-deployment.md`](docs/frontend-deployment.md).
+O fluxo configurado publica o frontend estático na Vercel por um job manual da
+branch padrão protegida, após build, lint, typecheck e testes. O GitLab converte
+`BACKEND_PRODUCTION_URL` em `VITE_API_URL`, empacota o bundle na Build Output API
+v3 e publica o mesmo artefato com `--prebuilt --prod`, sem recompilar. Não há
+previews automáticos nem publicação paralela pela integração Git da Vercel.
+Configure a origem canônica exata em `FRONTEND_ALLOWED_ORIGINS` no Render.
+Variáveis, proteção de jobs antigos e primeira publicação estão no
+[`guia de deploy frontend`](docs/frontend-deployment.md).
 
 A entrada é `/`, a consulta validada de health fica em `/status` e há página
-de não encontrado. O Pages e sua base relativa permanecem pendentes de validação
-de rotas diretas; a publicação na Vercel será implementada na #30. A base atual
-não entrega autenticação, modelo de negócio ou design system.
+de não encontrado. A saída Vercel inclui fallback SPA e 404 para assets ausentes.
+Acesso público, refresh e integração com a API devem ser comprovados após o merge
+na #30; configuração local não comprova deploy. O job Pages foi removido; o site
+antigo só deve ser desativado após validar a migração. A base não entrega
+autenticação, modelo de negócio ou design system.
 
 Depois que uma alteração de backend chega à branch padrão com os jobs verdes, o
 job manual `backend:deploy` fica disponível. Ele registra o environment
