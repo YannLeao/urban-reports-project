@@ -32,6 +32,7 @@ test('rejects malformed, insecure or credential-bearing URLs', () => {
     '$BACKEND_PRODUCTION_URL', 'not-a-url', 'http://backend.example.com',
     'https://user:password@backend.example.com',
     'https://backend.example.com?token=secret', 'https://backend.example.com#fragment',
+    'https://localhost', 'https://api.localhost', 'https://127.0.0.1', 'https://[::1]',
   ]) {
     assert.throws(() => resolveBuildEnvironment({
       ...production, BACKEND_PRODUCTION_URL: value,
@@ -53,14 +54,14 @@ test('validation branches preserve an explicitly configured Vite URL', () => {
 })
 
 
-test('invokes pnpm with the Pages base and validated environment', () => {
+test('invokes pnpm with the domain root base and validated environment', () => {
   let invocation
   const status = runBuild({ ...production, BACKEND_PRODUCTION_URL: 'https://api.example.com/' }, (...args) => {
     invocation = args
     return { status: 0 }
   })
   assert.equal(status, 0)
-  assert.deepEqual(invocation.slice(0, 2), ['pnpm', ['run', 'build', '--base=./']])
+  assert.deepEqual(invocation.slice(0, 2), ['pnpm', ['run', 'build', '--base=/']])
   assert.equal(invocation[2].env.VITE_API_URL, 'https://api.example.com')
   assert.equal(invocation[2].stdio, 'inherit')
 })

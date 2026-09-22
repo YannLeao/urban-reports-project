@@ -85,9 +85,12 @@ frontend:build:
   stage: build
   script:
     - node scripts/build-ci.mjs
+    - node scripts/package-vercel.mjs
   artifacts:
+    expire_in: 7 days
     paths:
-      - frontend/dist/
+      - frontend/.vercel/output/
+      - frontend/.vercel/artifact.json
 
 frontend:lint:
   extends: .frontend
@@ -99,30 +102,29 @@ frontend:lint:
     - pnpm run typecheck
     - pnpm test
 
-frontend:pages:
+frontend:deploy:
+  extends: .frontend
   stage: deploy
-  image: alpine:3.22
+  resource_group: production-frontend
+  interruptible: false
   needs:
     - job: frontend:build
       artifacts: true
     - job: frontend:lint
       artifacts: false
   script:
-    - test -s frontend/dist/index.html
-  artifacts:
-    paths:
-      - frontend/dist/
-  pages:
-    publish: frontend/dist
+    - node scripts/deploy-vercel.mjs
   environment:
     name: production/frontend
-    url: $CI_PAGES_URL
+    url: $FRONTEND_PRODUCTION_URL
   rules:
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_REF_PROTECTED == "true"'
       changes:
         - frontend/**/*
         - docker-compose.yml
         - .gitlab-ci.yml
+      when: manual
+      allow_failure: false
 
 # ---------- DEPLOY (Render) ----------
 
