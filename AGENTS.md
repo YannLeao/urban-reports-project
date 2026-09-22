@@ -13,8 +13,9 @@
 - Leia [CONTRIBUTING.md](CONTRIBUTING.md), [README.md](README.md) e os
   [ADRs](docs/adr/README.md) e guias pertinentes antes de implementar:
   [banco](docs/database-migrations.md), [imagens](docs/image-storage.md),
-  [deploy backend](docs/backend-deployment.md) e
-  [deploy frontend](docs/frontend-deployment.md).
+  [deploy backend](docs/backend-deployment.md),
+  [deploy frontend](docs/frontend-deployment.md) e
+  [desenvolvimento frontend](docs/frontend-development.md).
 - Tarefas locais ficam em `temp/sprint-<n>/tasks/#<issue>-task.md`. `temp/` é
   ignorado pelo Git: não force seu versionamento. Registre decisões duráveis em
   `docs/` e evidências de entrega na MR/issue; as instruções permanentes não
@@ -41,14 +42,18 @@
 
 ## Frontend
 
-- O fluxo vigente usa React/TypeScript/Vite, npm e `frontend/package-lock.json`.
-  Preserve instalação pelo lockfile. Atualize estas instruções quando uma tarefa
-  implementar a troca de gerenciador; não antecipe essa mudança.
+- Use Node 22.23.2 (`frontend/.node-version`) e pnpm 10.34.5
+  (`packageManager`), com `pnpm-lock.yaml` e instalação frozen. npm serve apenas
+  para bootstrap do pnpm; não gerencia dependências/scripts do aplicativo.
 - Preserve TypeScript `strict`, lint e checagem de tipos. O script `build`
-  executa `tsc -b && vite build`.
-- Não há script `test`, Router, TanStack Query ou design system compartilhado
-  implementados. Confira `package.json` e a árvore atual antes de documentar
-  comandos ou componentes como disponíveis.
+  executa `tsc -b && vite build`, além do script explícito `typecheck`.
+- `src/app/` compõe providers e rotas; `src/pages/` contém páginas;
+  `src/lib/api.ts` concentra fetch/configuração; `src/features/health/` contém
+  a consulta validada e sua apresentação. Use Router declarativo, Query para
+  estado de servidor e Zod nas fronteiras conforme os padrões implementados.
+- Tailwind 4 está integrado ao Vite; não há design system compartilhado.
+  `pnpm test` executa node:test do script de CI e Vitest/Testing Library;
+  use cliente Query novo por caso e fetch controlado, sem API real.
 - `VITE_API_URL` é incorporada no build. Valores `VITE_*` são públicos no bundle:
   nunca inclua credenciais. Alterar a URL exige recompilar o frontend.
 
@@ -75,11 +80,12 @@ exigem acesso aos respectivos repositórios quando não estiverem em cache.
 
 | Finalidade | Diretório | Comando | Pré-requisitos |
 | --- | --- | --- | --- |
-| Instalar frontend pelo lockfile | `frontend/` | `npm ci` | Node compatível com as dependências, npm e lockfile |
-| Desenvolvimento frontend | `frontend/` | `npm run dev` | Dependências instaladas; `VITE_API_URL` e API acessível para consultar health |
-| Lint frontend | `frontend/` | `npm run lint` | Node/npm e dependências instaladas |
-| Tipos e build frontend | `frontend/` | `npm run build` | Node/npm e dependências instaladas; URL configurada para o bundle de destino |
-| Teste do script de CI | `frontend/` | `node --test scripts/build-ci.test.mjs` | Node com suporte a `node:test`; não exige API real |
+| Instalar frontend pelo lockfile | `frontend/` | `pnpm install --frozen-lockfile` | Node/pnpm fixados e lockfile |
+| Desenvolvimento frontend | `frontend/` | `pnpm run dev` | Dependências instaladas; `VITE_API_URL` e API acessível para consultar health |
+| Lint frontend | `frontend/` | `pnpm run lint` | Node/pnpm e dependências instaladas |
+| Tipos e build frontend | `frontend/` | `pnpm run build` | Node/pnpm e dependências instaladas; URL configurada para o bundle de destino |
+| Tipos frontend | `frontend/` | `pnpm run typecheck` | Node/pnpm e dependências instaladas |
+| Testes frontend e script de CI | `frontend/` | `pnpm test` | Node/pnpm e dependências instaladas; sem API real |
 | Verificação backend | `backend/` | `./mvnw verify` | JDK 21, Wrapper e Docker disponível para Testcontainers |
 | Desenvolvimento backend | `backend/` | `./mvnw spring-boot:run` | JDK 21, Wrapper, PostgreSQL acessível e configuração de conexão |
 | Validação estática do Compose | raiz | `docker compose config --quiet` | Docker CLI com Compose e variáveis de interpolação pertinentes |
@@ -90,7 +96,7 @@ desativada e operações de imagem ficam indisponíveis. Para usá-la, configure
 storage conforme o guia; não reutilize placeholders como credenciais reais.
 
 `docker compose config` valida configuração, não serviços operacionais.
-`npm run build` não verifica todas as exigências de produção de
+`pnpm run build` não verifica todas as exigências de produção de
 `frontend/scripts/build-ci.mjs`; confira o script e o guia de deploy quando
 alterar esse fluxo. Configuração existente não comprova funcionamento remoto.
 
