@@ -8,12 +8,17 @@ frontend:build → frontend:lint → frontend:pages
 frontend/dist/ ── mesmo artefato ─────┘
 ```
 
-O CI instala as dependências, testa a configuração do build e executa TypeScript
-e Vite. O job `frontend:pages` depende de build e lint aprovados, recebe
+O CI usa Node 22.23.2 e o pnpm 10.34.5 fixado em `packageManager`, instalado
+por bootstrap npm. Ambos os jobs instalam com `pnpm install --frozen-lockfile`;
+o cache de `.pnpm-store/` usa chave pelo lockfile e é opcional.
+`frontend:build` executa o script de build (TypeScript e Vite).
+`frontend:lint` executa lint, typecheck e `pnpm test` (Node e Vitest).
+O job `frontend:pages` depende dessas verificações aprovadas, recebe
 `frontend/dist/` como artefato e publica esse diretório sem recompilar.
 
 O Pages é publicado automaticamente apenas na branch padrão, quando há mudanças
-em `frontend/` ou `.gitlab-ci.yml`. Merge Requests validam build e lint, mas não
+em `frontend/`, `docker-compose.yml` ou `.gitlab-ci.yml`. Merge Requests
+executam as verificações frontend, mas não
 publicam. Backend e frontend mantêm dependências separadas: o deploy manual do
 backend não bloqueia o Pages.
 
@@ -47,10 +52,15 @@ variáveis `VITE_*`, pois seus valores ficam visíveis ao usuário.
 
 ## Caminhos e environment
 
-O build de CI usa `--base=./`, permitindo carregar assets tanto em domínios
-exclusivos do Pages quanto em URLs de projeto com subpasta. O link inicial da
-aplicação respeita essa base. O build local e a imagem Docker mantêm seus
-comandos existentes.
+O build de CI preserva `--base=./`, agora invocado por pnpm. A aplicação usa
+BrowserRouter com `/`, `/status` e não encontrado. Base relativa não garante
+assets em URLs aninhadas/subpastas; BrowserRouter não fornece fallback HTTP.
+O build local/Docker usa a base padrão e o Nginx tem fallback para `index.html`.
+Isso não comprova acesso direto ou refresh no Pages, cujo servidor é outro.
+
+A publicação existente foi preservada, sem declaração de correção do Pages.
+Vercel será implementada na #30, incluindo base, fallback, HTTPS, origem e
+acesso direto a `/status`; nenhuma configuração Vercel está incluída aqui.
 
 O environment do frontend é `production/frontend`, com URL `$CI_PAGES_URL`,
 separado do environment `production` do backend. Nenhum Deploy Hook ou segredo
@@ -75,11 +85,12 @@ alteração. Uma URL correta no bundle não elimina um bloqueio CORS.
 
 ## Validar
 
-Localmente, em `frontend/`:
+Localmente, em `frontend/`, após o [bootstrap e instalação](frontend-development.md):
 
 ```bash
-node --test scripts/build-ci.test.mjs
-npm run lint
+pnpm run lint
+pnpm run typecheck
+pnpm test
 CI_DEFAULT_BRANCH=main CI_COMMIT_BRANCH=main \
   BACKEND_PRODUCTION_URL=https://api.exemplo.com node scripts/build-ci.mjs
 ```
@@ -87,7 +98,8 @@ CI_DEFAULT_BRANCH=main CI_COMMIT_BRANCH=main \
 Depois do merge:
 
 1. Confirme `frontend:build`, `frontend:lint` e `frontend:pages` verdes.
-2. Abra o endereço de **Deploy > Pages** e confirme que os assets carregam.
+2. Abra o endereço de **Deploy > Pages**, navegue a `/status` e confira os assets.
+   Teste separadamente acesso direto e refresh; registre falhas de fallback/base.
 3. Na aba Network do navegador, verifique que `/api/health` é solicitado à URL
    HTTPS do backend e não a localhost.
 4. Confirme o retorno HTTP 200, o header `Access-Control-Allow-Origin` para a

@@ -9,3 +9,10 @@ Os arquivos usam numeração sequencial e título curto, por exemplo
 reescrito para esconder decisões anteriores; uma mudança deve ser registrada em
 um novo ADR que substitui o anterior.
 
+## Índice
+
+- [0001 — Monorepositório](0001-adotar-monorepositorio.md)
+- [0002 — PostgreSQL, Flyway e Testcontainers](0002-adotar-postgresql-flyway-testcontainers.md)
+- [0003 — Cloudflare R2](0003-adotar-cloudflare-r2-para-armazenamento-de-imagens.md)
+- [0004 — Deploy backend pelo GitLab](0004-centralizar-deploy-do-backend-no-gitlab-ci-cd.md)
+- [0005 — Base frontend](0005-padronizar-base-frontend.md)

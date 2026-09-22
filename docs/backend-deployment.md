@@ -32,7 +32,7 @@ Os jobs existentes foram preservados:
 | Caminho alterado | Jobs executados |
 |---|---|
 | `backend/**/*` | `backend:build`, `backend:test` |
-| `frontend/**/*` | `frontend:build`, `frontend:lint` |
+| `frontend/**/*` ou `docker-compose.yml` | `frontend:build`, `frontend:lint` (inclui tipos e testes) |
 | `.gitlab-ci.yml` | todos os jobs de build e teste |
 
 Os testes do backend continuam usando Docker-in-Docker para o PostgreSQL do

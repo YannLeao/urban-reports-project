@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { resolveBuildEnvironment } from './build-ci.mjs'
+import { resolveBuildEnvironment, runBuild } from './build-ci.mjs'
 
 const production = { CI_DEFAULT_BRANCH: 'main', CI_COMMIT_BRANCH: 'main' }
 
@@ -50,4 +50,29 @@ test('validation branches preserve an explicitly configured Vite URL', () => {
     VITE_API_URL: 'http://localhost:9090',
   })
   assert.equal(result.VITE_API_URL, 'http://localhost:9090')
+})
+
+
+test('invokes pnpm with the Pages base and validated environment', () => {
+  let invocation
+  const status = runBuild({ ...production, BACKEND_PRODUCTION_URL: 'https://api.example.com/' }, (...args) => {
+    invocation = args
+    return { status: 0 }
+  })
+  assert.equal(status, 0)
+  assert.deepEqual(invocation.slice(0, 2), ['pnpm', ['run', 'build', '--base=./']])
+  assert.equal(invocation[2].env.VITE_API_URL, 'https://api.example.com')
+  assert.equal(invocation[2].stdio, 'inherit')
+})
+
+test('propagates failed, interrupted and unlaunchable builds', () => {
+  assert.equal(runBuild({}, () => ({ status: 2 })), 2)
+  assert.equal(runBuild({}, () => ({ status: null })), 1)
+  assert.throws(() => runBuild({}, () => ({ error: new Error('spawn failed') })), /spawn failed/)
+})
+
+test('invalid production configuration prevents starting the build', () => {
+  let started = false
+  assert.throws(() => runBuild(production, () => { started = true }), /must be available/)
+  assert.equal(started, false)
 })

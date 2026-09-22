@@ -1,0 +1,115 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { act, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router'
+import { beforeEach, expect, test, vi } from 'vitest'
+import App from '../App'
+
+const fetchMock = vi.fn<typeof fetch>()
+
+beforeEach(() => {
+  fetchMock.mockReset()
+  vi.stubGlobal('fetch', fetchMock)
+  vi.stubEnv('VITE_API_URL', 'https://api.example.com/base///')
+})
+
+function renderPage(path = '/') {
+  const client = new QueryClient({ defaultOptions: { queries: { gcTime: 0 } } })
+  return render(
+    <QueryClientProvider client={client}>
+      <MemoryRouter initialEntries={[path]}><App /></MemoryRouter>
+    </QueryClientProvider>,
+  )
+}
+
+test('navigates from home to status and back without fetching on home', async () => {
+  fetchMock.mockResolvedValue(Response.json({ status: 'UP' }))
+  const user = userEvent.setup()
+  renderPage()
+  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Tudo começa')
+  expect(fetchMock).not.toHaveBeenCalled()
+  await user.click(screen.getByRole('link', { name: 'Verificar API' }))
+  expect(await screen.findByText('API operacional')).toBeVisible()
+  await user.click(screen.getByRole('link', { name: 'Início' }))
+  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Tudo começa')
+})
+
+test('direct status route shows loading then validates health and preserves the API base path', async () => {
+  let resolve!: (response: Response) => void
+  fetchMock.mockReturnValue(new Promise<Response>((done) => { resolve = done }))
+  renderPage('/status')
+  expect(screen.getByText('Conectando à API...')).toBeVisible()
+  expect(fetchMock).toHaveBeenCalledWith('https://api.example.com/base/api/health', {
+    signal: expect.any(AbortSignal),
+  })
+  await act(async () => { resolve(Response.json({ status: 'UP' })) })
+  expect(await screen.findByText('API operacional')).toBeVisible()
+  expect(screen.getByText('UP')).toBeVisible()
+  expect(fetchMock).toHaveBeenCalledTimes(1)
+})
+
+test('unknown route offers a return to home', async () => {
+  const user = userEvent.setup()
+  renderPage('/nao-existe')
+  expect(screen.getByRole('heading', { name: 'Página não encontrada' })).toBeVisible()
+  await user.click(screen.getByRole('link', { name: 'Voltar ao início' }))
+  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Tudo começa')
+  expect(fetchMock).not.toHaveBeenCalled()
+})
+
+test.each(['http', 'network'])('%s failure is visible and manual retry recovers', async (failure) => {
+  if (failure === 'http') fetchMock.mockResolvedValueOnce(new Response(null, { status: 503 }))
+  else fetchMock.mockRejectedValueOnce(new TypeError('internal network details'))
+  fetchMock.mockResolvedValueOnce(Response.json({ status: 'UP' }))
+  const user = userEvent.setup()
+  renderPage('/status')
+  const alert = await screen.findByRole('alert')
+  expect(alert).toHaveTextContent(failure === 'http' ? 'HTTP 503' : 'Não foi possível conectar à API')
+  expect(alert).not.toHaveTextContent('internal network details')
+  expect(fetchMock).toHaveBeenCalledTimes(1)
+  await user.click(screen.getByRole('button', { name: 'Tentar novamente' }))
+  expect(await screen.findByText('API operacional')).toBeVisible()
+  expect(fetchMock).toHaveBeenCalledTimes(2)
+})
+
+test.each([{ status: 123 }, {}, { status: 'DOWN' }, null])('rejects incompatible successful payload %j', async (payload) => {
+  fetchMock.mockResolvedValue(Response.json(payload))
+  renderPage('/status')
+  expect(await screen.findByRole('alert')).toHaveTextContent('A API retornou uma resposta inválida.')
+  expect(screen.queryByText('API operacional')).not.toBeInTheDocument()
+})
+
+test('invalid JSON is a comprehensible error', async () => {
+  fetchMock.mockResolvedValue(new Response('<html>proxy error</html>'))
+  renderPage('/status')
+  expect(await screen.findByRole('alert')).toHaveTextContent('A API retornou uma resposta inválida.')
+})
+
+test.each([
+  [undefined, 'não foi configurada'],
+  ['', 'não foi configurada'],
+  ['not-a-url', 'URL HTTP ou HTTPS válida'],
+  ['ftp://api.example.com', 'URL HTTP ou HTTPS válida'],
+  ['https://user:secret@api.example.com', 'URL HTTP ou HTTPS válida'],
+  ['https://api.example.com?token=secret', 'URL HTTP ou HTTPS válida'],
+  ['https://api.example.com#fragment', 'URL HTTP ou HTTPS válida'],
+  ['http://api.example.com', 'A API de produção deve usar HTTPS'],
+])('invalid configuration %s fails only on status, without a request', async (url, message) => {
+  vi.stubEnv('VITE_API_URL', url)
+  const user = userEvent.setup()
+  renderPage()
+  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Tudo começa')
+  await user.click(screen.getByRole('link', { name: 'Verificar API' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent(message)
+  expect(fetchMock).not.toHaveBeenCalled()
+})
+
+test('leaving status cancels the request through the query signal', async () => {
+  fetchMock.mockReturnValue(new Promise(() => {}))
+  const user = userEvent.setup()
+  renderPage('/status')
+  const signal = fetchMock.mock.calls[0][1]?.signal
+  expect(signal?.aborted).toBe(false)
+  await user.click(screen.getByRole('link', { name: 'Início' }))
+  await waitFor(() => expect(signal?.aborted).toBe(true))
+})

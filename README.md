@@ -39,8 +39,9 @@ respectivos cards da Sprint 1 forem integrados.
 - Git;
 - Java 21;
 - Docker com Docker Compose;
-- Node.js em versão LTS;
-- gerenciador de pacotes definido pelo projeto frontend.
+- Node.js 22.23.2 (`frontend/.node-version`);
+- pnpm 10.34.5 (`frontend/package.json#packageManager`); bootstrap no
+  [guia frontend](docs/frontend-development.md).
 
 O Docker também é necessário para os testes de integração do backend, que criam
 um PostgreSQL descartável por meio do Testcontainers.
@@ -106,8 +107,8 @@ docker start urban-reports-postgres
 
 ## Comandos de desenvolvimento
 
-Os comandos abaixo representam o fluxo acordado e serão habilitados pelos cards
-correspondentes da Sprint 1:
+Execute cada grupo de comandos no diretório indicado, partindo da raiz do
+repositório. Para o frontend, prepare Node/pnpm conforme o guia:
 
 ```bash
 # Backend
@@ -117,10 +118,10 @@ cd backend
 # Testes do backend
 ./mvnw test
 
-# Frontend (após a inicialização do React)
+# Frontend (Node/pnpm conforme o guia)
 cd frontend
-npm install
-npm run dev
+pnpm install --frozen-lockfile
+pnpm run dev
 
 # Ambiente completo (após a criação do Compose)
 docker compose up --build
@@ -203,16 +204,22 @@ local pela IDE ou por `./mvnw spring-boot:run`.
 
 O GitLab CI valida apenas os serviços afetados por cada alteração. Mudanças em
 `backend/` executam compile e testes do backend; mudanças em `frontend/`
-executam build e lint do frontend. Alterações no próprio `.gitlab-ci.yml`
-validam as duas esteiras. Quando existe uma Merge Request aberta, o pipeline de
+executam build, lint, typecheck e testes do frontend. Mudanças em
+`docker-compose.yml` também acionam a validação frontend. Alterações no próprio
+`.gitlab-ci.yml` validam as duas esteiras. Quando existe uma Merge Request aberta, o pipeline de
 MR substitui o pipeline redundante da branch.
 
-O frontend é publicado automaticamente no GitLab Pages depois de build e lint
-aprovados na branch padrão. `BACKEND_PRODUCTION_URL` é convertida em
-`VITE_API_URL` durante o build; o Pages reutiliza esse artefato sem recompilar.
+O fluxo configurado publica o frontend no GitLab Pages depois de build, lint,
+typecheck e testes aprovados na branch padrão. `BACKEND_PRODUCTION_URL` é
+convertida em `VITE_API_URL` durante o build; o Pages reutiliza esse artefato sem recompilar.
 Configure `FRONTEND_ALLOWED_ORIGINS` no Render com a origem HTTPS do Pages para
 permitir a comunicação pelo navegador. Consulte
 [`docs/frontend-deployment.md`](docs/frontend-deployment.md).
+
+A entrada é `/`, a consulta validada de health fica em `/status` e há página
+de não encontrado. O Pages e sua base relativa permanecem pendentes de validação
+de rotas diretas; a publicação na Vercel será implementada na #30. A base atual
+não entrega autenticação, modelo de negócio ou design system.
 
 Depois que uma alteração de backend chega à branch padrão com os jobs verdes, o
 job manual `backend:deploy` fica disponível. Ele registra o environment
@@ -241,6 +248,7 @@ de conclusão.
 
 ## Documentação
 
+- Desenvolvimento frontend: [`docs/frontend-development.md`](docs/frontend-development.md);
 - Decisões arquiteturais: [`docs/adr`](docs/adr);
 - Convenções e validação de migrations:
   [`docs/database-migrations.md`](docs/database-migrations.md);
