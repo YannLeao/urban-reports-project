@@ -3,7 +3,6 @@
   min-height: 100vh;
   margin: 0 auto;
   padding: 22px 20px 28px;
-  overflow: hidden;
   background: #f2efe8;
 }
 
@@ -64,3 +63,6 @@ h2 { margin-bottom: 0; font-size: 1.55rem; font-weight: 500; }
   .status-panel { padding: 18px; }
   .ready-content { flex-direction: column; }
 }
+
+.action-button { display: inline-block; text-decoration: none; }
+.topbar nav { font: 0.9rem/1.5 Arial, sans-serif; }
