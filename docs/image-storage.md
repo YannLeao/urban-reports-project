@@ -87,7 +87,11 @@ da aplicação.
 
 Por fim, tente um arquivo de outro formato, conteúdo disfarçado e um arquivo
 maior que 5 MB; todos devem ser rejeitados antes do envio ao bucket. O Swagger
-em `http://localhost:8080/swagger` também documenta os dois endpoints técnicos.
+em `http://localhost:8080/swagger` também documenta os dois endpoints técnicos,
+mas exige iniciar explicitamente com
+`./mvnw spring-boot:run -Dspring-boot.run.profiles=dev`. Os comandos curl acima
+funcionam independentemente da documentação; não é necessário habilitá-la
+em produção.
 
 ## Testes automatizados
 
