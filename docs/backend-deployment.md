@@ -79,6 +79,23 @@ no GitLab, porque o job de deploy só chama o hook.
 - Docker context/root directory: `backend` conforme a configuração do serviço.
 - Auto-Deploy: `Off`.
 - Health Check Path: `/api/health`.
+- `SPRING_PROFILES_ACTIVE=prod`: documentação explicitamente desabilitada.
+
+Antes de publicar, confira no painel os perfis existentes e o papel de qualquer
+perfil adicional necessário. Não remova perfis desconhecidos sem análise; `dev`
+e `prod` são alternativas e não devem ser combinados. Revise overrides de
+`springdoc.api-docs.enabled` e `springdoc.swagger-ui.enabled` (inclusive variáveis
+`SPRINGDOC_API_DOCS_ENABLED` / `SPRINGDOC_SWAGGER_UI_ENABLED`), argumentos Java,
+`SPRING_APPLICATION_JSON` e arquivos externos. Remova ativações ou mantenha ambas
+as propriedades em `false`. Não copie valores privados para logs ou MR.
+A precedência de configuração permite overrides administrativos: o perfil não
+impõe uma proibição absoluta nem autentica endpoints.
+
+A base sem perfil também desabilita ambas as flags. Somente `dev` habilita a
+documentação local em `/swagger`, `/v3/api-docs` e `/v3/api-docs.yaml`. Use Java 21
+e `./mvnw spring-boot:run -Dspring-boot.run.profiles=dev` em `backend/`, com banco
+local configurado. A mesma imagem Docker atende os ambientes. Não ative `dev`
+no Dockerfile ou no job de deploy. Veja a matriz no [README](../README.md).
 
 O backend aceita uma JDBC URL completa por `DB_URL`, incluindo os parâmetros de
 TLS exigidos pelo Neon. Quando `DB_URL` não é definida, permanece disponível o
@@ -100,12 +117,41 @@ Depois do merge de uma alteração de backend:
 
 ```bash
 curl --fail --show-error --silent "$BACKEND_PRODUCTION_URL/api/health"
-curl --fail --show-error --silent "$BACKEND_PRODUCTION_URL/v3/api-docs"
 ```
 
-Abra também `$BACKEND_PRODUCTION_URL/swagger`. Nos logs do Render, confirme que
-o Flyway validou o histórico ou aplicou apenas migrations novas e que a conexão
-utiliza o Neon.
+Verifique as rotas abaixo sem seguir redirects; cada uma deve responder **404**:
+
+```bash
+for path in /swagger /swagger-ui/ /swagger-ui.html \
+  /v3/api-docs /v3/api-docs.yaml /v3/api-docs/swagger-config; do
+  code=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+    "$BACKEND_PRODUCTION_URL$path") || exit 1
+  printf '%s %s\n' "$path" "$code"
+  test "$code" = 404 || exit 1
+done
+for asset in index.html swagger-initializer.js swagger-ui.css \
+  swagger-ui-bundle.js swagger-ui-standalone-preset.js oauth2-redirect.html; do
+  for prefix in /swagger-ui /webjars/swagger-ui /webjars/swagger-ui/5.32.11; do
+    code=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+      "$BACKEND_PRODUCTION_URL$prefix/$asset") || exit 1
+    printf '%s/%s %s\n' "$prefix" "$asset" "$code"
+    test "$code" = 404 || exit 1
+  done
+done
+```
+
+A lista acompanha springdoc 3.1.0 e Swagger UI 5.32.11; revise-a ao atualizar
+as dependências. `/swagger-ui.html` é uma sondagem de alias, não uma rota
+registrada quando o atalho está configurado como `/swagger`.
+Não conte 500, 502, timeout, cold start ou bloqueio do provedor como aprovação.
+Confirme o corpo `{"status":"UP"}` do health e abra `/status` no frontend Vercel:
+a consulta à API real deve funcionar com CORS preservado.
+
+Registre na MR o SHA publicado, URL do pipeline, ID/URL do deploy Render,
+URLs públicas backend/frontend e resultados HTTP. Nos logs do Render, confirme
+Flyway e conexão Neon sem registrar credenciais. Se o acesso remoto faltar,
+marque essa evidência pendente e use `Refs #31` e `Refs #29`; encerre #31 somente
+após a comprovação remota e mantenha #29 aberta. Não faça merge automático.
 
 Para comprovar o R2, faça upload e recuperação de uma imagem pelos endpoints
 técnicos já documentados. Um redeploy com as mesmas variáveis deve continuar

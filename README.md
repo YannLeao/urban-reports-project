@@ -113,7 +113,7 @@ repositório. Para o frontend, prepare Node/pnpm conforme o guia:
 ```bash
 # Backend
 cd backend
-./mvnw spring-boot:run
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 
 # Testes do backend
 ./mvnw test
@@ -127,11 +127,44 @@ pnpm run dev
 docker compose up --build
 ```
 
-Com o backend em execução, os recursos iniciais ficam disponíveis em:
+Com o backend em execução com o perfil `dev`, os recursos ficam disponíveis em:
 
 - saúde da API: `http://localhost:8080/api/health`;
 - Swagger UI: `http://localhost:8080/swagger`;
 - especificação OpenAPI: `http://localhost:8080/v3/api-docs`.
+
+### Documentação por ambiente
+
+| Execução | Swagger UI e OpenAPI JSON/YAML |
+|---|---|
+| Sem perfil | Desabilitados (404) |
+| Perfil Spring `dev` explícito | Habilitados em `/swagger` e `/v3/api-docs` (`.yaml` para YAML) |
+| Perfil Spring `prod` | Desabilitados (404) |
+| Compose sem opt-in | Desabilitados (404) |
+| Compose com `SPRING_PROFILES_ACTIVE=dev` | Habilitados |
+
+Para desenvolvimento via Compose, execute na raiz:
+
+```bash
+SPRING_PROFILES_ACTIVE=dev docker compose up --build
+```
+
+O Compose interpola variáveis do shell, do `.env` da raiz ou de um arquivo
+indicado com `--env-file`; não lê automaticamente `backend/.env` nem
+`frontend/.env`. Já `./mvnw spring-boot:run` em `backend/` importa o `.env`
+desse diretório. Para habilitar pela configuração local, adicione
+`SPRING_PROFILES_ACTIVE=dev` a `backend/.env` e reinicie o backend. A configuração
+base mapeia essa chave para `spring.profiles.active`, pois o arquivo é importado
+como propriedades, não como variáveis do processo. Na IDE, use `backend/` como
+diretório de trabalho para que o mesmo arquivo seja encontrado.
+O perfil Spring não é um `profile` do Docker Compose.
+`dev` e `prod` são alternativas: não os ative simultaneamente. A mesma imagem
+atende os ambientes, sem alterar CORS ou a URL de build do frontend.
+
+O perfil não é autenticação: `dev` expõe a documentação a qualquer pessoa que
+alcance a aplicação pela rede. Propriedades externas podem sobrescrever as
+flags; revise os overrides no Render conforme o [guia de deploy](docs/backend-deployment.md).
+Desabilitar a documentação não protege os endpoints de negócio.
 
 A prova técnica recebe uma imagem JPEG, PNG ou WebP de até 5 MB em
 `POST /api/storage/images` (campo multipart `file`) e a recupera em
@@ -189,11 +222,9 @@ backend, não para a máquina host. Para o comando acima, use
 rede dos serviços; esta imagem não embute essas decisões.
 
 A porta padrão exposta é `8080`, mas `BACKEND_PORT` continua configurável em
-runtime. Depois da inicialização, valide:
-
-- `http://localhost:8080/api/health`;
-- `http://localhost:8080/swagger`;
-- `http://localhost:8080/v3/api-docs`.
+runtime. Depois da inicialização, valide `http://localhost:8080/api/health`.
+A imagem não ativa documentação: passe `--env SPRING_PROFILES_ACTIVE=dev`
+explicitamente apenas para desenvolvimento; em produção, use `prod`.
 
 Credenciais e arquivos `.env` não entram no contexto de build. Toda configuração
 de PostgreSQL e R2 é fornecida somente ao executar o container. Quando o código

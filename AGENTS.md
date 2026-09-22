@@ -95,8 +95,16 @@ exigem acesso aos respectivos repositórios quando não estiverem em cache.
 | Tipos frontend | `frontend/` | `pnpm run typecheck` | Node/pnpm e dependências instaladas |
 | Testes frontend e script de CI | `frontend/` | `pnpm test` | Node/pnpm e dependências instaladas; sem API real |
 | Verificação backend | `backend/` | `./mvnw verify` | JDK 21, Wrapper e Docker disponível para Testcontainers |
-| Desenvolvimento backend | `backend/` | `./mvnw spring-boot:run` | JDK 21, Wrapper, PostgreSQL acessível e configuração de conexão |
+| Desenvolvimento backend | `backend/` | `./mvnw spring-boot:run -Dspring-boot.run.profiles=dev` | JDK 21, Wrapper, PostgreSQL acessível e configuração de conexão |
 | Validação estática do Compose | raiz | `docker compose config --quiet` | Docker CLI com Compose e variáveis de interpolação pertinentes |
+
+Swagger/OpenAPI ficam desabilitados na base e em `prod`; o perfil `dev` é
+opt-in local. `./mvnw verify` cobre os três contextos por HTTP, com PostgreSQL
+descartável, incluindo ativação por `SPRING_PROFILES_ACTIVE` em arquivo `.env`.
+Na IDE, execute com `backend/` como diretório de trabalho para importar esse
+arquivo. Não injete flags springdoc nos testes para mascarar a configuração
+real. Compose aceita `SPRING_PROFILES_ACTIVE` explicitamente, sem ativar dev
+por padrão. Perfis Spring não são autenticação nem profiles do Compose.
 
 O boot backend executa Flyway e precisa de banco configurado. R2 não é
 obrigatório para iniciar: sem `IMAGE_STORAGE_ENDPOINT`, a integração fica
