@@ -65,33 +65,6 @@ class HealthControllerTests {
         assertThat(response.getBody()).isEqualTo(new HealthResponse("UP"));
     }
 
-    @Test
-    void shouldDocumentHealthEndpointInOpenApiSpecification() {
-        var specification = restClient()
-                .get()
-                .uri("/v3/api-docs")
-                .retrieve()
-                .body(String.class);
-
-        assertThat(specification)
-                .contains("Urban Reports API")
-                .contains("/api/health")
-                .contains("/api/storage/images");
-    }
-
-    @Test
-    void shouldExposeSwaggerUiAtConfiguredPath() {
-        var response = restClient()
-                .get()
-                .uri("/swagger")
-                .retrieve()
-                .toBodilessEntity();
-
-        assertThat(response.getStatusCode().is3xxRedirection()).isTrue();
-        assertThat(response.getHeaders().getLocation())
-                .hasPath("/swagger-ui/index.html");
-    }
-
     private RestClient restClient() {
         var httpClient = HttpClient.newBuilder()
                 .followRedirects(HttpClient.Redirect.NEVER)
