@@ -59,45 +59,45 @@ backend:test:
         - backend/**/*
         - .gitlab-ci.yml
 
-# ---------- FRONTEND (React / npm) ----------
+# ---------- FRONTEND (React / pnpm) ----------
+
+.frontend:
+  image: node:22.23.2
+  cache:
+    key:
+      files:
+        - frontend/pnpm-lock.yaml
+    paths:
+      - frontend/.pnpm-store/
+  before_script:
+    - cd frontend
+    - npm install --global "$(node -p 'require("./package.json").packageManager')"
+    - pnpm config set store-dir .pnpm-store
+    - pnpm install --frozen-lockfile
+  rules:
+    - changes:
+        - frontend/**/*
+        - docker-compose.yml
+        - .gitlab-ci.yml
 
 frontend:build:
+  extends: .frontend
   stage: build
-  image: node:20
-  cache:
-    key: npm-frontend
-    paths:
-      - frontend/.npm
   script:
-    - cd frontend
-    - npm ci --cache .npm
-    - node --test scripts/build-ci.test.mjs
     - node scripts/build-ci.mjs
   artifacts:
     paths:
       - frontend/dist/
-  rules:
-    - changes:
-        - frontend/**/*
-        - .gitlab-ci.yml
 
 frontend:lint:
+  extends: .frontend
   stage: test
-  image: node:20
-  cache:
-    key: npm-frontend
-    paths:
-      - frontend/.npm
   needs:
     - frontend:build
   script:
-    - cd frontend
-    - npm ci --cache .npm
-    - npm run lint
-  rules:
-    - changes:
-        - frontend/**/*
-        - .gitlab-ci.yml
+    - pnpm run lint
+    - pnpm run typecheck
+    - pnpm test
 
 frontend:pages:
   stage: deploy
@@ -121,6 +121,7 @@ frontend:pages:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
       changes:
         - frontend/**/*
+        - docker-compose.yml
         - .gitlab-ci.yml
 
 # ---------- DEPLOY (Render) ----------

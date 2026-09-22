@@ -31,16 +31,20 @@ export function resolveBuildEnvironment(environment) {
   }
 }
 
+export function runBuild(environment = process.env, spawn = spawnSync) {
+  // Preserve the Pages artifact base until hosting migration (#30).
+  // Relative assets do not guarantee refresh at nested URLs.
+  const result = spawn('pnpm', ['run', 'build', '--base=./'], {
+    env: resolveBuildEnvironment(environment),
+    stdio: 'inherit',
+  })
+  if (result.error) throw result.error
+  return result.status ?? 1
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
-    const environment = resolveBuildEnvironment(process.env)
-    // Relative assets work with both unique Pages domains and project subpaths.
-    const result = spawnSync('npm', ['run', 'build', '--', '--base=./'], {
-      env: environment,
-      stdio: 'inherit',
-    })
-    if (result.error) throw result.error
-    process.exitCode = result.status ?? 1
+    process.exitCode = runBuild()
   } catch (error) {
     console.error(error.message)
     process.exitCode = 1

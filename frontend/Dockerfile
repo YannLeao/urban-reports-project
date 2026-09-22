@@ -1,14 +1,15 @@
-FROM node:22.14.0-alpine3.21 AS build
+FROM node:22.23.2-alpine AS build
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json pnpm-lock.yaml ./
+RUN npm install --global "$(node -p 'require("./package.json").packageManager')" \
+    && pnpm install --frozen-lockfile
 
 COPY . .
 ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
-RUN npm run build
+RUN pnpm run build
 
 FROM nginx:1.27.4-alpine AS runtime
 
