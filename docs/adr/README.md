@@ -20,3 +20,4 @@ um novo ADR que substitui o anterior.
 - [0007 — Documentação da API desabilitada por padrão](0007-desabilitar-documentacao-api-por-padrao.md)
 - [0008 — Design system Alô Cidade](0008-estabelecer-design-system.md)
 - [0009 — Base de segurança](0009-estabelecer-base-de-seguranca.md)
+- [0010 — Cadastro público de cidadão](0010-estabelecer-cadastro-de-cidadao.md)

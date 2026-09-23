@@ -2,13 +2,15 @@
 
 A API usa Spring Boot 4.1.1 e Spring Security 7.1.1, gerenciado pelo Boot.
 Esta base implementa autorização explícita e hash de senha; ainda não implementa
-cadastro, login, validação JWT ou logout. Não há usuário padrão gerado pelo Boot,
+login, validação JWT ou logout. O [cadastro público](identity.md) persiste contas
+sem autenticar. Não há usuário padrão gerado pelo Boot,
 HTTP Basic, form login, remember-me, logout padrão ou cache de redirecionamento.
 
 ## Acesso HTTP
 
 | Requisição | Política / resposta |
 | --- | --- |
+| POST `/api/auth/register` | Público, JSON, sem CSRF; 201/400/409/415/500 conforme contrato de identidade |
 | GET/HEAD `/api/health` | Público; 200, GET mantém `{"status":"UP"}` |
 | GET/HEAD `/swagger`, `/swagger-ui.html`, `/swagger-ui/**`, `/webjars/swagger-ui/**`, `/v3/api-docs`, `/v3/api-docs.yaml`, `/v3/api-docs/swagger-config` | Passam pela segurança; configuração springdoc determina disponibilidade |
 | Swagger em `dev` | Atalho `/swagger` redireciona à UI; especificação e assets disponíveis |
@@ -49,17 +51,20 @@ As variáveis DB/R2 e os perfis permanecem iguais; não há segredo JWT a config
 
 CSRF permanece habilitado com o mecanismo padrão do Spring. Requisições mutáveis
 sem token válido podem receber 403 antes da regra de autorização. Não se altera
-a ordem dos filtros para forçar 401. Ainda não há endpoint de token CSRF nem fluxo
-mutável público consumido pelo frontend.
+a ordem dos filtros para forçar 401. Não há endpoint de token CSRF. Somente
+POST `/api/auth/register` é exceção:
+cria conta sem autoridade de cookies/sessão, aceita estritamente JSON (8 KiB),
+não autentica nem altera conta existente. Form/text/plain/multipart recebem 415.
+O frontend envia com credentials omit e o cadastro não cria sessão.
 
 O contexto de segurança usa `RequestAttributeSecurityContextRepository`: não lê
 nem persiste autenticação em sessão HTTP. O repositório padrão de CSRF pode usar
 sessão; isso não representa login nem justifica impor `STATELESS` nesta etapa.
 Não existe mecanismo real que produza identidade autenticada nesta entrega.
 
-Antes do POST público de cadastro (#34), definir como obter/enviar a proteção
-CSRF ou justificar outra política para seu transporte. Antes de #35, fechar o
-transporte JWT/cookies e revisar CSRF em conjunto.
+A exceção de cadastro não abrange login, reset, logout ou outras operações.
+Antes de #35, fechar transporte JWT/cookies e revisar CSRF em conjunto.
+CORS não impede automação por clientes não navegador.
 
 ## Senhas
 
@@ -70,8 +75,8 @@ salt; não há prefixo de DelegatingPasswordEncoder nem fallback para texto puro
 O encoder não normaliza, remove espaços nem trunca a senha.
 
 `bcprov-jdk18on` 1.86 fornece Bouncy Castle para o encoder; sua versão é explícita
-no POM porque o BOM do Boot 4.1.1 não a gerencia. A política de tamanho,
-confirmação e validação pertence à #34. Não registrar senhas ou hashes reais.
+no POM porque o BOM do Boot 4.1.1 não a gerencia. A política de 15–128 pontos de código,
+confirmação local e validação está em [identidade](identity.md). Não registrar senhas ou hashes reais.
 Aferir encode/matches sob os recursos e concorrência do Render antes do fluxo
 real; medições locais são referências, nunca limiares frágeis de CI.
 
@@ -82,7 +87,8 @@ Os handlers `AuthenticationEntryPoint` e `AccessDeniedHandler` escrevem JSON com
 Mensagens: `Authentication is required` (401), `Access is denied` (403) e
 `Invalid CSRF token` (403). Não há redirect de login, challenge Basic, stack trace
 ou dados da requisição além do caminho. O advice do storage continua restrito ao
-controller de imagens.
+controller de imagens. Cadastro tem advice próprio e acrescenta code/fieldErrors
+opcionais; os campos são omitidos nas respostas antigas.
 
 Execute em `backend/`, com JDK 21 e Docker disponível:
 
@@ -102,8 +108,7 @@ pública do mesmo endpoint é coberta separadamente pela cadeia real.
 
 ## Próximas entregas e validação remota
 
-- #34: modelo/normalização de conta, política de senha, confirmação, cadastro e
-  sua política CSRF; liberar somente os métodos/caminhos efetivamente criados.
+- Cadastro implementado: [modelo, contrato e roteiro de publicação](identity.md).
 - #35: login e JWT, transporte, armazenamento no navegador, renovação, duração,
   assinatura/chaves, sessão ativa, revogação/invalidação imediata, recuperação de
   senha, persistência após restart e identidade no frontend. JWT sozinho não
