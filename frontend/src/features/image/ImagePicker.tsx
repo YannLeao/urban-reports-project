@@ -2,7 +2,6 @@ import { useEffect, useId, useRef, useState, type ChangeEvent } from 'react'
 import { Button } from '../../components/ui/Button'
 import { Alert } from '../../components/ui/Feedback'
 import { checkImageDecoding, IMAGE_ACCEPT, validateImageFile } from './image-file'
-import './image-picker.css'
 
 export type ImagePickerProps = {
   value: File | null
@@ -16,7 +15,7 @@ function Preview({ file }: { file: File }) {
     setUrl(next)
     return () => URL.revokeObjectURL(next)
   }, [file])
-  return url ? <img className="image-preview" src={url} alt="Prévia da imagem selecionada" /> : null
+  return url ? <img className="w-full max-h-[60vh] object-contain bg-surface-raised border border-border-subtle rounded-control" src={url} alt="Prévia da imagem selecionada" /> : null
 }
 
 export function ImagePicker({ value, onChange }: ImagePickerProps) {
@@ -76,20 +75,20 @@ export function ImagePicker({ value, onChange }: ImagePickerProps) {
   }
 
   const describedBy = `${id}-help ${id}-camera${error ? ` ${id}-error` : ''}`
-  return <section className="image-picker" aria-label="Selecionar fotografia">
+  return <section className="grid min-w-0 gap-4 [&_p]:m-0" aria-label="Selecionar fotografia">
     <p id={`${id}-help`}>JPEG, PNG ou WebP, até 5 MiB. Selecione uma imagem por vez.</p>
-    {value && <figure className="image-figure">
+    {value && <figure className="m-0 min-w-0">
       <Preview file={value} />
-      <figcaption>{value.name} · {value.size.toLocaleString('pt-BR')} bytes</figcaption>
+      <figcaption className="mt-2 wrap-anywhere text-small text-text-secondary">{value.name} · {value.size.toLocaleString('pt-BR')} bytes</figcaption>
     </figure>}
     <input hidden ref={fileInput} type="file" accept={IMAGE_ACCEPT} aria-label="Arquivo de imagem" aria-describedby={describedBy} disabled={busy} onChange={event => { void select(event) }} />
     <input hidden ref={cameraInput} type="file" accept={IMAGE_ACCEPT} capture="environment" aria-label="Fotografia pela câmera" aria-describedby={describedBy} disabled={busy} onChange={event => { void select(event) }} />
-    <div className="image-actions">
+    <div className="flex flex-wrap gap-3">
       <Button ref={chooseButton} disabled={busy} aria-describedby={describedBy} onClick={() => fileInput.current?.click()}>{value ? 'Trocar imagem' : 'Escolher imagem'}</Button>
       <Button variant="secondary" disabled={busy} aria-describedby={describedBy} onClick={() => cameraInput.current?.click()}>{value ? 'Tirar outra foto' : 'Tirar foto'}</Button>
       {(value || busy) && <Button variant="quiet" onClick={remove}>Remover imagem</Button>}
     </div>
-    <p id={`${id}-camera`} className="image-hint">A câmera depende do aparelho e do navegador. Se ela não abrir, use a escolha de arquivo.</p>
+    <p id={`${id}-camera`} className="text-small text-text-secondary">A câmera depende do aparelho e do navegador. Se ela não abrir, use a escolha de arquivo.</p>
     <div role="status">{busy ? 'Verificando imagem…' : ''}</div>
     {error && <Alert id={`${id}-error`} tone="danger" role="alert">A nova imagem não foi aceita. {error}{value ? ' A imagem anterior foi mantida.' : ''}</Alert>}
   </section>
