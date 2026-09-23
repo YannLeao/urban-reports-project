@@ -28,8 +28,8 @@ test('navigates from home to status and back without fetching on home', async ()
   renderPage()
   expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Tudo começa')
   expect(fetchMock).not.toHaveBeenCalled()
-  await user.click(screen.getByRole('link', { name: 'Verificar API' }))
-  expect(await screen.findByText('API operacional')).toBeVisible()
+  await user.click(screen.getByRole('link', { name: 'Verificar serviço' }))
+  expect(await screen.findByText('Conexão confirmada')).toBeVisible()
   await user.click(screen.getByRole('link', { name: 'Início' }))
   expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Tudo começa')
 })
@@ -38,13 +38,13 @@ test('direct status route shows loading then validates health and preserves the 
   let resolve!: (response: Response) => void
   fetchMock.mockReturnValue(new Promise<Response>((done) => { resolve = done }))
   renderPage('/status')
-  expect(screen.getByText('Conectando à API...')).toBeVisible()
+  expect(screen.getByText('Verificando a conexão…')).toBeVisible()
   expect(fetchMock).toHaveBeenCalledWith('https://api.example.com/base/api/health', {
     signal: expect.any(AbortSignal),
   })
   await act(async () => { resolve(Response.json({ status: 'UP' })) })
-  expect(await screen.findByText('API operacional')).toBeVisible()
-  expect(screen.getByText('UP')).toBeVisible()
+  expect(await screen.findByText('Conexão confirmada')).toBeVisible()
+  expect(screen.queryByText('UP')).not.toBeInTheDocument()
   expect(fetchMock).toHaveBeenCalledTimes(1)
 })
 
@@ -64,42 +64,42 @@ test.each(['http', 'network'])('%s failure is visible and manual retry recovers'
   const user = userEvent.setup()
   renderPage('/status')
   const alert = await screen.findByRole('alert')
-  expect(alert).toHaveTextContent(failure === 'http' ? 'HTTP 503' : 'Não foi possível conectar à API')
+  expect(alert).toHaveTextContent(failure === 'http' ? 'O serviço não concluiu a verificação' : 'Não conseguimos conectar ao serviço')
   expect(alert).not.toHaveTextContent('internal network details')
   expect(fetchMock).toHaveBeenCalledTimes(1)
   await user.click(screen.getByRole('button', { name: 'Tentar novamente' }))
-  expect(await screen.findByText('API operacional')).toBeVisible()
+  expect(await screen.findByText('Conexão confirmada')).toBeVisible()
   expect(fetchMock).toHaveBeenCalledTimes(2)
 })
 
 test.each([{ status: 123 }, {}, { status: 'DOWN' }, null])('rejects incompatible successful payload %j', async (payload) => {
   fetchMock.mockResolvedValue(Response.json(payload))
   renderPage('/status')
-  expect(await screen.findByRole('alert')).toHaveTextContent('A API retornou uma resposta inválida.')
-  expect(screen.queryByText('API operacional')).not.toBeInTheDocument()
+  expect(await screen.findByRole('alert')).toHaveTextContent('O serviço enviou uma resposta que não conseguimos reconhecer.')
+  expect(screen.queryByText('Conexão confirmada')).not.toBeInTheDocument()
 })
 
 test('invalid JSON is a comprehensible error', async () => {
   fetchMock.mockResolvedValue(new Response('<html>proxy error</html>'))
   renderPage('/status')
-  expect(await screen.findByRole('alert')).toHaveTextContent('A API retornou uma resposta inválida.')
+  expect(await screen.findByRole('alert')).toHaveTextContent('O serviço enviou uma resposta que não conseguimos reconhecer.')
 })
 
 test.each([
   [undefined, 'não foi configurada'],
   ['', 'não foi configurada'],
-  ['not-a-url', 'URL HTTP ou HTTPS válida'],
-  ['ftp://api.example.com', 'URL HTTP ou HTTPS válida'],
-  ['https://user:secret@api.example.com', 'URL HTTP ou HTTPS válida'],
-  ['https://api.example.com?token=secret', 'URL HTTP ou HTTPS válida'],
-  ['https://api.example.com#fragment', 'URL HTTP ou HTTPS válida'],
-  ['http://api.example.com', 'A API de produção deve usar HTTPS'],
+  ['not-a-url', 'configuração de conexão do site precisa ser corrigida'],
+  ['ftp://api.example.com', 'configuração de conexão do site precisa ser corrigida'],
+  ['https://user:secret@api.example.com', 'configuração de conexão do site precisa ser corrigida'],
+  ['https://api.example.com?token=secret', 'configuração de conexão do site precisa ser corrigida'],
+  ['https://api.example.com#fragment', 'configuração de conexão do site precisa ser corrigida'],
+  ['http://api.example.com', 'configuração de conexão do site precisa ser corrigida'],
 ])('invalid configuration %s fails only on status, without a request', async (url, message) => {
   vi.stubEnv('VITE_API_URL', url)
   const user = userEvent.setup()
   renderPage()
   expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Tudo começa')
-  await user.click(screen.getByRole('link', { name: 'Verificar API' }))
+  await user.click(screen.getByRole('link', { name: 'Verificar serviço' }))
   expect(await screen.findByRole('alert')).toHaveTextContent(message)
   expect(fetchMock).not.toHaveBeenCalled()
 })

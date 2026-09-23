@@ -6,11 +6,11 @@ export function HomePage() {
       <p className="eyebrow">Plataforma de ocorrências urbanas</p>
       <h1 id="page-title">Tudo começa pelo que acontece na sua cidade.</h1>
       <p className="intro-copy">
-        Um espaço simples para registrar, acompanhar e dar visibilidade aos
-        problemas urbanos.
+        Estamos construindo um espaço para dar visibilidade aos problemas
+        urbanos. Por enquanto, você pode verificar a conexão com o serviço.
       </p>
       <div className="mt-6 flex flex-wrap gap-4">
-        <Link className="action-button" to="/status">Verificar API</Link>
+        <Link className="button button-primary" to="/status">Verificar serviço</Link>
       </div>
     </section>
   )
