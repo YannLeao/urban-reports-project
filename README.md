@@ -254,7 +254,8 @@ de não encontrado. A saída Vercel inclui fallback SPA e 404 para assets ausent
 Acesso público, refresh e integração com a API devem ser comprovados após o merge
 na #30; configuração local não comprova deploy. O job Pages foi removido; o site
 antigo só deve ser desativado após validar a migração. A base não entrega
-autenticação, modelo de negócio ou design system.
+autenticação ou modelo de negócio. A identidade e os componentes compartilhados
+seguem o [design system Alô Cidade](docs/design-system/README.md).
 
 Depois que uma alteração de backend chega à branch padrão com os jobs verdes, o
 job manual `backend:deploy` fica disponível. Ele registra o environment

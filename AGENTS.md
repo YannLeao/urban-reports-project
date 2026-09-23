@@ -46,7 +46,7 @@
   (`packageManager`), com `pnpm-lock.yaml` e instalação frozen. npm serve apenas
   para bootstrap do pnpm; não gerencia dependências/scripts do aplicativo.
 - Preserve TypeScript `strict`, lint e checagem de tipos. O script `build`
-  executa `tsc -b && vite build`, além do script explícito `typecheck`.
+  executa `pnpm tokens:check && tsc -b && vite build`, além do script explícito `typecheck`.
 - Scripts e testes em `frontend/scripts/` usam `.ts`, NodeNext e strict via
   `tsconfig.scripts.json`, incluído em `tsc -b`. Node 22 executa-os diretamente
   por remoção de tipos; isso não substitui typecheck. Preserve imports `.ts`,
@@ -55,7 +55,12 @@
   `src/lib/api.ts` concentra fetch/configuração; `src/features/health/` contém
   a consulta validada e sua apresentação. Use Router declarativo, Query para
   estado de servidor e Zod nas fronteiras conforme os padrões implementados.
-- Tailwind 4 está integrado ao Vite; não há design system compartilhado.
+- Consulte [docs/design-system](docs/design-system/README.md) antes de alterar UI.
+  Use os tokens canônicos em `docs/design-system/tokens.ts` e os componentes de
+  `frontend/src/components/ui/`; atualize documentação, catálogo e código juntos.
+  Execute `pnpm tokens:generate` após editar tokens e versione o CSS gerado;
+  `pnpm tokens:check` valida sem escrever e precede o build.
+- Tailwind 4 está integrado ao Vite com variáveis semânticas via `@theme inline`.
   `pnpm test` executa node:test dos scripts de CI/deploy e Vitest/Testing Library;
   use cliente Query novo por caso e fetch controlado, sem API real.
 - Publicação frontend usa Vercel CLI fixada no lockfile, artefato Build Output

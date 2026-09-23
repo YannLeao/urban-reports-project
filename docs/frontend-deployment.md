@@ -212,3 +212,22 @@ pago nem disponibilidade de rollback instantâneo no plano atual.
 - [Vercel CLI deploy](https://vercel.com/docs/cli/deploy)
 - [GitLab e Vercel](https://vercel.com/kb/guide/how-can-i-use-gitlab-pipelines-with-vercel)
 - [Segurança de deployments GitLab](https://docs.gitlab.com/ci/environments/deployment_safety/)
+
+## Fonte visual no build
+
+O build começa por `pnpm tokens:check` (sem geração prévia), depois typecheck e
+Vite. Alterações em `docs/design-system/**/*` e `.dockerignore` acionam os mesmos
+jobs frontend, inclusive elegibilidade do deploy manual; não acionam backend.
+A saída CSS é versionada e deve corresponder aos tokens do mesmo commit. O
+catálogo de desenvolvimento não integra o módulo de produção; sua URL mostra
+não encontrado via fallback SPA. Empacotamento prebuilt e rastreabilidade seguem
+inalterados. Consulte o [design system](design-system/README.md).
+
+Compose usa contexto raiz com `frontend/Dockerfile`, recebendo tokens e declaração
+ESM de docs/design-system; os COPY e `.dockerignore` da raiz restringem entradas.
+Comando isolado, na raiz:
+
+```bash
+docker build -f frontend/Dockerfile --build-arg VITE_API_URL=https://api.example.com \
+  --tag urban-reports-frontend:local .
+```

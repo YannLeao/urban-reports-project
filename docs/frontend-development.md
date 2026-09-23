@@ -55,7 +55,7 @@ Execute em `frontend/`, com o Node/pnpm acima e dependências instaladas:
 | `pnpm run lint` | ESLint |
 | `pnpm run typecheck` | TypeScript strict com `tsc -b` |
 | `pnpm test` | Testes finitos: Node dos scripts de CI/deploy, depois Vitest |
-| `pnpm run build` | `tsc -b && vite build`, gerando `dist/` |
+| `pnpm run build` | `tokens:check`, `tsc -b` e `vite build`, gerando `dist/` |
 | `pnpm run preview` | Servir o bundle local após build |
 
 ## Configuração e consulta
@@ -71,8 +71,8 @@ Remove barras finais sem remover o path: `https://host/base/` resulta em
 `https://host/base/api/health`. Configuração ausente ou inválida aparece na
 página de status; não impede navegar pela entrada ou pelo não encontrado.
 
-O helper usa fetch nativo, propaga AbortSignal e apresenta erros de rede, HTTP
-e JSON compreensíveis. `useHealth` valida `{ "status": "UP" }`, conforme o
+O helper usa fetch nativo, propaga AbortSignal e apresenta mensagens públicas
+para erros de rede, HTTP, JSON e configuração, sem expor valores técnicos. `useHealth` valida `{ "status": "UP" }`, conforme o
 controller atual; payload 2xx incompatível é erro. O tipo resulta do schema.
 Uma mudança no contrato backend requer atualizar schema e testes juntos.
 
@@ -95,12 +95,15 @@ manual de tentar novamente; sair da página cancela a requisição em andamento.
 oferecem retorno ao início. Links usam React Router, em modo declarativo,
 sem SSR, loaders, autenticação ou rotas vazias de negócio.
 
-Tailwind 4 usa `@tailwindcss/vite` e `@import "tailwindcss"` em `index.css`.
-Utilitários de layout/spacing aparecem na navegação e nas ações das páginas.
-O preflight é aplicado; o CSS existente mantém tipografia, cores, botões,
-sublinhado de links, foco visível e redução de movimento. Não há ocultação
-global de overflow para mascarar cortes. Isso não define design system,
-tokens ou uma nova identidade visual; esses temas pertencem à #33.
+A identidade e os componentes seguem o [design system Alô Cidade](design-system/README.md).
+Leia-o antes de criar UI. Tokens canônicos em `docs/design-system/tokens.ts` geram
+CSS versionado com `pnpm tokens:generate`; `pnpm tokens:check` compara sem modificar.
+Tailwind 4 usa `@theme inline` gerado para cores semânticas e espaçamento. Atualize
+código e documentação juntos. Manrope é local, pesos 400/700, com licença pública.
+A referência `/dev/design-system` existe somente em `pnpm dev`, sem navegação
+pública; em produção, mostra não encontrado e seu módulo não é incluído.
+O TypeScript das ferramentas também verifica os tokens externos. O package.json
+em docs/design-system declara somente ESM, sem criar workspace.
 
 ## Testes e CI
 
@@ -116,7 +119,7 @@ O job `frontend:build` compila pelo script de CI; `frontend:lint` executa lint,
 typecheck e ambas as suítes. O build também preserva sua checagem TypeScript.
 Ambos instalam com frozen lockfile e cacheiam apenas `.pnpm-store/`, com chave
 baseada no lockfile. Cache vazio deve funcionar. Mudanças em `frontend/`,
-`docker-compose.yml` ou `.gitlab-ci.yml` acionam as verificações frontend.
+`docs/design-system/`, `.dockerignore`, `docker-compose.yml` ou `.gitlab-ci.yml` acionam as verificações frontend.
 Consulte [deploy frontend](frontend-deployment.md) para a tradução de variáveis
 e os requisitos adicionais do build de produção.
 
@@ -126,7 +129,7 @@ Para verificar apenas o frontend, na raiz, sem iniciar banco/backend:
 
 ```bash
 docker build --build-arg VITE_API_URL=https://api.example.com \
-  --tag urban-reports-frontend:local ./frontend
+  --file frontend/Dockerfile --tag urban-reports-frontend:local .
 docker run --rm --publish 127.0.0.1:5173:80 urban-reports-frontend:local
 ```
 
@@ -149,8 +152,8 @@ build arg frontend. Variáveis vêm do shell, `.env` da raiz ou `--env-file`, n�
 automaticamente dos `.env` de cada aplicação. No celular, localhost aponta ao
 próprio dispositivo; use a API acessível e reconstrua o bundle.
 
-Autenticação, modelo de negócio e identidade visual definitiva não foram
-implementados. A primeira publicação Vercel e a integração pública exigem
+Autenticação e modelo de negócio não foram implementados. A identidade Alô Cidade
+está aplicada à base atual. A primeira publicação Vercel e a integração pública exigem
 validação após merge; inspeção local não substitui pipeline/deploy remoto.
 
 Referências: [pnpm](https://pnpm.io/installation),
@@ -160,3 +163,9 @@ Referências: [pnpm](https://pnpm.io/installation),
 [Zod](https://zod.dev/),
 [Tailwind 4 com Vite](https://tailwindcss.com/docs/installation/using-vite) e
 [Vitest 3](https://v3.vitest.dev/guide/).
+
+O Dockerfile frontend agora exige contexto da **raiz** para copiar tokens e a
+declaração ESM de docs/design-system. Usa COPY restritos e `.dockerignore` da raiz;
+`frontend/.dockerignore` não governa esse contexto. Não copiar `.env`, dependências
+locais ou docs desnecessários. `tokens:check` também roda dentro da imagem.
+Para contrastes reproduzíveis: `node scripts/contrast.ts` em frontend/.
