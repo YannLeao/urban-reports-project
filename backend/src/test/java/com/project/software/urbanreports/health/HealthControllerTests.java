@@ -65,6 +65,15 @@ class HealthControllerTests {
         assertThat(response.getBody()).isEqualTo(new HealthResponse("UP"));
     }
 
+    @Test
+    void headHasNoBodyOverHttp() {
+        var response = restClient().head().uri("/api/health").retrieve().toEntity(String.class);
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody()).isNullOrEmpty();
+        assertThat(response.getHeaders().getFirst("Location")).isNull();
+        assertThat(response.getHeaders().getFirst("WWW-Authenticate")).isNull();
+    }
+
     private RestClient restClient() {
         var httpClient = HttpClient.newBuilder()
                 .followRedirects(HttpClient.Redirect.NEVER)

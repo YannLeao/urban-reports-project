@@ -38,6 +38,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+// Internal controller/service contract; public access is covered by SecurityIntegrationTests.
+@org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc(addFilters = false)
 @WebMvcTest(ImageStorageController.class)
 @Import({ImageStorageService.class, ImageStorageExceptionHandler.class,
         ImageStorageControllerTests.FakeStorageConfiguration.class})

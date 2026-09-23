@@ -43,57 +43,23 @@ O arquivo `backend/.env` é ignorado pelo Git. Confirme antes de qualquer commit
 git check-ignore -v backend/.env
 ```
 
-## Executar a prova manual
+## Acesso HTTP bloqueado
 
-Com PostgreSQL disponível e a partir de `backend/`, inicie a aplicação:
+A base de segurança bloqueia estes endpoints em todos os perfis, inclusive dev.
+O roteiro anterior de upload público não funciona mais: POST sem CSRF válido
+retorna 403; GET sem identidade retorna 401. Mesmo com CSRF válido, o upload
+continua negado. Configurar R2 não altera essa política e não há login temporário.
+A #36 definirá o contrato autorizado. Não envie imagem real para provar bloqueio.
 
-```bash
-./mvnw spring-boot:run
-```
-
-Envie uma imagem real permitida:
-
-```bash
-curl --include \
-  --form 'file=@/caminho/foto.webp;type=image/webp' \
-  http://localhost:8080/api/storage/images
-```
-
-A resposta deve ser `201 Created`, com `Location` e corpo semelhante a:
-
-```json
-{
-  "id": "11685dfa-3a68-4827-a61a-0d6436cb82ca.webp",
-  "url": "/api/storage/images/11685dfa-3a68-4827-a61a-0d6436cb82ca.webp"
-}
-```
-
-Guarde o `id`, recupere o arquivo e compare-o com o original:
+Para verificar localmente, sem acessar objeto de terceiros:
 
 ```bash
-curl --fail \
-  --dump-header /tmp/urban-reports-image.headers \
-  --output /tmp/urban-reports-image.webp \
-  http://localhost:8080/api/storage/images/SEU_ID.webp
-
-sha256sum /caminho/foto.webp /tmp/urban-reports-image.webp
+curl --include http://localhost:8080/api/storage/images/00000000-0000-0000-0000-000000000000.png
+curl --include --request POST http://localhost:8080/api/storage/images
 ```
 
-Os hashes devem ser iguais e o header deve conter `Content-Type: image/webp`.
-Confirme também no painel ou na API do R2 que existe um objeto sob `proofs/` e
-que ele não possui acesso público.
-
-Interrompa e inicie novamente o backend, repita o `GET` com o mesmo identificador
-e confirme bytes e tipo. Isso demonstra que o objeto não dependia do filesystem
-da aplicação.
-
-Por fim, tente um arquivo de outro formato, conteúdo disfarçado e um arquivo
-maior que 5 MiB; todos devem ser rejeitados antes do envio ao bucket. O Swagger
-em `http://localhost:8080/swagger` também documenta os dois endpoints técnicos,
-mas exige iniciar explicitamente com
-`./mvnw spring-boot:run -Dspring-boot.run.profiles=dev`. Os comandos curl acima
-funcionam independentemente da documentação; não é necessário habilitá-la
-em produção.
+Espere 401 JSON no GET e 403 JSON no POST. O contrato técnico acima permanece
+interno e é validado por testes; veja a [matriz de segurança](security.md).
 
 ## Testes automatizados
 
@@ -102,9 +68,11 @@ cd backend
 ./mvnw test
 ```
 
-A suíte usa um fake em memória de `ImageStorage` para uploads e recuperações.
-Ela não lê credenciais, não acessa a Cloudflare e não exige internet. Docker
-continua necessário apenas para os testes preexistentes de PostgreSQL/Flyway.
+Os testes internos de controller/service usam um fake em memória de `ImageStorage`
+para uploads e recuperações, sem filtros nessa camada. Testes de segurança
+independentes mantêm a cadeia real e comprovam bloqueio sem chamar o provedor.
+Esses testes não acessam a Cloudflare nem usam credenciais reais. Downloads de
+dependências/imagens exigem rede quando não estão em cache. Docker é necessário para os testes de integração, incluindo segurança e PostgreSQL/Flyway.
 
 ## Limites deliberados
 

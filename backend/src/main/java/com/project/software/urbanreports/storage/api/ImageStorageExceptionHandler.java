@@ -1,5 +1,6 @@
 package com.project.software.urbanreports.storage.api;
 
+import com.project.software.urbanreports.api.ApiErrorResponse;
 import com.project.software.urbanreports.storage.application.ImageNotFoundException;
 import com.project.software.urbanreports.storage.application.ImageStorageException;
 import com.project.software.urbanreports.storage.application.InvalidImageException;

@@ -153,9 +153,21 @@ URLs públicas backend/frontend e resultados HTTP. Nos logs do Render, confirme
 Flyway e conexão Neon sem registrar credenciais. Diferencie resultados locais
 e remotos na MR da alteração.
 
-Para comprovar o R2, faça upload e recuperação de uma imagem pelos endpoints
-técnicos já documentados. Um redeploy com as mesmas variáveis deve continuar
-recuperando o objeto e os dados no Neon, pois ambos são externos ao container.
+Os endpoints técnicos estão bloqueados pela [base de segurança](security.md),
+inclusive com R2 configurado. Não faça upload real como prova de deploy. Confirme
+401 JSON no GET de id sintático e 403 JSON no POST vazio, sem seguir redirects:
+
+```bash
+curl --include "$BACKEND_PRODUCTION_URL/api/storage/images/00000000-0000-0000-0000-000000000000.png"
+curl --include --request POST "$BACKEND_PRODUCTION_URL/api/storage/images"
+```
+
+Preserve `FRONTEND_ALLOWED_ORIGINS` com a origem canônica exata da Vercel e origens
+locais autorizadas, sem wildcard ou credentials. Nenhuma chave JWT é necessária.
+Confirme em `/status` no navegador o health 200 e ausência de erro CORS; curl
+sozinho não comprova a integração no navegador. Registre os resultados junto
+às evidências do SHA/pipeline/deployment. Aferir Argon2id sob os recursos do
+Render antes de habilitar cadastro/login.
 
 ## Redeploy e limitações
 
