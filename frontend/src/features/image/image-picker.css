@@ -1,0 +1,7 @@
+.image-picker { display: grid; gap: var(--ds-space-4); min-width: 0; }
+.image-picker p { margin: 0; }
+.image-figure { margin: 0; min-width: 0; }
+.image-preview { width: 100%; max-height: 60vh; object-fit: contain; background: var(--ds-surface-raised); border: 1px solid var(--ds-border-subtle); border-radius: var(--ds-radius-control); }
+.image-figure figcaption { margin-top: var(--ds-space-2); overflow-wrap: anywhere; font-size: var(--ds-typography-size-small); color: var(--ds-text-secondary); }
+.image-actions { display: flex; flex-wrap: wrap; gap: var(--ds-space-3); }
+.image-hint { font-size: var(--ds-typography-size-small); color: var(--ds-text-secondary); }

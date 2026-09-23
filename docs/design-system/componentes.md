@@ -64,3 +64,16 @@ Dialog, bottom sheet, controles de mapa e cartões de ocorrência **não estão
 implementados**. Antes de criá-los, definir comportamento de teclado, entrada e
 retorno de foco, Escape, semântica e necessidades reais. Não simular modal com
 uma div posicionada sobre a tela.
+
+## Seleção de fotografia
+
+`ImagePicker` em `frontend/src/features/image/` compõe Button e Alert, sem
+acoplar o design system à API. Usa `value: File | null` e `onChange`, uma prévia
+inteira com `object-fit: contain`, nome com quebra de linha e controles de arquivo,
+câmera e remoção. Está demonstrado no catálogo dev e em `/prova-imagem`.
+
+Durante a leitura, anuncia “Verificando imagem…” e bloqueia novas escolhas;
+remoção cancela a leitura. Erro textual preserva a seleção anterior; remover
+retorna o foco ao seletor. Os dois inputs possuem nomes e orientação associados.
+Não há drag-and-drop obrigatório, corte, compressão ou envio. Veja os
+[limites e roteiro de câmera](../image-selection-proof.md).

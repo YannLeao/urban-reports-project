@@ -85,11 +85,15 @@ manual de tentar novamente; sair da página cancela a requisição em andamento.
 
 - `src/app/providers.tsx`: QueryClient estável por montagem da aplicação.
 - `src/app/routes.tsx`: configuração declarativa central de rotas.
-- `src/pages/`: HomePage, StatusPage e NotFoundPage.
+- `src/pages/`: HomePage, StatusPage, ImageProofPage e NotFoundPage.
+- `src/features/image/`: seleção controlada, validação e prévia local de imagem.
 - `src/features/health/`: consulta validada e apresentação de health.
 - `src/lib/api.ts`: base da API e leitura de JSON por fetch.
 - `src/main.tsx`: composição de providers e BrowserRouter; `App.tsx`: shell.
 - `src/app/App.test.tsx` e `src/test/setup.ts`: testes de comportamento e setup.
+
+`/prova-imagem` é uma demonstração pública transitória, sem upload ou dependência
+de API; veja [contrato, validações e evidências](image-selection-proof.md).
 
 `/` é a entrada, `/status` contém a verificação da API e caminhos desconhecidos
 oferecem retorno ao início. Links usam React Router, em modo declarativo,

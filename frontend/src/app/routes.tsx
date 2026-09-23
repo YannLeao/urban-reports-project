@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { Route, Routes } from 'react-router'
+import { ImageProofPage } from '../pages/ImageProofPage'
 import { HomePage } from '../pages/HomePage'
 import { StatusPage } from '../pages/StatusPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
@@ -12,6 +13,7 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+      <Route path="/prova-imagem" element={<ImageProofPage />} />
       <Route path="/status" element={<StatusPage />} />
       <Route path="/dev/design-system" element={DesignSystemPage ? <Suspense fallback={<p role="status">Carregando referência…</p>}><DesignSystemPage /></Suspense> : <NotFoundPage />} />
       <Route path="*" element={<NotFoundPage />} />

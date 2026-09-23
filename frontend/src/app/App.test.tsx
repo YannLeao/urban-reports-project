@@ -113,3 +113,30 @@ test('leaving status cancels the request through the query signal', async () => 
   await user.click(screen.getByRole('link', { name: 'Início' }))
   await waitFor(() => expect(signal?.aborted).toBe(true))
 })
+
+test('image proof is public, independent of API configuration, and loses selection on navigation', async () => {
+  vi.stubEnv('VITE_API_URL', undefined)
+  vi.stubGlobal('URL', Object.assign(class extends URL {}, {
+    createObjectURL: vi.fn(() => 'blob:proof'), revokeObjectURL: vi.fn(),
+  }))
+  const images: { onload: (() => void) | null }[] = []
+  vi.stubGlobal('Image', class {
+    onload: (() => void) | null = null
+    onerror = null
+    naturalWidth = 10
+    naturalHeight = 10
+    src = ''
+    constructor() { images.push(this) }
+  })
+  const user = userEvent.setup()
+  renderPage('/prova-imagem')
+  expect(screen.getByRole('heading', { name: 'Teste de fotografia' })).toBeVisible()
+  expect(screen.getByText('A imagem fica apenas nesta página e não é enviada.')).toBeVisible()
+  await user.upload(screen.getByLabelText('Arquivo de imagem'), new File(['fixture'], 'photo.png', { type: 'image/png' }))
+  await act(async () => images[0]?.onload?.())
+  expect(screen.getByRole('img', { name: 'Prévia da imagem selecionada' })).toBeVisible()
+  await user.click(screen.getByRole('link', { name: 'Início' }))
+  await user.click(screen.getByRole('link', { name: 'Demonstração técnica: teste de fotografia' }))
+  expect(screen.queryByRole('img', { name: 'Prévia da imagem selecionada' })).not.toBeInTheDocument()
+  expect(fetchMock).not.toHaveBeenCalled()
+})
