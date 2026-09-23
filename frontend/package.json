@@ -5,13 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "pnpm run tokens:check && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc -b",
-    "test": "node --test scripts/*.test.ts && vitest run"
+    "test": "node --test scripts/*.test.ts && vitest run",
+    "tokens:generate": "node scripts/tokens.ts",
+    "tokens:check": "node scripts/tokens.ts --check"
   },
   "dependencies": {
+    "@fontsource/manrope": "5.2.8",
     "@tanstack/react-query": "5.103.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

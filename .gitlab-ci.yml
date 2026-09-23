@@ -77,6 +77,8 @@ backend:test:
   rules:
     - changes:
         - frontend/**/*
+        - docs/design-system/**/*
+        - .dockerignore
         - docker-compose.yml
         - .gitlab-ci.yml
 
@@ -121,6 +123,8 @@ frontend:deploy:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_REF_PROTECTED == "true"'
       changes:
         - frontend/**/*
+        - docs/design-system/**/*
+        - .dockerignore
         - docker-compose.yml
         - .gitlab-ci.yml
       when: manual
