@@ -27,12 +27,13 @@ deployment solicitado pelo hook.
 
 ## Comportamento do pipeline
 
-Os jobs existentes foram preservados:
+Os jobs ficam em `infrastructure/gitlab-ci/backend.yml`, incluído por
+`.gitlab-ci.yml`. A configuração compartilhada permanece na raiz.
 
 | Caminho alterado | Jobs executados |
 |---|---|
-| `backend/**/*` | `backend:build`, `backend:test` |
-| `frontend/**/*` ou `docker-compose.yml` | `frontend:build`, `frontend:lint` (inclui tipos e testes) |
+| `backend/**/*` ou `infrastructure/gitlab-ci/backend.yml` | `backend:build`, `backend:test` |
+| `frontend/**/*`, `docs/design-system/**/*`, `.dockerignore`, `docker-compose.yml` ou `infrastructure/gitlab-ci/frontend.yml` | `frontend:build`, `frontend:lint` (inclui tipos e testes) |
 | `.gitlab-ci.yml` | todos os jobs de build e teste |
 
 Os testes do backend continuam usando Docker-in-Docker para o PostgreSQL do
@@ -47,7 +48,7 @@ pipeline de push redundante da mesma branch é descartado por
 O deploy aparece apenas quando todas as condições são verdadeiras:
 
 - pipeline da branch padrão;
-- alteração em `backend/**/*` ou `.gitlab-ci.yml`;
+- alteração em `backend/**/*`, `infrastructure/gitlab-ci/backend.yml` ou `.gitlab-ci.yml`;
 - `backend:build` e `backend:test` concluídos com sucesso;
 - acionamento manual por uma pessoa autorizada.
 
@@ -149,9 +150,8 @@ a consulta à API real deve funcionar com CORS preservado.
 
 Registre na MR o SHA publicado, URL do pipeline, ID/URL do deploy Render,
 URLs públicas backend/frontend e resultados HTTP. Nos logs do Render, confirme
-Flyway e conexão Neon sem registrar credenciais. Se o acesso remoto faltar,
-marque essa evidência pendente e use `Refs #31` e `Refs #29`; encerre #31 somente
-após a comprovação remota e mantenha #29 aberta. Não faça merge automático.
+Flyway e conexão Neon sem registrar credenciais. Diferencie resultados locais
+e remotos na MR da alteração.
 
 Para comprovar o R2, faça upload e recuperação de uma imagem pelos endpoints
 técnicos já documentados. Um redeploy com as mesmas variáveis deve continuar

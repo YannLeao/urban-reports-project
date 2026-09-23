@@ -154,6 +154,22 @@
   --color-feedback-danger-foreground: var(--ds-feedback-danger-foreground);
   --color-feedback-info-background: var(--ds-feedback-info-background);
   --color-feedback-info-foreground: var(--ds-feedback-info-foreground);
+  --text-small: var(--ds-typography-size-small);
+  --text-body: var(--ds-typography-size-body);
+  --text-lead: var(--ds-typography-size-lead);
+  --text-title: var(--ds-typography-size-title);
+  --text-display: var(--ds-typography-size-display);
+  --font-weight-regular: var(--ds-typography-weight-regular);
+  --font-weight-bold: var(--ds-typography-weight-bold);
+  --leading-body: var(--ds-typography-line-body);
+  --leading-heading: var(--ds-typography-line-heading);
+  --radius-control: var(--ds-radius-control);
+  --radius-card: var(--ds-radius-card);
+  --radius-pill: var(--ds-radius-pill);
+  --shadow-card: var(--ds-elevation-card);
+  --container-app: var(--ds-layout-container);
+  --container-reading: var(--ds-layout-reading);
+  --spacing-target: var(--ds-layout-target);
   --font-sans: var(--ds-typography-family);
   --spacing: var(--ds-space-1);
 }

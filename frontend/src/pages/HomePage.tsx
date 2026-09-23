@@ -1,18 +1,19 @@
+import { buttonStyles } from '../components/ui/button-styles'
 import { Link } from 'react-router'
 
 export function HomePage() {
   return (
-    <section className="intro" aria-labelledby="page-title">
-      <p className="eyebrow">Plataforma de ocorrências urbanas</p>
+    <section className="pt-12 pb-8 md:pt-16" aria-labelledby="page-title">
+      <p className="mb-3 text-small font-bold text-brand-default">Plataforma de ocorrências urbanas</p>
       <h1 id="page-title">Tudo começa pelo que acontece na sua cidade.</h1>
-      <p className="intro-copy">
+      <p className="mb-0 text-lead text-text-secondary">
         Estamos construindo um espaço para dar visibilidade aos problemas
         urbanos. Por enquanto, você pode verificar a conexão com o serviço.
       </p>
       <div className="mt-6 flex flex-wrap gap-4">
-        <Link className="button button-primary" to="/status">Verificar serviço</Link>
+        <Link className={buttonStyles()} to="/status">Verificar serviço</Link>
       </div>
-      <p className="mt-6"><Link className="button button-quiet" to="/prova-imagem">Demonstração técnica: teste de fotografia</Link></p>
+      <p><Link className={buttonStyles('quiet')} to="/prova-imagem">Demonstração técnica: teste de fotografia</Link></p>
     </section>
   )
 }

@@ -1,0 +1,65 @@
+backend:build:
+  stage: build
+  image: maven:3.9-eclipse-temurin-21
+  cache:
+    key: maven-backend
+    paths:
+      - backend/.m2/repository
+  script:
+    - cd backend
+    - ./mvnw -B compile
+  rules:
+    - changes:
+        - backend/**/*
+        - .gitlab-ci.yml
+        - infrastructure/gitlab-ci/backend.yml
+
+backend:test:
+  stage: test
+  image: maven:3.9-eclipse-temurin-21
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+    TESTCONTAINERS_HOST_OVERRIDE: docker
+  cache:
+    key: maven-backend
+    paths:
+      - backend/.m2/repository
+  needs:
+    - backend:build
+  script:
+    - cd backend
+    - ./mvnw -B test
+  artifacts:
+    when: always
+    paths:
+      - backend/target/surefire-reports/
+    reports:
+      junit: backend/target/surefire-reports/TEST-*.xml
+  rules:
+    - changes:
+        - backend/**/*
+        - .gitlab-ci.yml
+        - infrastructure/gitlab-ci/backend.yml
+
+backend:deploy:
+  stage: deploy
+  image: curlimages/curl:8.22.0
+  needs:
+    - backend:build
+    - backend:test
+  script:
+    - curl --fail --show-error --silent --get --data-urlencode "ref=$CI_COMMIT_SHA" --output /dev/null "$RENDER_DEPLOY_HOOK"
+  environment:
+    name: production
+    url: $BACKEND_PRODUCTION_URL
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - backend/**/*
+        - .gitlab-ci.yml
+        - infrastructure/gitlab-ci/backend.yml
+      when: manual
+      allow_failure: false

@@ -18,8 +18,11 @@ acessível dos children. Preserva props/ref de button React 19. O padrão é
 `type="button"`; declare submit quando houver formulário. `disabled` usa a
 semântica nativa, impedindo mouse/teclado. Todos os estados têm tokens de pares
 texto/fundo, com foco comum. Use rótulos de ação, sem botão sem destino.
-Para navegação, use Link com `button button-primary` (ou secondary/quiet), nunca
-button aninhado em link. Uma ação principal por contexto.
+Para navegação, use `Link` com `className={buttonStyles()}` ou
+`buttonStyles('secondary')` / `buttonStyles('quiet')`, importado de
+`frontend/src/components/ui/button-styles.ts`. Nunca aninhe button em link.
+Button e links compartilham os mesmos utilitários/variantes. Uma ação principal
+por contexto.
 
 ## Field, Input, Textarea e Select
 

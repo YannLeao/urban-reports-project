@@ -21,11 +21,19 @@ quando começar a publicar versões.
   não-root.
 - Pipeline seletivo por serviço e deploy manual do backend no Render, coordenado
   pelo GitLab CI/CD.
-- Validação da primeira fase concluída: frontend público acessa o backend com
-  sucesso e o ambiente orquestrado (banco, backend e frontend) está estável.
+- Base frontend com pnpm, TypeScript strict, Router, Query, Zod e testes de UI.
+- Design system Alô Cidade com tokens canônicos, Manrope local e componentes.
+- Seleção, prévia e captura nativa de imagem em memória, sem upload.
+- Instruções de trabalho para contribuidores e agentes.
+
+### Alterado
+
+- Hospedagem frontend na Vercel com artefato prebuilt e deploy manual pelo GitLab.
+- Swagger/OpenAPI desabilitados por padrão e em produção, com opt-in em dev.
+- UI com utilitários Tailwind e CSS restrito a defaults globais e tokens gerados.
+- Jobs CI separados por aplicação; Compose mantido na raiz.
+- Guias focados em contratos e operação; evidências de entrega mantidas nas MRs.
 
 ### Corrigido
 
-- GitLab Pages publica o artefato validado pelo CI, com a URL HTTPS do backend
-  incorporada ao build e assets compatíveis com subpastas.
 - CORS do backend configurável para permitir a origem pública do frontend.

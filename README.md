@@ -6,16 +6,14 @@ Projeto Interdisciplinar de Engenharia da Computação 4.
 
 ## Visão geral
 
-O sistema terá um frontend React separado de um backend Spring Boot. A
-comunicação será feita por API REST, com PostgreSQL como banco de dados e Flyway
-para controlar as migrações. O ambiente completo será executado com Docker
-Compose e validado pelo GitLab CI/CD.
+O frontend React/TypeScript/Vite consome a API REST Spring Boot. PostgreSQL mantém
+os dados, Flyway versiona o schema e Cloudflare R2 armazena imagens privadas.
+Docker Compose executa o ambiente local; GitLab CI valida e coordena os deploys
+manuais do backend no Render e do frontend estático na Vercel.
 
-Nesta primeira etapa, o repositório contém a fundação do monorepositório e um
-backend mínimo conectado ao PostgreSQL, com schema versionado pelo Flyway. O
-backend também contém uma prova técnica de armazenamento privado de imagens no
-Cloudflare R2. Os demais serviços e comandos passam a funcionar à medida que os
-respectivos cards da Sprint 1 forem integrados.
+A base oferece navegação, health validado em `/status`, design system Alô Cidade,
+seleção/captura local de fotografia em `/prova-imagem` e endpoints técnicos de
+storage. Autenticação e fluxo de ocorrências ainda não integram essa base.
 
 ## Estrutura do repositório
 
@@ -26,10 +24,9 @@ respectivos cards da Sprint 1 forem integrados.
 ├── docs/
 │   └── adr/                  # Registros de decisões arquiteturais
 ├── infrastructure/
-│   ├── docker/               # Arquivos auxiliares de containers
-│   └── gitlab-ci/            # Componentes reutilizáveis do pipeline
+│   └── gitlab-ci/            # Jobs de backend e frontend
 ├── .gitlab/                  # Templates de issues e Merge Requests
-├── compose.yaml              # Conteinerização do projeto
+├── docker-compose.yml        # Ambiente local: banco, backend e frontend
 ├── .gitlab-ci.yml            # CI/CD do projeto
 └── README.md
 ```
@@ -86,8 +83,14 @@ No Render, defina-a com a URL JDBC completa fornecida pelo Neon.
 
 ### PostgreSQL local
 
-Enquanto o Docker Compose do projeto ainda não estiver disponível, um banco de
-desenvolvimento pode ser iniciado diretamente:
+Para executar apenas o banco configurado no Compose, na raiz:
+
+```bash
+docker compose up -d db
+```
+
+Como alternativa, um PostgreSQL isolado pode ser iniciado diretamente (não
+execute ambos na mesma porta):
 
 ```bash
 docker run --name urban-reports-postgres \
@@ -112,18 +115,15 @@ repositório. Para o frontend, prepare Node/pnpm conforme o guia:
 
 ```bash
 # Backend
-cd backend
-./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+(cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev)
 
 # Testes do backend
-./mvnw test
+(cd backend && ./mvnw verify)
 
 # Frontend (Node/pnpm conforme o guia)
-cd frontend
-pnpm install --frozen-lockfile
-pnpm run dev
+(cd frontend && pnpm install --frozen-lockfile && pnpm run dev)
 
-# Ambiente completo (após a criação do Compose)
+# Ambiente completo, na raiz
 docker compose up --build
 ```
 
@@ -166,7 +166,7 @@ alcance a aplicação pela rede. Propriedades externas podem sobrescrever as
 flags; revise os overrides no Render conforme o [guia de deploy](docs/backend-deployment.md).
 Desabilitar a documentação não protege os endpoints de negócio.
 
-A prova técnica recebe uma imagem JPEG, PNG ou WebP de até 5 MB em
+A prova técnica recebe uma imagem JPEG, PNG ou WebP de até 5 MiB em
 `POST /api/storage/images` (campo multipart `file`) e a recupera em
 `GET /api/storage/images/{id}`. O bucket não é público: os bytes sempre passam
 pelo backend. Esse contrato é temporário e não representa a futura criação de
@@ -185,6 +185,9 @@ apaga todos os seus dados — e execute novamente o comando de criação:
 ```bash
 docker rm --force urban-reports-postgres
 ```
+
+As versões usadas pelo Compose e pelo banco isolado estão descritas no
+[guia de banco](docs/database-migrations.md#versões-por-ambiente).
 
 Os testes não dependem desse container: com o Docker ativo, o Testcontainers cria
 e remove instâncias isoladas de PostgreSQL automaticamente.
@@ -218,8 +221,8 @@ docker run --rm \
 
 Dentro de containers, `DB_HOST=localhost` aponta para o próprio container do
 backend, não para a máquina host. Para o comando acima, use
-`DB_HOST=host.docker.internal`. O futuro Docker Compose definirá os nomes e a
-rede dos serviços; esta imagem não embute essas decisões.
+`DB_HOST=host.docker.internal`. No Compose, o backend usa `db` na rede interna
+definida em `docker-compose.yml`.
 
 A porta padrão exposta é `8080`, mas `BACKEND_PORT` continua configurável em
 runtime. Depois da inicialização, valide `http://localhost:8080/api/health`.
@@ -237,8 +240,10 @@ O GitLab CI valida apenas os serviços afetados por cada alteração. Mudanças 
 `backend/` executam compile e testes do backend; mudanças em `frontend/`
 executam build, lint, typecheck e testes do frontend. Mudanças em
 `docker-compose.yml` também acionam a validação frontend. Alterações no próprio
-`.gitlab-ci.yml` validam as duas esteiras. Quando existe uma Merge Request aberta, o pipeline de
-MR substitui o pipeline redundante da branch.
+`.gitlab-ci.yml` validam as duas esteiras. Cada arquivo em
+`infrastructure/gitlab-ci/` aciona somente a aplicação correspondente. Quando
+existe uma Merge Request aberta, o pipeline de MR substitui o pipeline redundante
+da branch.
 
 O fluxo configurado publica o frontend estático na Vercel por um job manual da
 branch padrão protegida, após build, lint, typecheck e testes. O GitLab converte
@@ -246,16 +251,15 @@ branch padrão protegida, após build, lint, typecheck e testes. O GitLab conver
 v3 e publica o mesmo artefato com `--prebuilt --prod`, sem recompilar. Não há
 previews automáticos nem publicação paralela pela integração Git da Vercel.
 Configure a origem canônica exata em `FRONTEND_ALLOWED_ORIGINS` no Render.
-Variáveis, proteção de jobs antigos e primeira publicação estão no
+Variáveis, proteção de jobs antigos e operação estão no
 [`guia de deploy frontend`](docs/frontend-deployment.md).
 
 A entrada é `/`, a consulta validada de health fica em `/status` e há página
 de não encontrado. A saída Vercel inclui fallback SPA e 404 para assets ausentes.
-Acesso público, refresh e integração com a API devem ser comprovados após o merge
-na #30; configuração local não comprova deploy. O job Pages foi removido; o site
-antigo só deve ser desativado após validar a migração. A base não entrega
-autenticação ou modelo de negócio. A identidade e os componentes compartilhados
-seguem o [design system Alô Cidade](docs/design-system/README.md).
+A rota `/prova-imagem` permite selecionar e capturar uma fotografia em memória,
+sem upload; seu [guia](docs/image-selection-proof.md) descreve contrato e limites.
+Os roteiros de deploy orientam a validação pública de cada nova versão.
+A identidade e os componentes compartilhados seguem o [design system Alô Cidade](docs/design-system/README.md).
 
 Depois que uma alteração de backend chega à branch padrão com os jobs verdes, o
 job manual `backend:deploy` fica disponível. Ele registra o environment
@@ -284,6 +288,9 @@ de conclusão.
 
 ## Documentação
 
+- Seleção e captura local de imagem: [`docs/image-selection-proof.md`](docs/image-selection-proof.md);
+- Design system: [`docs/design-system`](docs/design-system/README.md);
+- Deploy frontend: [`docs/frontend-deployment.md`](docs/frontend-deployment.md);
 - Desenvolvimento frontend: [`docs/frontend-development.md`](docs/frontend-development.md);
 - Decisões arquiteturais: [`docs/adr`](docs/adr);
 - Convenções e validação de migrations:

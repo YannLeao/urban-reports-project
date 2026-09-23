@@ -46,14 +46,15 @@ como metadados; a URL específica do deployment aparece no log do job.
 
 MRs e outras branches somente validam. A branch padrão protegida oferece o job
 manual, com `allow_failure: false`; falta de configuração falha explicitamente.
-Mudanças em `frontend/`, `docker-compose.yml` e `.gitlab-ci.yml` acionam a esteira.
+Os jobs ficam em `infrastructure/gitlab-ci/frontend.yml`, incluído pela raiz.
+Mudanças nesse arquivo, em `frontend/`, `docs/design-system/`, `.dockerignore`,
+`docker-compose.yml` e `.gitlab-ci.yml` acionam a esteira.
 Os jobs backend mantêm seu fluxo separado.
 
-## Configuração externa antes da primeira publicação
+## Configuração externa
 
 Não envie tokens por chat nem os salve no repositório. Um mantenedor com acesso
-às contas deve executar este checklist; configuração local não comprova que ele
-já foi realizado.
+às contas deve conferir este checklist ao configurar ou alterar o ambiente.
 
 1. **Vercel:** crie ou selecione o projeto na conta/equipe correta, com framework
    **Other**, sem integração Git conectada e sem build remoto. Como a CLI roda
@@ -95,9 +96,7 @@ já foi realizado.
 
 Os IDs e URLs não são segredos. A CLI instalada aceita ORG_ID/PROJECT_ID pelo
 ambiente; CI não precisa arquivar `project.json`, executar `vercel pull` ou
-buscar variáveis de build na Vercel. Não invente IDs. A compatibilidade local
-foi conferida na ajuda/código da CLI; permissões e aceitação do pacote pelo
-serviço só podem ser comprovadas no primeiro deploy autenticado.
+buscar variáveis de build na Vercel. Permissões e aceitação do pacote devem ser conferidas no deploy autenticado.
 
 ## API, rotas e CORS
 
@@ -176,13 +175,7 @@ Depois de revisão e merge normal (sem merge automático):
    OPTIONS com `Access-Control-Request-Method: GET`. Registre o preflight como
    teste explícito; GET simples pode não gerar OPTIONS no navegador. HTTP 200
    em curl sozinho não prova integração CORS no navegador.
-6. Anexe links/resultados e captura pertinente à MR. Só depois da validação
-   Vercel, confira se o site Pages antigo pertence a este frontend e desative
-   sua publicação remanescente em **Deploy > Pages**. A remoção do job impede
-   novas publicações, mas não exclui automaticamente o site anterior.
-
-Enquanto faltarem essas evidências, use `Refs #30` e `Refs #29`; não feche #29.
-#30 só pode ser encerrada após publicação pública e API real comprovadas.
+6. Anexe SHA, links/resultados e captura pertinente à MR da alteração.
 
 ## Diagnóstico e rollback
 

@@ -46,3 +46,27 @@ O build começa pela checagem, sem geração automática que esconda divergênci
 CI observa `docs/design-system/**/*`; Docker usa contexto da raiz, COPY restritos
 e `.dockerignore` da raiz. A imagem final contém somente Nginx e saída estática.
 Consulte os [comandos frontend](../frontend-development.md).
+
+## Estilos e Tailwind
+
+Priorize utilitários Tailwind no JSX para layout, espaçamento e estados.
+Reutilize componentes e mapas de variantes com classes **completas e estáticas**;
+Tailwind detecta texto-fonte, não interpola nomes montados em runtime.
+`buttonStyles` compartilha a aparência de Button e links de ação sem duplicação.
+
+O tema gerado expõe cores semânticas e espaçamento, além de `text-small`,
+`text-lead`, `font-bold`, `rounded-control`, `rounded-card`, `shadow-card`,
+`min-h-target`, `max-w-reading` e `max-w-app`, todos ligados aos mesmos tokens.
+Valores arbitrários ficam para composições locais (como a grade auto-fit e a
+altura da prévia), sem copiar cores ou medidas já definidas nos tokens.
+
+CSS manual fica em `src/index.css`: imports de Tailwind/fonte, defaults globais
+em `@layer base`, foco e preferência global de movimento reduzido. A camada base
+permite que utilitários sobrescrevam defaults sem elevar especificidade.
+`styles/tokens.generated.css` é integração gerada, não um lugar para estilos de
+componentes. Não criar CSS por página ou usar `@apply` apenas para renomear grupos
+de utilitários. Uma exceção de integração ou desempenho deve ter motivo concreto
+registrado junto à implementação; não pressupor ganho de desempenho.
+
+Referências: [tema](https://tailwindcss.com/docs/theme) e
+[estilos globais/camadas](https://tailwindcss.com/docs/adding-custom-styles).
