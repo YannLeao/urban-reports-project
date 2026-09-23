@@ -4,13 +4,16 @@ Este guia valida a integração temporária da Sprint 1 com um bucket privado do
 Cloudflare R2. Os endpoints não representam o fluxo definitivo de ocorrência e
 não criam registros no PostgreSQL.
 
+A [prova de seleção e captura no frontend](image-selection-proof.md) em
+`/prova-imagem` mantém a imagem apenas em memória e não utiliza estes endpoints.
+
 ## Contrato técnico
 
 - Upload: `POST /api/storage/images`, `multipart/form-data`, campo `file`.
 - Recuperação: `GET /api/storage/images/{id}`.
 - Formatos aceitos: JPEG (`image/jpeg`), PNG (`image/png`) e WebP
   (`image/webp`).
-- Limite da regra: exatamente 5 MB por arquivo.
+- Limite da regra: 5 MiB por arquivo (5 × 1024 × 1024 = 5.242.880 bytes).
 - Key interna: `proofs/{UUID}.{extensão-validada}`.
 - Identidade devolvida: `UUID.extensão`, sem nome original, bucket ou URL do R2.
 
@@ -86,7 +89,7 @@ e confirme bytes e tipo. Isso demonstra que o objeto não dependia do filesystem
 da aplicação.
 
 Por fim, tente um arquivo de outro formato, conteúdo disfarçado e um arquivo
-maior que 5 MB; todos devem ser rejeitados antes do envio ao bucket. O Swagger
+maior que 5 MiB; todos devem ser rejeitados antes do envio ao bucket. O Swagger
 em `http://localhost:8080/swagger` também documenta os dois endpoints técnicos,
 mas exige iniciar explicitamente com
 `./mvnw spring-boot:run -Dspring-boot.run.profiles=dev`. Os comandos curl acima

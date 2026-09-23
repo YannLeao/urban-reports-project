@@ -16,7 +16,10 @@ Implementado: tema claro, Manrope local, tokens, componentes básicos, shell,
 entrada, não encontrado, apresentação de health em `/status` e referência visual
 em `/dev/design-system` **somente no Vite de desenvolvimento**. O catálogo não
 aparece na navegação pública, não envia dados e seu módulo não integra produção.
-Mapa, autenticação, relatos, dialogs e bottom sheets são orientações futuras.
+O padrão de seleção de fotografia também está no catálogo; sua
+[prova pública transitória](../image-selection-proof.md) em `/prova-imagem`
+não depende da API nem envia a imagem. Mapa, autenticação, relatos, dialogs e
+bottom sheets são orientações futuras.
 
 ## Manutenção
 
