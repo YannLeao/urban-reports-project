@@ -83,8 +83,13 @@
 - O backend importa opcionalmente `.env` relativo ao diretório de execução.
   O Compose não carrega automaticamente os `.env` das aplicações: confira sua
   interpolação e as variáveis transmitidas aos serviços.
-- CORS não é autenticação. `/api/storage/images` é uma prova técnica, não o
-  contrato definitivo de ocorrência.
+- Leia [segurança](docs/security.md) antes de alterar endpoints. A cadeia usa
+  negação por padrão; storage técnico está bloqueado inclusive em dev. Preserve
+  health público, matriz Swagger e CSRF habilitado até decisão do fluxo mutável.
+  CORS tem fonte única na cadeia Security, sem credentials. Não crie autenticação
+  fictícia nem trate identidade simulada de teste como suporte JWT.
+- Reutilize o PasswordEncoder Argon2id central e o DTO de erro em `api/`.
+  Testes internos de storage sem filtros não substituem testes com cadeia real.
 - Não altere banco remoto nem exclua volumes ou recursos externos como rotina
   de validação. Não use `docker compose down -v` como limpeza padrão.
 - Evite mudanças incidentais de dependências, formatação em massa e correções
@@ -117,8 +122,9 @@ por padrão. Perfis Spring não são autenticação nem profiles do Compose.
 
 O boot backend executa Flyway e precisa de banco configurado. R2 não é
 obrigatório para iniciar: sem `IMAGE_STORAGE_ENDPOINT`, a integração fica
-desativada e operações de imagem ficam indisponíveis. Para usá-la, configure o
-storage conforme o guia; não reutilize placeholders como credenciais reais.
+desativada e o serviço interno de imagem fica indisponível. Os endpoints
+técnicos permanecem bloqueados pela cadeia de segurança. Para configurar a
+integração interna, siga o guia de storage; não reutilize placeholders como credenciais reais.
 
 `docker compose config` valida configuração, não serviços operacionais.
 `pnpm run build` não verifica todas as exigências de produção de

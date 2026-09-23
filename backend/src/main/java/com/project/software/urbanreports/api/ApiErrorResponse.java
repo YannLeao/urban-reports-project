@@ -1,4 +1,4 @@
-package com.project.software.urbanreports.storage.api;
+package com.project.software.urbanreports.api;
 
 import java.time.Instant;
 

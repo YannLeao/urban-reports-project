@@ -1,5 +1,6 @@
 package com.project.software.urbanreports.storage.api;
 
+import com.project.software.urbanreports.api.ApiErrorResponse;
 import com.project.software.urbanreports.storage.application.ImageStorageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;

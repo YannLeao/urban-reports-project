@@ -115,7 +115,8 @@ inexistentes. Caminhos com extensão são reservados a arquivos, não a páginas
 Não há política de cache imutável para HTML. Nginx e um `vercel.json` externo
 não determinam essas regras.
 
-CORS continua configurado pelo backend, sem mudanças Java ou autenticação.
+CORS é integrado à cadeia Spring Security do backend, sem autenticação
+implementada; veja a [política da API](security.md).
 A allowlist aceita origens exatas separadas por vírgula, sem path/barra final.
 Não use `*`, `*.vercel.app` ou cada URL efêmera de deployment. A integração é
 validada pela **origem canônica**, que pode diferir da URL específica da CLI.

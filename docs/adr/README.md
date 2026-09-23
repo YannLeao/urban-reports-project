@@ -19,3 +19,4 @@ um novo ADR que substitui o anterior.
 - [0006 — Frontend na Vercel pelo GitLab](0006-publicar-frontend-na-vercel-pelo-gitlab.md)
 - [0007 — Documentação da API desabilitada por padrão](0007-desabilitar-documentacao-api-por-padrao.md)
 - [0008 — Design system Alô Cidade](0008-estabelecer-design-system.md)
+- [0009 — Base de segurança](0009-estabelecer-base-de-seguranca.md)

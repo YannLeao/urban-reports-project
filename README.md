@@ -75,7 +75,8 @@ O backend lê opcionalmente `backend/.env` e utiliza as seguintes variáveis:
 
 As cinco variáveis de storage ativam a integração. Sem
 `IMAGE_STORAGE_ENDPOINT`, o backend continua disponível para health check e as
-demais funções, mas operações de imagem respondem como storage indisponível.
+demais funções, mas o serviço interno de imagens fica indisponível. Os endpoints
+técnicos permanecem bloqueados pela segurança, com ou sem R2 configurado.
 Nunca utilize credenciais reais no `.env.example` ou em commits.
 
 Mantenha `DB_URL` ausente quando desejar o fallback local por host, porta e nome.
@@ -166,12 +167,12 @@ alcance a aplicação pela rede. Propriedades externas podem sobrescrever as
 flags; revise os overrides no Render conforme o [guia de deploy](docs/backend-deployment.md).
 Desabilitar a documentação não protege os endpoints de negócio.
 
-A prova técnica recebe uma imagem JPEG, PNG ou WebP de até 5 MiB em
-`POST /api/storage/images` (campo multipart `file`) e a recupera em
-`GET /api/storage/images/{id}`. O bucket não é público: os bytes sempre passam
-pelo backend. Esse contrato é temporário e não representa a futura criação de
-ocorrências. O roteiro completo está em
-[`docs/image-storage.md`](docs/image-storage.md).
+A [base de segurança](docs/security.md) mantém health público, CSRF habilitado
+e negação por padrão. Os endpoints técnicos `POST /api/storage/images` e
+`GET /api/storage/images/{id}` estão bloqueados, inclusive em dev; o roteiro
+anterior de upload público deixa de funcionar. Cadastro/login e JWT ainda não
+estão implementados. A prova frontend continua sem upload; contrato interno e
+configuração R2 estão em [`docs/image-storage.md`](docs/image-storage.md).
 
 Na primeira inicialização contra um banco vazio, o Flyway aplica automaticamente
 as migrations em `backend/src/main/resources/db/migration`. Nas inicializações
@@ -295,7 +296,8 @@ de conclusão.
 - Decisões arquiteturais: [`docs/adr`](docs/adr);
 - Convenções e validação de migrations:
   [`docs/database-migrations.md`](docs/database-migrations.md);
-- Configuração e prova manual do storage de imagens:
+- Segurança da API: [`docs/security.md`](docs/security.md);
+- Configuração e contrato interno do storage de imagens:
   [`docs/image-storage.md`](docs/image-storage.md);
 - Pipeline e deploy do backend:
   [`docs/backend-deployment.md`](docs/backend-deployment.md);
