@@ -180,3 +180,28 @@ devem ser acompanhados no Render.
 Falhas HTTP e de conexão no hook falham imediatamente o job por meio de
 `curl --fail --show-error --silent`. Se o hook for regenerado, atualize somente
 a variável protegida no GitLab.
+
+## Login e sessões: configuração anterior ao deploy
+
+Antes de publicar a versão com login, configure AUTH_JWT_ISSUER (URL HTTPS exata
+ou identificador estável), AUTH_JWT_AUDIENCE e AUTH_JWT_KEY_ID, mais dois Secret
+Files PEM no Render. AUTH_JWT_PRIVATE_KEY_FILE e AUTH_JWT_PUBLIC_KEY_FILE apontam
+para os caminhos montados (por exemplo /etc/secrets/auth-private.pem e
+/etc/secrets/auth-public.pem). Use PKCS8 privado/X509 público RSA >=2048 bits;
+[geração e contrato](security.md). Não enviar chaves para GitLab, Docker build,
+frontend ou evidências. Não usar as chaves sintéticas de teste.
+
+Ausência, parsing inválido ou par incompatível impedem boot. Duração é fixa em
+30 minutos. Preserve par/kid/issuer/audience/banco em restart; trocar chave
+invalida tokens anteriores. V3 cria auth_sessions via Flyway e Hibernate valida.
+Nenhuma alteração de banco remoto é necessária fora do boot autorizado.
+
+No Compose, caminhos AUTH_JWT_*_KEY_FILE do shell/arquivo de interpolação apontam
+para arquivos no host; secrets os montam em /run/secrets/. Não são build args.
+Sem arquivos configurados o serviço não inicia. `docker compose config --quiet`
+é somente validação estática; não comprova leitura/permissão dos arquivos.
+
+Após revisão e pipeline verde, publique backend primeiro e siga o percurso no
+[guia frontend](frontend-deployment.md#percurso-de-autenticação-publicado). Não
+faça merge automático. Não há rate limit de login; dimensionamento e mitigação
+de tentativas automatizadas precisam de avaliação operacional.

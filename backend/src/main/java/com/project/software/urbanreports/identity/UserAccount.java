@@ -28,5 +28,11 @@ public class UserAccount {
         this.updatedAt = createdAt;
     }
 
-    RegistrationResponse response() { return new RegistrationResponse(id, name, email, role); }
+    public UUID getId() { return id; }
+    public String getPasswordHash() { return passwordHash; }
+    public void changePasswordHash(String hash, Instant instant) {
+        this.passwordHash = java.util.Objects.requireNonNull(hash);
+        this.updatedAt = instant;
+    }
+    public RegistrationResponse response() { return new RegistrationResponse(id, name, email, role); }
 }

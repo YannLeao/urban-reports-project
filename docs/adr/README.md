@@ -21,3 +21,5 @@ um novo ADR que substitui o anterior.
 - [0008 — Design system Alô Cidade](0008-estabelecer-design-system.md)
 - [0009 — Base de segurança](0009-estabelecer-base-de-seguranca.md)
 - [0010 — Cadastro público de cidadão](0010-estabelecer-cadastro-de-cidadao.md)
+
+- [0011 — Sessões JWT revogáveis](0011-adotar-sessoes-jwt-revogaveis.md)

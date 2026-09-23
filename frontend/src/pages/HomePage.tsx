@@ -12,6 +12,7 @@ export function HomePage() {
       </p>
       <div className="mt-6 flex flex-wrap gap-4">
         <Link className={buttonStyles()} to="/cadastro">Criar conta</Link>
+        <Link className={buttonStyles('secondary')} to="/entrar">Entrar</Link>
         <Link className={buttonStyles('secondary')} to="/status">Verificar serviço</Link>
       </div>
       <p><Link className={buttonStyles('quiet')} to="/prova-imagem">Demonstração técnica: teste de fotografia</Link></p>

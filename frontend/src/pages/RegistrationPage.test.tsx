@@ -41,7 +41,7 @@ test('serializes only canonical API fields, omits credentials and blocks repeate
   await waitFor(() => expect(heading).toHaveFocus())
   expect(screen.queryByLabelText('Senha')).not.toBeInTheDocument()
   expect(screen.getByText(/Você ainda não está conectado/)).toBeVisible()
-  expect(screen.getByRole('link', { name: 'Voltar ao início' })).toHaveAttribute('href', '/')
+  expect(screen.getByRole('link', { name: 'Entrar na minha conta' })).toHaveAttribute('href', '/entrar')
 })
 
 test('local errors focus first field and preserve passwords without a request', async () => {

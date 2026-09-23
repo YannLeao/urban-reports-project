@@ -31,7 +31,7 @@ Nenhum dos padrões abaixo representa uma tela ou contrato já implementado:
   de vocabulário. Não são enum da API. O frontend valida health `UP` e o contrato de cadastro; confirmar o contrato
   de ocorrências antes de implementar tokens `report` ou
   mapeamentos de andamento.
-- Autenticação e meus relatos: explicar por que entrar quando necessário; não
+- Meus relatos: reutilizar o guard de autenticação implementado quando necessário; não
   bloquear consulta pública por padrão sem decisão de requisitos. Exemplo vazio:
   “Você ainda não tem relatos.” Só oferecer ação quando tiver destino funcional.
 - Carregamento e conexão lenta: preservar contexto e entradas, com texto como

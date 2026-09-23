@@ -24,7 +24,12 @@ final class SecurityErrorHandler implements AuthenticationEntryPoint, AccessDeni
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response,
             AuthenticationException exception) throws IOException {
-        write(request, response, HttpStatus.UNAUTHORIZED, "Authentication is required");
+        if (exception instanceof com.project.software.urbanreports.auth.AuthenticationUnavailableException) {
+            write(request, response, HttpStatus.SERVICE_UNAVAILABLE, "Authentication unavailable");
+        } else {
+            response.setHeader("WWW-Authenticate", "Bearer");
+            write(request, response, HttpStatus.UNAUTHORIZED, "Authentication is required");
+        }
     }
 
     @Override
@@ -36,6 +41,7 @@ final class SecurityErrorHandler implements AuthenticationEntryPoint, AccessDeni
 
     private void write(HttpServletRequest request, HttpServletResponse response,
             HttpStatus status, String message) throws IOException {
+        response.setHeader("Cache-Control", "no-store");
         response.setStatus(status.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         mapper.writeValue(response.getOutputStream(), new ApiErrorResponse(Instant.now(),

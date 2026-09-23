@@ -177,3 +177,20 @@ O Dockerfile frontend exige contexto da **raiz** para copiar tokens e a
 declaração ESM de docs/design-system. Usa COPY restritos e `.dockerignore` da raiz.
 Não copiar `.env`, dependências locais ou docs desnecessários. `tokens:check` também roda dentro da imagem.
 Para contrastes reproduzíveis: `node scripts/contrast.ts` em frontend/.
+
+## Autenticação
+
+`/entrar` usa chamada direta, sem mutation cache/retry; `/minha-conta` reutiliza
+PrivateRoute e AuthProvider. Bootstrap chama /me antes do conteúdo privado;
+indisponibilidade oferece nova tentativa. SessionStorage guarda token/expiração
+somente; fallback em memória perde sessão em reload. Senhas são limpas após HTTP.
+Não há refresh, lembrar de mim nem rota fictícia de recuperação.
+
+Cliente privado em lib/api.ts aceita caminhos /api relativos, credentials omit,
+Bearer explícito e redirect error. Nunca usar em imagens/terceiros. Chaves de
+Query privadas devem começar `['private', userId, ...]`, respeitar AbortSignal e
+não persistir cache. Encerramento cancela/remove esse prefixo; geração impede
+respostas antigas de alterar identidade. 401 expira estado; 403/rede não fazem
+logout. Sair anuncia conclusão só após 204/401; falha mantém credencial.
+
+Consulte [segurança](security.md) e [ponte de recuperação](password-recovery-integration.md).

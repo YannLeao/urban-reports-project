@@ -87,3 +87,11 @@ Não há drag-and-drop obrigatório, corte, compressão ou envio. Veja os
 resumo; sucesso foca o título “Conta criada”. O catálogo ilustra erro de e-mail,
 orientação de senha, sucesso sem sessão e incerteza de rede, sem enviar dados.
 Contrato e limpeza de senhas estão em [identidade](../identity.md).
+
+## Login e minha conta
+
+`/entrar` reutiliza Input (e-mail/current-password), Button com loading e Alert
+com foco no erro genérico. Cadastro concluído oferece login sem senha em navegação.
+`/minha-conta` tem nome/e-mail e Sair; sem edição ou painel fictício. Bootstrap
+mostra estado de validação, falha oferece Tentar novamente e logout incerto
+preserva a tela com mensagem e retry. Não apresentar recuperação sem rota real.
