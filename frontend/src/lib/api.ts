@@ -33,3 +33,40 @@ export async function getJson(path: string, signal?: AbortSignal): Promise<unkno
     throw new Error('O serviço enviou uma resposta que não conseguimos reconhecer.')
   }
 }
+
+const apiErrorSchema = z.object({
+  code: z.string(),
+  fieldErrors: z.record(z.string(), z.array(z.string())).optional(),
+})
+
+export class ApiRequestError extends Error {
+  readonly code: string
+  readonly fieldErrors?: Record<string, string[]>
+  constructor(code: string, fieldErrors?: Record<string, string[]>) {
+    super('A solicitação não pôde ser confirmada.')
+    this.code = code
+    this.fieldErrors = fieldErrors
+  }
+}
+
+export async function postJson(path: string, body: unknown): Promise<unknown> {
+  const url = `${getApiUrl()}/${path.replace(/^\/+/, '')}`
+  let response: Response
+  try {
+    response = await fetch(url, {
+      method: 'POST', credentials: 'omit',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    })
+  } catch {
+    throw new ApiRequestError('UNCERTAIN_RESULT')
+  }
+  let payload: unknown
+  try { payload = await response.json() } catch { throw new ApiRequestError('UNCERTAIN_RESULT') }
+  if (!response.ok) {
+    const error = apiErrorSchema.safeParse(payload)
+    if (error.success) throw new ApiRequestError(error.data.code, error.data.fieldErrors)
+    throw new ApiRequestError('UNCERTAIN_RESULT')
+  }
+  if (response.status !== 201) throw new ApiRequestError('UNCERTAIN_RESULT')
+  return payload
+}

@@ -18,7 +18,8 @@ em `/dev/design-system` **somente no Vite de desenvolvimento**. O catálogo não
 aparece na navegação pública, não envia dados e seu módulo não integra produção.
 O padrão de seleção de fotografia também está no catálogo; sua
 [prova pública transitória](../image-selection-proof.md) em `/prova-imagem`
-não depende da API nem envia a imagem. Mapa, autenticação, relatos, dialogs e
+não depende da API nem envia a imagem. O [cadastro público](../identity.md) usa
+Input/Button/Alert e estados ilustrados no catálogo. Mapa, login, relatos, dialogs e
 bottom sheets são orientações futuras.
 
 ## Manutenção

@@ -86,6 +86,7 @@ manual de tentar novamente; sair da página cancela a requisição em andamento.
 - `src/app/routes.tsx`: configuração declarativa central de rotas.
 - `src/pages/`: HomePage, StatusPage, ImageProofPage e NotFoundPage.
 - `src/features/image/`: seleção controlada, validação e prévia local de imagem.
+- `src/features/identity/`: validação e chamada de cadastro sem cache/retry; `/cadastro` compõe o formulário público.
 - `src/features/health/`: consulta validada e apresentação de health.
 - `src/lib/api.ts`: base da API e leitura de JSON por fetch.
 - `src/main.tsx`: composição de providers e BrowserRouter; `App.tsx`: shell.
@@ -157,7 +158,10 @@ build arg frontend. Variáveis vêm do shell, `.env` da raiz ou `--env-file`, n�
 automaticamente dos `.env` de cada aplicação. No celular, localhost aponta ao
 próprio dispositivo; use a API acessível e reconstrua o bundle.
 
-A base usa a identidade Alô Cidade, sem autenticação ou modelo de negócio.
+A base usa a identidade Alô Cidade e oferece [cadastro real](identity.md) em
+`/cadastro`, sem autenticação automática. O helper `postJson` no cliente existente
+omite credenciais; o formulário mantém senhas apenas no estado local e as limpa
+após tentativa HTTP. Erros por código e confirmação 201 são validados com Zod.
 Valide alterações de produção pelo [roteiro de deploy](frontend-deployment.md);
 a inspeção local não substitui a verificação da versão publicada.
 

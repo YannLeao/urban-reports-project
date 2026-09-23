@@ -13,7 +13,9 @@ manuais do backend no Render e do frontend estático na Vercel.
 
 A base oferece navegação, health validado em `/status`, design system Alô Cidade,
 seleção/captura local de fotografia em `/prova-imagem` e endpoints técnicos de
-storage. Autenticação e fluxo de ocorrências ainda não integram essa base.
+storage. Cadastro de cidadão em `/cadastro` persiste contas reais, sem login
+automático.
+Login e fluxo de ocorrências ainda não integram essa base.
 
 ## Estrutura do repositório
 
@@ -170,8 +172,9 @@ Desabilitar a documentação não protege os endpoints de negócio.
 A [base de segurança](docs/security.md) mantém health público, CSRF habilitado
 e negação por padrão. Os endpoints técnicos `POST /api/storage/images` e
 `GET /api/storage/images/{id}` estão bloqueados, inclusive em dev; o roteiro
-anterior de upload público deixa de funcionar. Cadastro/login e JWT ainda não
-estão implementados. A prova frontend continua sem upload; contrato interno e
+anterior de upload público deixa de funcionar. Cadastro público aceita somente
+JSON em `POST /api/auth/register`; login e JWT ainda não estão implementados.
+Consulte [identidade](docs/identity.md). A prova frontend continua sem upload; contrato interno e
 configuração R2 estão em [`docs/image-storage.md`](docs/image-storage.md).
 
 Na primeira inicialização contra um banco vazio, o Flyway aplica automaticamente
@@ -289,6 +292,7 @@ de conclusão.
 
 ## Documentação
 
+- Cadastro e identidade: [`docs/identity.md`](docs/identity.md);
 - Seleção e captura local de imagem: [`docs/image-selection-proof.md`](docs/image-selection-proof.md);
 - Design system: [`docs/design-system`](docs/design-system/README.md);
 - Deploy frontend: [`docs/frontend-deployment.md`](docs/frontend-deployment.md);

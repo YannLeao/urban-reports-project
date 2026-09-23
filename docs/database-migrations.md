@@ -11,12 +11,16 @@ formato `V<versão>__<descrição>.sql`, por exemplo:
 
 ```text
 V1__create_schema_probe.sql
-V2__create_users.sql
+V2__create_user_accounts.sql
 ```
 
 Depois que uma migration for aplicada em qualquer ambiente compartilhado, seu
 conteúdo é imutável. Correções e remoções devem ser feitas em uma nova migration,
 nunca alterando um arquivo anterior.
+
+A V2 cria as contas do [cadastro](identity.md), com UUID, e-mail canônico único,
+Argon2id, USER e timestamps UTC. Os testes de cadastro validam constraints e
+concorrência em PostgreSQL descartável.
 
 ## Como o checksum protege o histórico
 

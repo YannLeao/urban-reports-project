@@ -80,3 +80,10 @@ remoção cancela a leitura. Erro textual preserva a seleção anterior; remover
 retorna o foco ao seletor. Os dois inputs possuem nomes e orientação associados.
 Não há drag-and-drop obrigatório, corte, compressão ou envio. Veja os
 [limites e roteiro de câmera](../image-selection-proof.md).
+
+## Cadastro
+
+`/cadastro` compõe Input/Field, Button e Alert com foco no primeiro erro ou
+resumo; sucesso foca o título “Conta criada”. O catálogo ilustra erro de e-mail,
+orientação de senha, sucesso sem sessão e incerteza de rede, sem enviar dados.
+Contrato e limpeza de senhas estão em [identidade](../identity.md).

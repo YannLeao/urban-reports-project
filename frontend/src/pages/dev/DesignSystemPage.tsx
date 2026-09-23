@@ -31,6 +31,12 @@ export default function DesignSystemPage() {
         <Select label="Opção demonstrativa" description="Seleção nativa do navegador." defaultValue=""><option value="">Selecione uma opção</option><option value="a">Opção de exemplo</option></Select>
         <Textarea label="Descrição demonstrativa" description="Não inclua dados pessoais neste exemplo." rows={4} />
       </div></Card>
+      <Card><h2>Cadastro de cidadão</h2><div className="grid gap-5">
+        <Input label="E-mail de exemplo" type="email" autoComplete="off" error="Este e-mail já está cadastrado." />
+        <Input label="Senha de exemplo" type="password" autoComplete="off" description="De 15 a 128 caracteres. Espaços e acentos são permitidos." />
+        <Alert tone="success" role="note">Exemplo: conta criada. O cadastro não inicia uma sessão.</Alert>
+        <Alert tone="warning" role="note">Exemplo de falha de rede: não conseguimos confirmar o resultado. A conta pode ter sido criada.</Alert>
+      </div></Card>
       <Card><h2>Feedback textual</h2><div className="grid gap-8 pb-8">
         {(['success', 'warning', 'danger', 'info'] as const).map(tone => <div key={tone}><StatusBadge tone={tone} label={`Exemplo ${tone}`} /><Alert tone={tone} role="note" className="mt-4">Mensagem demonstrativa: o texto explica a situação e orienta o próximo passo.</Alert></div>)}
       </div></Card>

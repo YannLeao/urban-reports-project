@@ -28,8 +28,8 @@ Nenhum dos padrões abaixo representa uma tela ou contrato já implementado:
 - Registro guiado: proposta a validar, sem impor cinco etapas, coordenadas
   obrigatórias, mapa, geocoding ou permissão de GPS nesta entrega.
 - “Recebido”, “Em análise”, “Em andamento”, “Resolvido” e “Rejeitado” são sugestões
-  de vocabulário. Não são enum da API. O frontend integrado valida apenas health
-  `UP`; confirmar o contrato backend antes de implementar tokens `report` ou
+  de vocabulário. Não são enum da API. O frontend valida health `UP` e o contrato de cadastro; confirmar o contrato
+  de ocorrências antes de implementar tokens `report` ou
   mapeamentos de andamento.
 - Autenticação e meus relatos: explicar por que entrar quando necessário; não
   bloquear consulta pública por padrão sem decisão de requisitos. Exemplo vazio:
