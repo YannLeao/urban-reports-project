@@ -70,10 +70,10 @@ class SecurityIntegrationTests {
     }
 
     @Test
-    void csrfPrecedesAuthorizationForMutatingRequests() throws Exception {
-        error(mvc.perform(post("/api/storage/images")), 403, "/api/storage/images", "Invalid CSRF token");
+    void bearerOnlyMutationsDoNotRequireCsrf() throws Exception {
+        error(mvc.perform(post("/api/storage/images")), 401, "/api/storage/images", "Authentication is required");
         error(mvc.perform(post("/api/storage/images").with(csrf().useInvalidToken())),
-                403, "/api/storage/images", "Invalid CSRF token");
+                401, "/api/storage/images", "Authentication is required");
         error(mvc.perform(post("/api/storage/images").with(csrf())),
                 401, "/api/storage/images", "Authentication is required");
     }
@@ -97,7 +97,7 @@ class SecurityIntegrationTests {
                     .andExpect(header().string("Access-Control-Allow-Origin", origin))
                     .andExpect(header().doesNotExist("Access-Control-Allow-Credentials"));
             error(mvc.perform(post("/api/storage/images").header("Origin", origin)),
-                    403, "/api/storage/images", "Invalid CSRF token")
+                    401, "/api/storage/images", "Authentication is required")
                     .andExpect(header().string("Access-Control-Allow-Origin", origin));
             error(mvc.perform(get(IMAGE).with(user("synthetic")).header("Origin", origin)),
                     403, IMAGE, "Access is denied")
@@ -148,6 +148,6 @@ class SecurityIntegrationTests {
                 .andExpect(jsonPath("$.timestamp").isNotEmpty()).andExpect(jsonPath("$.status").value(status))
                 .andExpect(jsonPath("$.error").value(status == 401 ? "Unauthorized" : "Forbidden"))
                 .andExpect(jsonPath("$.message").value(message)).andExpect(jsonPath("$.path").value(path))
-                .andExpect(header().doesNotExist("Location")).andExpect(header().doesNotExist("WWW-Authenticate"));
+                .andExpect(header().doesNotExist("Location"));
     }
 }

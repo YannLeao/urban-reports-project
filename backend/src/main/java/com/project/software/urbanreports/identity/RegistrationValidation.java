@@ -18,9 +18,14 @@ public final class RegistrationValidation {
     }
     public static String canonicalEmail(String value) { return trim(value).toLowerCase(Locale.ROOT); }
 
+    public static boolean validEmail(String value) {
+        String raw = trim(value), email = canonicalEmail(value);
+        return raw.chars().noneMatch(c -> c > 127) && email.length() <= 254
+                && email.indexOf('@') <= 64 && EMAIL.matcher(email).matches();
+    }
+
     static RegistrationRequest validate(RegistrationRequest request) {
         String name = trim(request.name());
-        String rawEmail = trim(request.email());
         String email = canonicalEmail(request.email());
         String password = request.password();
         Map<String, List<String>> errors = new LinkedHashMap<>();
@@ -29,8 +34,7 @@ public final class RegistrationValidation {
                 Character.isISOControl(c) || c == 0x2028 || c == 0x2029 || c >= 0xD800 && c <= 0xDFFF)) {
             errors.put("name", List.of("INVALID_NAME"));
         }
-        if (rawEmail.chars().anyMatch(c -> c > 127) || email.length() > 254
-                || email.indexOf('@') > 64 || !EMAIL.matcher(email).matches()) {
+        if (!validEmail(request.email())) {
             errors.put("email", List.of("INVALID_EMAIL"));
         }
         if (password == null || password.length() > 256 || password.codePointCount(0, password.length()) < 15

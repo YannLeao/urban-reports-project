@@ -85,14 +85,21 @@
   interpolação e as variáveis transmitidas aos serviços.
 - Leia [segurança](docs/security.md) antes de alterar endpoints. A cadeia usa
   negação por padrão; storage técnico está bloqueado inclusive em dev. Preserve
-  health público, matriz Swagger e CSRF habilitado, com exceção somente POST
-  `/api/auth/register` JSON.
+  health público, matriz Swagger e Bearer exclusivo sem cookies/sessão servlet.
+  CSRF está desabilitado conforme ADR 0011; introduzir cookies exige revisão.
+  Auth POST aceita JSON; login/me/logout consultam sessão revogável.
   CORS tem fonte única na cadeia Security, sem credentials. Não crie autenticação
   fictícia nem trate identidade simulada de teste como suporte JWT.
 - Reutilize o PasswordEncoder Argon2id central e o DTO de erro em `api/`.
   Reutilize `identity/UserAccount` e `RegistrationValidation.canonicalEmail`
   em login/recuperação; consulte [identidade](docs/identity.md). Cadastro não
   autentica, ignora campos extras só em seu DTO e sempre cria USER.
+  Chaves RSA externas são obrigatórias em todos os perfis (docs/security.md).
+  Login e recuperação usam lock da conta antes de alterar sessões; revogação
+  global exige transação do chamador conforme docs/password-recovery-integration.md.
+  Frontend guarda só token/expiração em sessionStorage; consultas privadas usam
+  `['private', userId, ...]`, geração do contexto e cancelamento. 401 encerra sessão,
+  403/rede não. Logout falho preserva token para repetir.
   Testes internos de storage sem filtros não substituem testes com cadeia real.
 - Não altere banco remoto nem exclua volumes ou recursos externos como rotina
   de validação. Não use `docker compose down -v` como limpeza padrão.

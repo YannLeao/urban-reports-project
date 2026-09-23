@@ -1,129 +1,131 @@
-# Base de segurança da API
+# Segurança da API e sessões
 
-A API usa Spring Boot 4.1.1 e Spring Security 7.1.1, gerenciado pelo Boot.
-Esta base implementa autorização explícita e hash de senha; ainda não implementa
-login, validação JWT ou logout. O [cadastro público](identity.md) persiste contas
-sem autenticar. Não há usuário padrão gerado pelo Boot,
-HTTP Basic, form login, remember-me, logout padrão ou cache de redirecionamento.
+Spring Boot 4.1.1 / Spring Security 7.1.1 implementam autenticação pelo Resource
+Server/Jose com JWT RS256 e sessões PostgreSQL. O [ADR 0011](adr/0011-adotar-sessoes-jwt-revogaveis.md)
+evolui a base dos ADRs 0009/0010. Argon2id central mantém 19 MiB, 2 iterações,
+paralelismo 1, salt 16 bytes e hash 32 bytes, sem normalizar senhas.
 
 ## Acesso HTTP
 
-| Requisição | Política / resposta |
+| Requisição | Política |
 | --- | --- |
-| POST `/api/auth/register` | Público, JSON, sem CSRF; 201/400/409/415/500 conforme contrato de identidade |
-| GET/HEAD `/api/health` | Público; 200, GET mantém `{"status":"UP"}` |
-| GET/HEAD `/swagger`, `/swagger-ui.html`, `/swagger-ui/**`, `/webjars/swagger-ui/**`, `/v3/api-docs`, `/v3/api-docs.yaml`, `/v3/api-docs/swagger-config` | Passam pela segurança; configuração springdoc determina disponibilidade |
-| Swagger em `dev` | Atalho `/swagger` redireciona à UI; especificação e assets disponíveis |
-| Swagger sem perfil ou em `prod` | 404, incluindo assets; alias inexistentes continuam 404 também em dev |
-| GET `/api/storage/images` ou `/api/storage/images/{id}` | 401 sem identidade; 403 com identidade simulada de teste |
-| POST `/api/storage/images` | 403 sem CSRF válido; com CSRF válido, 401 sem identidade ou 403 com identidade simulada |
-| Demais requisições | `denyAll`, inclusive Actuator, futuros endpoints e `/error` direto |
-| Preflight válido de origem permitida | CORS processado antes de CSRF/autorização |
-| Dispatch interno `ERROR` | Preserva o processamento de erro do framework e o status original |
+| POST `/api/auth/register` | Público, JSON; contrato em [identidade](identity.md) |
+| POST `/api/auth/login` | Público, JSON; 200/400/401/415/503 |
+| GET `/api/auth/me` | Sessão válida; 200 com id/name/email/role atuais |
+| POST `/api/auth/logout` | Sessão válida e Content-Type application/json; 204 após commit |
+| GET/HEAD `/api/health` | Público |
+| GET/HEAD caminhos Swagger já existentes | Disponíveis somente com dev explícito; base/prod retornam 404 |
+| Storage técnico, Actuator, demais caminhos e `/error` direto | denyAll; 401 anônimo, 403 autenticado |
+| Dispatch interno ERROR | Preserva processamento/status original |
 
-O health do Render usa `/api/health`; o Compose verifica a porta TCP do backend.
-Não há motivo operacional para liberar `/actuator/**`. Somente o namespace de
-WebJars do Swagger é permitido, nunca todos os WebJars. A lista de documentação
-acompanha springdoc 3.1.0 / Swagger UI 5.32.11 e deve ser revisada em upgrades.
-Não existe bypass em `dev` para o storage. A prova frontend `/prova-imagem`
-continua local, sem upload. O contrato autorizado de imagens pertence à #36.
+Login recebe apenas email/password (8 KiB no máximo), normaliza o e-mail pela
+mesma regra do cadastro e usa matches na senha exata, limitada a 256 unidades
+UTF-16 sem aplicar mínimo de cadastro. Campos inválidos retornam 400 INVALID_REQUEST.
+Campos extras no login são rejeitados. Conta inexistente e senha incorreta têm o
+mesmo 401 INVALID_CREDENTIALS; a primeira executa matches contra hash sintético
+pré-calculado no startup, sem prometer tempo idêntico. Falha não cria sessão.
+Não há token na resposta antes de o commit concluir.
 
-## CORS e configuração
+200 login: `{accessToken, tokenType: "Bearer", expiresAt, user: {id,name,email,role}}`.
+expiresAt é ISO-8601 UTC. Respostas de auth e handlers de segurança têm no-store;
+não retornam entidades, senha ou hash. Erros preservam timestamp/status/error/
+message/path e code quando aplicável, sem redirect/HTML. 401 tem WWW-Authenticate:
+Bearer. Indisponibilidade de persistência em autenticação resulta em 503.
 
-`FRONTEND_ALLOWED_ORIGINS` continua sendo a única fonte de origens, separadas por
-vírgula; o padrão local é `http://localhost:5173`. No Render, preserve a origem
-canônica **exata** da Vercel e as origens locais autorizadas. Não use `*`, padrões
-`*.vercel.app` ou reflexão irrestrita. A configuração recusa wildcard no startup.
+## Validação e revogação
 
-Um único `CorsConfigurationSource` integra CORS à cadeia Security, substituindo
-o mapeamento MVC. Métodos: GET, HEAD, POST, PUT, PATCH, DELETE e OPTIONS (HEAD
-acompanha o health); cabeçalhos: Content-Type e Authorization. Não há
-`allowCredentials`, cookies de autenticação ou `credentials: include` no frontend.
-Authorization permitido no preflight não ativa JWT. Bearer arbitrário é ignorado
-como identidade e não concede acesso. CORS não é autenticação.
+JWT exige iss/aud/sub/jti/iat/exp; sub e jti são UUIDs canônicos. Verifica assinatura,
+RS256 exclusivo, kid conhecido, issuer/audience e validade de exatamente 1800
+segundos. Clock é injetável, com **zero tolerância temporal**. Sessão deve existir,
+pertencer ao sub, estar não revogada e não expirada; iat/exp correspondem aos
+instantes persistidos. Conta deve existir e fornece o papel atual. Não há role
+claim, cache de sessão, sid redundante, Redis ou refresh token.
 
-Origens permitidas recebem `Access-Control-Allow-Origin` também em 401/403.
-Origens rejeitadas não recebem autorização de leitura; o processador CORS padrão
-pode responder 403 em texto, fora do envelope JSON dos handlers de segurança.
-As variáveis DB/R2 e os perfis permanecem iguais; não há segredo JWT a configurar.
+V3 cria auth_sessions com FK de conta, timestamps, CHECK de validade e índice
+user_id. Não armazena token bruto, IP, user agent ou fingerprint. Sessões expiradas
+ou revogadas permanecem: retenção/limpeza são trabalho futuro, não pré-requisito
+para invalidar. Logins coexistem sem limite arbitrário de dispositivos.
 
-## CSRF transitório e sessão
+Logout usa somente a identidade autenticada e revoga a sessão corrente. Reuso
+após commit retorna 401, inclusive logout repetido. Requisições autenticadas antes
+do commit não são canceladas retroativamente. Abas copiadas compartilham a mesma
+credencial, portanto serão recusadas na próxima chamada; outros logins não mudam.
 
-CSRF permanece habilitado com o mecanismo padrão do Spring. Requisições mutáveis
-sem token válido podem receber 403 antes da regra de autorização. Não se altera
-a ordem dos filtros para forçar 401. Não há endpoint de token CSRF. Somente
-POST `/api/auth/register` é exceção:
-cria conta sem autoridade de cookies/sessão, aceita estritamente JSON (8 KiB),
-não autentica nem altera conta existente. Form/text/plain/multipart recebem 415.
-O frontend envia com credentials omit e o cadastro não cria sessão.
+## Chaves externas
 
-O contexto de segurança usa `RequestAttributeSecurityContextRepository`: não lê
-nem persiste autenticação em sessão HTTP. O repositório padrão de CSRF pode usar
-sessão; isso não representa login nem justifica impor `STATELESS` nesta etapa.
-Não existe mecanismo real que produza identidade autenticada nesta entrega.
+Obrigatórias em todos os perfis; ausência/invalidez impede startup:
 
-A exceção de cadastro não abrange login, reset, logout ou outras operações.
-Antes de #35, fechar transporte JWT/cookies e revisar CSRF em conjunto.
-CORS não impede automação por clientes não navegador.
+| Variável | Contrato |
+| --- | --- |
+| AUTH_JWT_ISSUER | Identificador exato do emissor, por exemplo https://api.example.com |
+| AUTH_JWT_AUDIENCE | Identificador exato desta API, por exemplo urban-reports-api |
+| AUTH_JWT_KEY_ID | Identificador público não vazio do par ativo |
+| AUTH_JWT_PRIVATE_KEY_FILE | Caminho absoluto do PEM RSA PKCS8 privado |
+| AUTH_JWT_PUBLIC_KEY_FILE | Caminho absoluto do PEM X509 público |
 
-## Senhas
+Duração fixa em código: 30 minutos. Não há chave padrão, geração em produção ou
+chave no bundle. Startup confere parsing, tamanho e correspondência do par.
+Guardar arquivos fora do repositório/contexto Docker; montar somente em runtime.
+Um único par/kid ativo: troca invalida tokens antigos, sem rotação transparente.
+Mesmas chaves, issuer/audience/kid e banco preservam sessões após restart. Nunca
+buscar jku/x5u do cliente ou registrar Authorization/JWT/chave privada.
 
-O bean central `PasswordEncoder` usa `Argon2PasswordEncoder` com Argon2id:
-19.456 KiB (19 MiB), 2 iterações, paralelismo 1, salt aleatório de 16 bytes e hash
-de 32 bytes. O formato `$argon2id$v=19$m=19456,t=2,p=1$...` inclui parâmetros e
-salt; não há prefixo de DelegatingPasswordEncoder nem fallback para texto puro.
-O encoder não normaliza, remove espaços nem trunca a senha.
-
-`bcprov-jdk18on` 1.86 fornece Bouncy Castle para o encoder; sua versão é explícita
-no POM porque o BOM do Boot 4.1.1 não a gerencia. A política de 15–128 pontos de código,
-confirmação local e validação está em [identidade](identity.md). Não registrar senhas ou hashes reais.
-Aferir encode/matches sob os recursos e concorrência do Render antes do fluxo
-real; medições locais são referências, nunca limiares frágeis de CI.
-
-## Erros e testes
-
-Os handlers `AuthenticationEntryPoint` e `AccessDeniedHandler` escrevem JSON com
-`timestamp`, `status`, `error`, `message`, `path`, reutilizando o DTO em `api/`.
-Mensagens: `Authentication is required` (401), `Access is denied` (403) e
-`Invalid CSRF token` (403). Não há redirect de login, challenge Basic, stack trace
-ou dados da requisição além do caminho. O advice do storage continua restrito ao
-controller de imagens. Cadastro tem advice próprio e acrescenta code/fieldErrors
-opcionais; os campos são omitidos nas respostas antigas.
-
-Execute em `backend/`, com JDK 21 e Docker disponível:
+Geração local (não imprime chave; diretório fora do checkout):
 
 ```bash
-./mvnw verify
+umask 077
+mkdir -p "$HOME/.config/urban-reports/keys"
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 \
+  -out "$HOME/.config/urban-reports/keys/private.pem"
+openssl pkey -in "$HOME/.config/urban-reports/keys/private.pem" -pubout \
+  -out "$HOME/.config/urban-reports/keys/public.pem"
 ```
 
-`SecurityIntegrationTests` usa a aplicação e cadeia reais com PostgreSQL
-Testcontainers e mock de `ImageStorage`, verificando ausência de chamadas ao
-provedor. Cobre matriz de acesso, CSRF, CORS, sessão ignorada, Bearer/Basic sem
-login e dispatch de erro. Os testes HTTP de documentação continuam cobrindo
-base, prod, dev e ativação dev via `.env` de teste. `PasswordEncoderTests`
-confere formato, parâmetros, matches, senha incorreta, espaços e salt aleatório.
-`ImageStorageControllerTests` desliga filtros **somente nessa camada** para
-validar contrato interno controller/service com storage em memória. A política
-pública do mesmo endpoint é coberta separadamente pela cadeia real.
+Defina os caminhos absolutos em backend/.env, sem copiar o conteúdo das chaves.
+As exclusões *.pem/*.key no contexto backend são defesa adicional.
+No Render, use Secret Files e caminhos montados; veja [deploy](backend-deployment.md).
 
-## Próximas entregas e validação remota
+## CORS, CSRF e navegador
 
-- Cadastro implementado: [modelo, contrato e roteiro de publicação](identity.md).
-- #35: login e JWT, transporte, armazenamento no navegador, renovação, duração,
-  assinatura/chaves, sessão ativa, revogação/invalidação imediata, recuperação de
-  senha, persistência após restart e identidade no frontend. JWT sozinho não
-  implementa logout ou revogação.
-- #36: contrato de imagens e autorização; não reabrir a prova técnica por perfil.
+Uma única fonte CORS na cadeia usa FRONTEND_ALLOWED_ORIGINS com origens exatas,
+sem wildcard e sem credentials. Permite Authorization/Content-Type e métodos
+GET/HEAD/POST/PUT/PATCH/DELETE/OPTIONS. Preflight precede autenticação. Erros de
+origem permitida preservam CORS; origem rejeitada pode receber texto 403 do
+framework, sem autorização de leitura.
 
-Após revisão e integração normais, seguir o [deploy backend](backend-deployment.md):
-registrar SHA, pipeline/deployment, health 200, Swagger 404, GET técnico 401 e
-`/status` na Vercel sem erro CORS. Não fazer upload real para provar bloqueio.
-Evidências datadas e medições locais pertencem à MR/issue, não comprovam deploy.
+Bearer somente por header explícito, nunca query/form/cookie. Cadeia servlet
+STATELESS, sem JSESSIONID/Basic/form/remember-me/request cache. Não há outro fluxo
+de cookies: CSRF está desabilitado nessa cadeia porque o navegador não anexa a
+credencial automaticamente. POST de auth aceita JSON, sem method override.
+Mudar transporte para cookies exige revisar CSRF e CORS.
 
-## Referências
+SessionStorage `alo-cidade.auth.v1` guarda só token/expiração; identidade é validada
+por /me antes de exibir a rota privada. Sem storage, sessão fica em memória e
+reload exige login. XSS pode ler token; não equivale a HttpOnly, nem promete
+limpeza ao fechar o navegador. Não inserir HTML não confiável. Login/cadastro
+omitem Bearer e cookies; cliente privado limita caminho à API configurada e
+recusa redirects. Nenhum token em URL, imagem externa ou cache de mutation.
 
-- [CORS no Spring Security 7.1](https://docs.spring.io/spring-security/reference/7.1/servlet/integrations/cors.html)
-- [CSRF no Spring Security 7.1](https://docs.spring.io/spring-security/reference/7.1/servlet/exploits/csrf.html)
-- [Password storage no Spring Security](https://docs.spring.io/spring-security/reference/features/authentication/password-storage.html)
-- [OWASP Password Storage](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)
-- [Bouncy Castle para Java](https://www.bouncycastle.org/download/bouncy-castle-java/)
+401 privado/expiração encerram estado e caches privados; 403/rede não são logout.
+Falha de logout preserva a credencial e permite repetir sem anunciar sucesso.
+Geração do contexto impede resposta tardia de restaurar identidade ou apagar
+sessão nova. Consultas futuras usam `['private', userId, ...]` e AbortSignal;
+não persistir caches privados. Retorno do guard aceita apenas pathname interno
+sem escapes/query/autoridade. Recuperação futura: [contrato de integração](password-recovery-integration.md).
+
+**Não há rate limit implementado.** CORS, CSRF e Argon2 não impedem tentativas
+automatizadas; não alegar proteção contra brute force. Não há bloqueio permanente
+de conta. Definir limitação de tentativas e medir Argon2 sob carga no ambiente
+publicado continuam necessidades operacionais.
+
+## Validação
+
+`./mvnw verify` usa JDK 21, Testcontainers/PostgreSQL, tokens realmente assinados,
+Clock controlado, rollback e sincronização determinística da corrida login/reset.
+Inclui restart da aplicação com mesmas chaves/banco, sessão ativa e revogada.
+Health/Swagger continuam testados nos três perfis. Storage com filtros desligados
+é apenas teste de contrato interno e não substitui cadeia real.
+
+Frontend testa bootstrap, retorno, expiração, 401/403/rede, logout confirmado/falho,
+storage indisponível e respostas tardias. Publicação e roteiro de navegador seguem
+[deploy frontend](frontend-deployment.md). Testes locais não comprovam deploy.

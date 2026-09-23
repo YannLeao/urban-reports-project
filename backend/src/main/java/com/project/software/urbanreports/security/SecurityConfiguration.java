@@ -4,7 +4,8 @@ import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import com.project.software.urbanreports.auth.SessionAuthenticationConverter;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
@@ -23,25 +24,29 @@ public class SecurityConfiguration {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http,
-            UrlBasedCorsConfigurationSource corsConfigurationSource, ObjectMapper mapper) throws Exception {
+            UrlBasedCorsConfigurationSource corsConfigurationSource, ObjectMapper mapper, SessionAuthenticationConverter converter) throws Exception {
         var errors = new SecurityErrorHandler(mapper);
         return http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
-                .csrf(csrf -> csrf.ignoringRequestMatchers(PathPatternRequestMatcher.withDefaults()
-                        .matcher(HttpMethod.POST, "/api/auth/register")))
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .oauth2ResourceServer(resource -> resource.jwt(jwt -> jwt.jwtAuthenticationConverter(converter::convert))
+                        .authenticationEntryPoint(errors).accessDeniedHandler(errors))
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .rememberMe(AbstractHttpConfigurer::disable)
                 .logout(AbstractHttpConfigurer::disable)
                 .requestCache(AbstractHttpConfigurer::disable)
-                // CSRF may use a session; authentication must not be loaded from one.
+                // Bearer only: never load or persist authentication in a servlet session.
                 .securityContext(context -> context.securityContextRepository(
                         new RequestAttributeSecurityContextRepository()))
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(errors).accessDeniedHandler(errors))
                 .authorizeHttpRequests(authorize -> authorize
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/logout").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
                         .requestMatchers(HttpMethod.HEAD, "/api/health").permitAll()
                         .requestMatchers(HttpMethod.GET, DOCUMENTATION_PATHS).permitAll()

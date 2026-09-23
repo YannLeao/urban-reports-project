@@ -37,6 +37,14 @@ export default function DesignSystemPage() {
         <Alert tone="success" role="note">Exemplo: conta criada. O cadastro não inicia uma sessão.</Alert>
         <Alert tone="warning" role="note">Exemplo de falha de rede: não conseguimos confirmar o resultado. A conta pode ter sido criada.</Alert>
       </div></Card>
+      <Card><h2>Login e sessão</h2><div className="grid gap-5">
+        <Input label="E-mail para entrar (exemplo)" type="email" autoComplete="off" />
+        <Input label="Senha para entrar (exemplo)" type="password" autoComplete="off" />
+        <Button loading>Entrando…</Button>
+        <Alert tone="danger" role="note">E-mail ou senha incorretos.</Alert>
+        <Alert tone="warning" role="note">Não foi possível validar sua sessão. Confira sua conexão.</Alert>
+        <Alert tone="warning" role="note">Não foi possível confirmar o encerramento da sessão. Tente sair novamente.</Alert>
+      </div></Card>
       <Card><h2>Feedback textual</h2><div className="grid gap-8 pb-8">
         {(['success', 'warning', 'danger', 'info'] as const).map(tone => <div key={tone}><StatusBadge tone={tone} label={`Exemplo ${tone}`} /><Alert tone={tone} role="note" className="mt-4">Mensagem demonstrativa: o texto explica a situação e orienta o próximo passo.</Alert></div>)}
       </div></Card>

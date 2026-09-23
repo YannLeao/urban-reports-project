@@ -17,3 +17,9 @@ target/
 
 README*
 docs/
+
+# Runtime signing keys must never enter the build context.
+*.pem
+**/*.pem
+*.key
+**/*.key

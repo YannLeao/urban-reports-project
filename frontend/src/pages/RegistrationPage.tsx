@@ -90,7 +90,7 @@ export function RegistrationPage() {
     {created ? <>
       <h1 id="registration-title" ref={success} tabIndex={-1}>Conta criada</h1>
       <Alert tone="success">Seu cadastro foi salvo. Você ainda não está conectado.</Alert>
-      <Link className={`${buttonStyles()} mt-6`} to="/">Voltar ao início</Link>
+      <Link className={`${buttonStyles()} mt-6`} to="/entrar">Entrar na minha conta</Link>
     </> : <>
       <h1 id="registration-title">Crie sua conta</h1>
       <p className="text-text-secondary">Cadastre-se no Alô Cidade com seu nome e e-mail. O cadastro não inicia uma sessão.</p>

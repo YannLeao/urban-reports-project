@@ -13,6 +13,7 @@ function App() {
         <nav aria-label="Navegação principal" className="flex flex-wrap gap-4">
           <NavLink className="inline-flex min-h-target items-center aria-[current=page]:font-bold" to="/" end>Início</NavLink>
           <NavLink className="inline-flex min-h-target items-center aria-[current=page]:font-bold" to="/status">Status</NavLink>
+          <NavLink className="inline-flex min-h-target items-center aria-[current=page]:font-bold" to="/minha-conta">Minha conta</NavLink>
         </nav>
       </header>
       <main className="mx-auto w-full max-w-reading flex-1" id="main-content" tabIndex={-1}><AppRoutes /></main>

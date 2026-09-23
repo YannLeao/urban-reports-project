@@ -49,7 +49,7 @@ export class ApiRequestError extends Error {
   }
 }
 
-export async function postJson(path: string, body: unknown): Promise<unknown> {
+export async function postJson(path: string, body: unknown, expectedStatus = 201): Promise<unknown> {
   const url = `${getApiUrl()}/${path.replace(/^\/+/, '')}`
   let response: Response
   try {
@@ -67,6 +67,23 @@ export async function postJson(path: string, body: unknown): Promise<unknown> {
     if (error.success) throw new ApiRequestError(error.data.code, error.data.fieldErrors)
     throw new ApiRequestError('UNCERTAIN_RESULT')
   }
-  if (response.status !== 201) throw new ApiRequestError('UNCERTAIN_RESULT')
+  if (response.status !== expectedStatus) throw new ApiRequestError('UNCERTAIN_RESULT')
   return payload
+}
+
+export class PrivateRequestError extends Error {
+  readonly status: number
+  constructor(status: number) { super('Não foi possível concluir a solicitação.'); this.status = status }
+}
+
+// Relative API paths only. Redirects must never forward a credential to another endpoint.
+export async function privateRequest(path: string, token: string, signal: AbortSignal, method = 'GET') {
+  if (!/^\/api\/[a-zA-Z0-9/_-]+$/.test(path)) throw new Error('Caminho privado inválido.')
+  const response = await fetch(`${getApiUrl()}${path}`, {
+    method, signal, credentials: 'omit', redirect: 'error',
+    headers: { Authorization: `Bearer ${token}`, ...(method === 'POST' ? { 'Content-Type': 'application/json' } : {}) },
+    ...(method === 'POST' ? { body: '{}' } : {}),
+  })
+  if (!response.ok) throw new PrivateRequestError(response.status)
+  return response
 }

@@ -109,17 +109,17 @@ class RegistrationIntegrationTests {
         }
     }
 
-    @Test void jsonOnlyAndCsrfExceptionIsLimitedToExactPost() throws Exception {
+    @Test void jsonOnlyAndPublicAccessIsLimitedToExactPost() throws Exception {
         for (String type : new String[]{"text/plain", "application/x-www-form-urlencoded", "multipart/form-data", "application/problem+json"}) {
             mvc.perform(post(PATH).contentType(type).content(body(email(), PASSWORD)))
                     .andExpect(status().isUnsupportedMediaType())
                     .andExpect(jsonPath("$.code").value("UNSUPPORTED_MEDIA_TYPE"))
                     .andExpect(header().string("Cache-Control", "no-store"));
         }
-        mvc.perform(put(PATH).contentType("application/json").content("{}" )).andExpect(status().isForbidden());
+        mvc.perform(put(PATH).contentType("application/json").content("{}" )).andExpect(status().isUnauthorized());
         mvc.perform(get(PATH)).andExpect(status().isUnauthorized());
-        for (String path : new String[]{"/api/auth/register/", "/api/auth/login", "/api/storage/images"}) {
-            mvc.perform(post(path).contentType("application/json").content("{}")).andExpect(status().isForbidden());
+        for (String path : new String[]{"/api/auth/register/", "/api/storage/images"}) {
+            mvc.perform(post(path).contentType("application/json").content("{}")).andExpect(status().isUnauthorized());
         }
         mvc.perform(options(PATH).header("Origin", "http://localhost:5173")
                         .header("Access-Control-Request-Method", "POST").header("Access-Control-Request-Headers", "Content-Type"))

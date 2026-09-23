@@ -87,7 +87,7 @@ somente nome/e-mail/senha, com credentials omit e sem Authorization, retry,
 Query mutation/cache, CSRF token ou storage local. Bloqueia reenvio pendente.
 Senha/confirmação são limpas após tentativa HTTP; nome/e-mail permanecem nos
 erros. Validação local permite corrigir sem limpar a senha. Erros focam o
-primeiro campo ou resumo; sucesso foca “Conta criada” e oferece início.
+primeiro campo ou resumo; sucesso foca “Conta criada” e oferece login, sem autenticar automaticamente.
 Falha de rede ou resposta ilegível expressa incerteza, pois a transação pode
 ter sido confirmada. Repetição é manual e pode receber 409.
 
@@ -119,9 +119,10 @@ publicada faltar, usar Refs #34 e Refs #19, sem fechar as issues.
 
 ## Extensões
 
-Antes da #35, decidir transporte/armazenamento de JWT, assinatura/chaves,
-expiração, renovação e revogação persistida, além do contrato de recuperação.
-Login/recuperação reutilizam conta, canonicalEmail e PasswordEncoder; devem
-manter respostas genéricas conforme seus requisitos. Não há rotas fictícias
-para esses fluxos. O [ADR 0010](adr/0010-estabelecer-cadastro-de-cidadao.md)
-registra CSRF e o compromisso de exposição de existência de conta no 409.
+Login/recuperação reutilizam conta, canonicalEmail e PasswordEncoder. Login,
+/me e logout estão descritos em [segurança](security.md); sessões estão em V3,
+sem alterar V2 aplicada. Login não aplica o mínimo de senha de cadastro.
+O [guia para recuperação](password-recovery-integration.md) define lock da conta,
+troca de hash e revogação atômica. Recuperação e e-mail ainda não têm rotas.
+O [ADR 0011](adr/0011-adotar-sessoes-jwt-revogaveis.md) atualiza CSRF e sessões;
+o ADR 0010 preserva o histórico do compromisso de exposição de conta no 409.

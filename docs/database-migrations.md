@@ -12,6 +12,7 @@ formato `V<versão>__<descrição>.sql`, por exemplo:
 ```text
 V1__create_schema_probe.sql
 V2__create_user_accounts.sql
+V3__create_auth_sessions.sql
 ```
 
 Depois que uma migration for aplicada em qualquer ambiente compartilhado, seu
@@ -21,6 +22,11 @@ nunca alterando um arquivo anterior.
 A V2 cria as contas do [cadastro](identity.md), com UUID, e-mail canônico único,
 Argon2id, USER e timestamps UTC. Os testes de cadastro validam constraints e
 concorrência em PostgreSQL descartável.
+
+A V3 cria [sessões revogáveis](security.md): UUID/jti, FK user_id, instantes UTC,
+revoked_at opcional, CHECK de expiração e índice por conta. Não altera V1/V2,
+não guarda JWT bruto e não inclui tokens de recuperação. Retenção/limpeza de
+sessões inativas fica para uma política futura.
 
 ## Como o checksum protege o histórico
 

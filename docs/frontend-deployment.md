@@ -115,8 +115,7 @@ inexistentes. Caminhos com extensão são reservados a arquivos, não a páginas
 Não há política de cache imutável para HTML. Nginx e um `vercel.json` externo
 não determinam essas regras.
 
-CORS é integrado à cadeia Spring Security do backend, sem autenticação
-implementada; veja a [política da API](security.md).
+CORS é integrado à cadeia Spring Security do backend, com Bearer sem cookies; veja a [política da API](security.md).
 A allowlist aceita origens exatas separadas por vírgula, sem path/barra final.
 Não use `*`, `*.vercel.app` ou cada URL efêmera de deployment. A integração é
 validada pela **origem canônica**, que pode diferir da URL específica da CLI.
@@ -225,3 +224,22 @@ Comando isolado, na raiz:
 docker build -f frontend/Dockerfile --build-arg VITE_API_URL=https://api.example.com \
   --tag urban-reports-frontend:local .
 ```
+
+## Percurso de autenticação publicado
+
+Após revisão e publicação backend com chaves configuradas, publicar frontend
+pelo fluxo manual existente. Registrar SHA, pipeline, job e deployment de ambos
+na MR/issue. Nenhuma chave/credencial vai para VITE_*; VITE_API_URL exige rebuild.
+
+1. Na origem canônica HTTPS, abrir cadastro, criar conta sintética e seguir Entrar.
+2. Entrar, conferir /minha-conta com nome/e-mail, recarregar e abrir diretamente.
+3. Verificar 360 px e desktop, zoom 200%, teclado, foco e mensagens de erro.
+4. Conferir preflight Authorization/Content-Type, no-store, ausência de Set-Cookie
+   e credentials, sem capturar corpos/header contendo tokens ou senhas.
+5. Sair e verificar que a mesma credencial recebe 401 na próxima chamada. Fazer
+   essa asserção em ferramenta local sem imprimir token/Authorization. Outro
+   login independente continua válido. Falha de rede ao sair permite repetir.
+6. Expiração retorna a entrar; rede indisponível durante /me oferece retry. 403
+   não encerra sessão. Não alterar relógio ou reiniciar produção para testar.
+7. Prova isolada de restart: `SessionRestartTests` mantém PostgreSQL e chaves,
+   reinicia aplicação e verifica ativo 200/revogado 401. Registrar separadamente.

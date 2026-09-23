@@ -15,7 +15,8 @@ A base oferece navegação, health validado em `/status`, design system Alô Cid
 seleção/captura local de fotografia em `/prova-imagem` e endpoints técnicos de
 storage. Cadastro de cidadão em `/cadastro` persiste contas reais, sem login
 automático.
-Login e fluxo de ocorrências ainda não integram essa base.
+Login em `/entrar` e sessão revogável em `/minha-conta` estão implementados.
+O fluxo de ocorrências ainda não integra essa base.
 
 ## Estrutura do repositório
 
@@ -54,6 +55,10 @@ locais a partir deles:
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
 ```
+
+Antes de iniciar o backend, gere o par RSA fora do checkout e configure as cinco
+variáveis `AUTH_JWT_*` conforme [segurança](docs/security.md#chaves-externas).
+O backend exige essas chaves em todos os perfis; o Compose as monta como secrets.
 
 Os arquivos `.env` são ignorados pelo Git. Os valores dos exemplos servem apenas
 para desenvolvimento local e não devem ser reutilizados em ambientes públicos.
@@ -169,11 +174,13 @@ alcance a aplicação pela rede. Propriedades externas podem sobrescrever as
 flags; revise os overrides no Render conforme o [guia de deploy](docs/backend-deployment.md).
 Desabilitar a documentação não protege os endpoints de negócio.
 
-A [base de segurança](docs/security.md) mantém health público, CSRF habilitado
-e negação por padrão. Os endpoints técnicos `POST /api/storage/images` e
+A [segurança](docs/security.md) mantém health público, Bearer sem cookies
+e negação por padrão. Configure obrigatoriamente as chaves RSA externas conforme
+o guia antes de iniciar o backend, inclusive localmente. Os endpoints técnicos `POST /api/storage/images` e
 `GET /api/storage/images/{id}` estão bloqueados, inclusive em dev; o roteiro
 anterior de upload público deixa de funcionar. Cadastro público aceita somente
-JSON em `POST /api/auth/register`; login e JWT ainda não estão implementados.
+JSON em `POST /api/auth/register`; login emite JWT RS256 por 30 minutos, sem refresh.
+Logout revoga a sessão no PostgreSQL.
 Consulte [identidade](docs/identity.md). A prova frontend continua sem upload; contrato interno e
 configuração R2 estão em [`docs/image-storage.md`](docs/image-storage.md).
 
