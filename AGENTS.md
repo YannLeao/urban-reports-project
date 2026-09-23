@@ -8,8 +8,8 @@
   `frontend/`: aplicação React/TypeScript/Vite. `docs/`: guias e decisões.
 - A raiz contém [docker-compose.yml](docker-compose.yml) e
   [.gitlab-ci.yml](.gitlab-ci.yml); cada aplicação tem seu `Dockerfile`.
-  `infrastructure/docker/` e `infrastructure/gitlab-ci/` são diretórios
-  preparados para auxiliares, atualmente com `.gitkeep`.
+  Os jobs por aplicação ficam em `infrastructure/gitlab-ci/`, incluídos pelo
+  YAML da raiz; o Compose permanece único para os três serviços.
 - Leia [CONTRIBUTING.md](CONTRIBUTING.md), [README.md](README.md) e os
   [ADRs](docs/adr/README.md) e guias pertinentes antes de implementar:
   [banco](docs/database-migrations.md), [imagens](docs/image-storage.md),
@@ -60,6 +60,10 @@
   `frontend/src/components/ui/`; atualize documentação, catálogo e código juntos.
   Execute `pnpm tokens:generate` após editar tokens e versione o CSS gerado;
   `pnpm tokens:check` valida sem escrever e precede o build.
+- Priorize utilitários Tailwind em páginas e componentes. Reserve CSS manual
+  para defaults globais, integração de ferramentas ou exceção justificada no
+  guia de design system. Reutilize variantes com classes completas e estáticas;
+  não construa nomes Tailwind por interpolação nem duplique tokens.
 - Tailwind 4 está integrado ao Vite com variáveis semânticas via `@theme inline`.
   `pnpm test` executa node:test dos scripts de CI/deploy e Vitest/Testing Library;
   use cliente Query novo por caso e fetch controlado, sem API real.
@@ -133,6 +137,8 @@ ou teste manual aprovado apenas por existir configuração para ele.
 - Siga branches, commits, template de MR e revisão de CONTRIBUTING. Relacione
   a issue; em entrega parcial, use `Refs #<número>` para não encerrar a issue
   agregadora. Use fechamento somente quando a entrega concluir seu escopo.
+- Mantenha guias focados no contrato e na operação atuais; resultados datados,
+  aceite e histórico de entrega pertencem à MR/issue. Preserve decisões em ADRs.
 - Atualize guias quando comportamento/configuração mudar e registre decisões
   arquiteturais relevantes conforme o padrão dos ADRs. Mantenha este arquivo
   atualizado quando comandos ou convenções mudarem.

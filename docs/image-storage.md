@@ -1,7 +1,6 @@
 # Prova técnica de armazenamento de imagens
 
-Este guia valida a integração temporária da Sprint 1 com um bucket privado do
-Cloudflare R2. Os endpoints não representam o fluxo definitivo de ocorrência e
+Este guia descreve a integração técnica com um bucket privado do Cloudflare R2. Os endpoints não representam o fluxo definitivo de ocorrência e
 não criam registros no PostgreSQL.
 
 A [prova de seleção e captura no frontend](image-selection-proof.md) em

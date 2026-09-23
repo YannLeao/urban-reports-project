@@ -58,3 +58,12 @@ migration confirma a aplicação da V1, a existência de `schema_probe`, inserç
 leitura, o valor padrão de `checked_at`, o registro no histórico e a ausência de
 reaplicação quando o schema já está atualizado.
 
+
+## Versões por ambiente
+
+O Compose usa `postgres:16-alpine`; Testcontainers e o exemplo de banco isolado
+usam `postgres:17-alpine`. Ao reproduzir um problema, confira a versão do ambiente
+alvo. Alinhar versões principais exige uma alteração própria de infraestrutura,
+com análise de compatibilidade e migração dos dados existentes; trocar a tag não
+atualiza um volume PostgreSQL de outra versão. Não exclua volumes como rotina de
+validação.

@@ -38,8 +38,7 @@ ou compilação intermediária. Essa execução **não verifica tipos** nem inte
 `.ts`; enums, parameter properties e aliases de paths não são usados.
 Consulte o [suporte TypeScript do Node 22](https://nodejs.org/docs/latest-v22.x/api/typescript.html).
 
-`pnpm-lock.yaml` foi importado do lockfile npm antes de adicionar as ferramentas
-e é o único lockfile vigente. Instale com `--frozen-lockfile` para reproduzir a
+`pnpm-lock.yaml` é o único lockfile do frontend. Instale com `--frozen-lockfile` para reproduzir a
 resolução; mudanças deliberadas de dependências devem atualizar esse arquivo.
 A permissão `pnpm.onlyBuiltDependencies` autoriza apenas o postinstall do
 esbuild, que verifica/prepara o binário usado pelo Vite. Não libere todos os
@@ -93,7 +92,7 @@ manual de tentar novamente; sair da página cancela a requisição em andamento.
 - `src/app/App.test.tsx` e `src/test/setup.ts`: testes de comportamento e setup.
 
 `/prova-imagem` é uma demonstração pública transitória, sem upload ou dependência
-de API; veja [contrato, validações e evidências](image-selection-proof.md).
+de API; veja [contrato, validações e roteiro](image-selection-proof.md).
 
 `/` é a entrada, `/status` contém a verificação da API e caminhos desconhecidos
 oferecem retorno ao início. Links usam React Router, em modo declarativo,
@@ -102,7 +101,9 @@ sem SSR, loaders, autenticação ou rotas vazias de negócio.
 A identidade e os componentes seguem o [design system Alô Cidade](design-system/README.md).
 Leia-o antes de criar UI. Tokens canônicos em `docs/design-system/tokens.ts` geram
 CSS versionado com `pnpm tokens:generate`; `pnpm tokens:check` compara sem modificar.
-Tailwind 4 usa `@theme inline` gerado para cores semânticas e espaçamento. Atualize
+Tailwind 4 usa `@theme inline` gerado para os tokens semânticos. Priorize
+utilitários em páginas/componentes; CSS manual fica nos defaults globais e nas
+integrações justificadas conforme o design system. Atualize
 código e documentação juntos. Manrope é local, pesos 400/700, com licença pública.
 A referência `/dev/design-system` existe somente em `pnpm dev`, sem navegação
 pública; em produção, mostra não encontrado e seu módulo não é incluído.
@@ -111,8 +112,7 @@ em docs/design-system declara somente ESM, sem criar workspace.
 
 ## Testes e CI
 
-Vitest 3.2.7 foi selecionado por aceitar Vite 6, mantendo React 19 e TypeScript
-5.8. React Testing Library, user-event, jest-dom e jsdom exercitam navegação,
+Vitest, React Testing Library, user-event, jest-dom e jsdom exercitam navegação,
 consulta real entre Query/fetch/schema, erros, recuperação e cancelamento.
 Cada caso usa QueryClient novo e fetch controlado, sem credenciais ou API real.
 O Vitest descobre somente `src/**/*.test.{ts,tsx}`; a suíte `node:test` em
@@ -123,7 +123,8 @@ O job `frontend:build` compila pelo script de CI; `frontend:lint` executa lint,
 typecheck e ambas as suítes. O build também preserva sua checagem TypeScript.
 Ambos instalam com frozen lockfile e cacheiam apenas `.pnpm-store/`, com chave
 baseada no lockfile. Cache vazio deve funcionar. Mudanças em `frontend/`,
-`docs/design-system/`, `.dockerignore`, `docker-compose.yml` ou `.gitlab-ci.yml` acionam as verificações frontend.
+`docs/design-system/`, `.dockerignore`, `docker-compose.yml`, `.gitlab-ci.yml`
+ou `infrastructure/gitlab-ci/frontend.yml` acionam as verificações frontend.
 Consulte [deploy frontend](frontend-deployment.md) para a tradução de variáveis
 e os requisitos adicionais do build de produção.
 
@@ -156,9 +157,9 @@ build arg frontend. Variáveis vêm do shell, `.env` da raiz ou `--env-file`, n�
 automaticamente dos `.env` de cada aplicação. No celular, localhost aponta ao
 próprio dispositivo; use a API acessível e reconstrua o bundle.
 
-Autenticação e modelo de negócio não foram implementados. A identidade Alô Cidade
-está aplicada à base atual. A primeira publicação Vercel e a integração pública exigem
-validação após merge; inspeção local não substitui pipeline/deploy remoto.
+A base usa a identidade Alô Cidade, sem autenticação ou modelo de negócio.
+Valide alterações de produção pelo [roteiro de deploy](frontend-deployment.md);
+a inspeção local não substitui a verificação da versão publicada.
 
 Referências: [pnpm](https://pnpm.io/installation),
 [importação de lockfile](https://pnpm.io/cli/import),
@@ -168,8 +169,7 @@ Referências: [pnpm](https://pnpm.io/installation),
 [Tailwind 4 com Vite](https://tailwindcss.com/docs/installation/using-vite) e
 [Vitest 3](https://v3.vitest.dev/guide/).
 
-O Dockerfile frontend agora exige contexto da **raiz** para copiar tokens e a
-declaração ESM de docs/design-system. Usa COPY restritos e `.dockerignore` da raiz;
-`frontend/.dockerignore` não governa esse contexto. Não copiar `.env`, dependências
-locais ou docs desnecessários. `tokens:check` também roda dentro da imagem.
+O Dockerfile frontend exige contexto da **raiz** para copiar tokens e a
+declaração ESM de docs/design-system. Usa COPY restritos e `.dockerignore` da raiz.
+Não copiar `.env`, dependências locais ou docs desnecessários. `tokens:check` também roda dentro da imagem.
 Para contrastes reproduzíveis: `node scripts/contrast.ts` em frontend/.

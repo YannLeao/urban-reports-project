@@ -1,6 +1,6 @@
 # ADR 0008: Estabelecer o design system Alô Cidade
 
-- Status: proposto
+- Status: aceito
 - Data: 2026-09-22
 
 ## Contexto
