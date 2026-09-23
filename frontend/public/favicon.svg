@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">Alô Cidade</title>
+  <desc id="desc">Pin de localização branco com ponto coral sobre fundo azul petróleo.</desc>
+  <rect width="64" height="64" rx="16" fill="#0F5D66"/>
+  <path d="M32 8c-12.2 0-22 9.7-22 21.9 0 14.9 17.2 27 20.3 29.1a2.9 2.9 0 0 0 3.4 0C36.8 56.9 54 44.8 54 29.9 54 17.7 44.2 8 32 8Z" fill="#FFFFFF"/>
+  <circle cx="32" cy="30" r="9" fill="#F97360"/>
+</svg>

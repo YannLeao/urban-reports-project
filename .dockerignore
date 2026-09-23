@@ -1,0 +1,24 @@
+# Frontend build context is the repository root. Allow only build inputs.
+**
+!frontend/
+!frontend/package.json
+!frontend/pnpm-lock.yaml
+!frontend/index.html
+!frontend/tsconfig*.json
+!frontend/vite.config.ts
+!frontend/nginx.conf
+!frontend/scripts/
+!frontend/scripts/**
+!frontend/src/
+!frontend/src/**
+!frontend/public/
+!frontend/public/**
+!docs/
+!docs/design-system/
+!docs/design-system/tokens.ts
+!docs/design-system/package.json
+**/.env
+**/.env.*
+**/*.local
+**/node_modules
+**/.git

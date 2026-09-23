@@ -7,7 +7,7 @@ export function NotFoundPage() {
       <h1 id="page-title">Página não encontrada</h1>
       <p className="intro-copy">O endereço solicitado não está disponível.</p>
       <div className="mt-6 flex flex-wrap gap-4">
-        <Link className="action-button" to="/">Voltar ao início</Link>
+        <Link className="button button-primary" to="/">Voltar ao início</Link>
       </div>
     </section>
   )

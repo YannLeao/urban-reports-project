@@ -10,7 +10,7 @@ export function useHealth() {
     queryKey: ['health'],
     queryFn: async ({ signal }) => {
       const result = healthSchema.safeParse(await getJson('/api/health', signal))
-      if (!result.success) throw new Error('A API retornou uma resposta inválida.')
+      if (!result.success) throw new Error('O serviço enviou uma resposta que não conseguimos reconhecer.')
       return result.data
     },
     retry: false,

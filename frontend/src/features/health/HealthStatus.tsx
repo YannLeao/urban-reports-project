@@ -1,44 +1,29 @@
+import { Button } from '../../components/ui/Button'
+import { Card } from '../../components/ui/Card'
+import { Alert, StatusBadge } from '../../components/ui/Feedback'
 import { useHealth } from './useHealth'
 
 export function HealthStatus() {
   const { data: health, error, isFetching: isLoading, refetch } = useHealth()
   return (
-    <section className="status-panel" aria-labelledby="status-title">
-      <div className="section-heading">
-        <div>
-          <p className="eyebrow">Diagnóstico</p>
-          <h2 id="status-title">Disponibilidade da API</h2>
-        </div>
-        <span className={`status-dot ${isLoading ? 'is-loading' : error ? 'is-error' : 'is-ready'}`} aria-hidden="true" />
-      </div>
-
-      {isLoading && (
-        <div className="state-content" role="status" aria-live="polite">
-          <div className="skeleton skeleton-title" />
-          <div className="skeleton skeleton-copy" />
-          <span className="state-label">Conectando à API...</span>
-        </div>
-      )}
-
-      {!isLoading && error && (
-        <div className="state-content" role="alert">
-          <strong>Não foi possível carregar o status.</strong>
+    <Card className="status-panel" aria-labelledby="status-title">
+      <h2 id="status-title">Conexão com o serviço</h2>
+      {isLoading && <div className="state-content" role="status">
+        <StatusBadge tone="info" label="Verificando" />
+        <p>Verificando a conexão…</p>
+      </div>}
+      {!isLoading && error && <div className="state-content">
+        <Alert tone="warning" role="alert">
+          <h3>Não foi possível verificar a conexão</h3>
           <p>{error.message}</p>
-          <button className="action-button" type="button" onClick={() => void refetch()}>
-            Tentar novamente
-          </button>
-        </div>
-      )}
-
-      {!isLoading && !error && health && (
-        <div className="state-content ready-content" role="status" aria-live="polite">
-          <div>
-            <strong>API operacional</strong>
-            <p>Os serviços essenciais estão respondendo normalmente.</p>
-          </div>
-          <span className="status-value">{health.status}</span>
-        </div>
-      )}
-    </section>
+        </Alert>
+        <p>Isso não confirma uma indisponibilidade geral. Você pode tentar de novo.</p>
+        <Button onClick={() => void refetch()}>Tentar novamente</Button>
+      </div>}
+      {!isLoading && !error && health && <div className="state-content" role="status">
+        <StatusBadge tone="success" label="Conexão confirmada" />
+        <p>O serviço respondeu à verificação. Esta consulta confirma apenas a conexão neste momento.</p>
+      </div>}
+    </Card>
   )
 }
