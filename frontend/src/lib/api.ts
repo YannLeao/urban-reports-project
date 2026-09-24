@@ -73,17 +73,29 @@ export async function postJson(path: string, body: unknown, expectedStatus = 201
 
 export class PrivateRequestError extends Error {
   readonly status: number
-  constructor(status: number) { super('Não foi possível concluir a solicitação.'); this.status = status }
+  readonly code?: string
+  readonly fieldErrors?: Record<string, string[]>
+  constructor(status: number, code?: string, fieldErrors?: Record<string, string[]>) {
+    super('Não foi possível concluir a solicitação.')
+    this.status = status
+    this.code = code
+    this.fieldErrors = fieldErrors
+  }
 }
 
 // Relative API paths only. Redirects must never forward a credential to another endpoint.
-export async function privateRequest(path: string, token: string, signal: AbortSignal, method = 'GET') {
+export async function privateRequest(path: string, token: string, signal: AbortSignal, method = 'GET', body?: BodyInit) {
   if (!/^\/api\/[a-zA-Z0-9/_-]+$/.test(path)) throw new Error('Caminho privado inválido.')
   const response = await fetch(`${getApiUrl()}${path}`, {
     method, signal, credentials: 'omit', redirect: 'error',
-    headers: { Authorization: `Bearer ${token}`, ...(method === 'POST' ? { 'Content-Type': 'application/json' } : {}) },
-    ...(method === 'POST' ? { body: '{}' } : {}),
+    headers: { Authorization: `Bearer ${token}`, ...(!body && method === 'POST' ? { 'Content-Type': 'application/json' } : {}) },
+    ...(body ? { body } : method === 'POST' ? { body: '{}' } : {}),
   })
-  if (!response.ok) throw new PrivateRequestError(response.status)
+  if (!response.ok) {
+    let payload: unknown
+    try { payload = await response.json() } catch { /* Status still identifies the failure. */ }
+    const error = apiErrorSchema.safeParse(payload)
+    throw new PrivateRequestError(response.status, error.success ? error.data.code : undefined, error.success ? error.data.fieldErrors : undefined)
+  }
   return response
 }

@@ -25,6 +25,26 @@ public class ImageStorageService {
     }
 
     public String store(MultipartFile file) {
+        return publicId(storeWithPrefix(file, "proofs"));
+    }
+
+    public String storeForOccurrence(MultipartFile file) {
+        return storeWithPrefix(file, "occurrences");
+    }
+
+    public void delete(String key) {
+        if (key == null || !(key.startsWith("proofs/") || key.startsWith("occurrences/"))) {
+            throw new ImageStorageException("Storage returned an invalid image key");
+        }
+        try {
+            storage().delete(key);
+        } catch (ImageStorageException exception) {
+            LOGGER.error("Technical image deletion failed: {}", exception.getClass().getSimpleName());
+            throw exception;
+        }
+    }
+
+    private String storeWithPrefix(MultipartFile file, String prefix) {
         if (file.isEmpty()) {
             throw new InvalidImageException("Image must not be empty");
         }
@@ -39,9 +59,12 @@ public class ImageStorageService {
         }
 
         try {
-            StoredImage stored = storage().store(
-                    new ByteArrayInputStream(content), content.length, format.contentType());
-            return publicId(stored.key());
+                StoredImage stored = storage().store(
+                    new ByteArrayInputStream(content), content.length, format.contentType(), prefix);
+            if (stored.key() == null || !stored.key().startsWith(prefix + "/")) {
+                throw new ImageStorageException("Storage returned an invalid image key");
+            }
+            return stored.key();
         } catch (ImageStorageException exception) {
             LOGGER.error("Technical image upload failed: {}", exception.getClass().getSimpleName());
             throw exception;

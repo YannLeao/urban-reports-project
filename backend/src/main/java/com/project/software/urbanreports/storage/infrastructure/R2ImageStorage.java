@@ -12,6 +12,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.io.InputStream;
@@ -31,7 +32,12 @@ public class R2ImageStorage implements ImageStorage {
 
     @Override
     public StoredImage store(InputStream content, long contentLength, String contentType) {
-        String key = "proofs/" + UUID.randomUUID() + "." + extension(contentType);
+        return store(content, contentLength, contentType, "proofs");
+    }
+
+    @Override
+    public StoredImage store(InputStream content, long contentLength, String contentType, String prefix) {
+        String key = prefix + "/" + UUID.randomUUID() + "." + extension(contentType);
         try {
             s3Client.putObject(PutObjectRequest.builder()
                             .bucket(properties.bucket())
@@ -45,6 +51,17 @@ public class R2ImageStorage implements ImageStorage {
         } catch (RuntimeException exception) {
             LOGGER.error("Failed to store technical proof image with key {}: {}",
                     key, exception.getClass().getSimpleName());
+            throw new ImageStorageException("Image storage provider failed", exception);
+        }
+    }
+
+    @Override
+    public void delete(String key) {
+        try {
+            s3Client.deleteObject(DeleteObjectRequest.builder()
+                    .bucket(properties.bucket()).key(key).build());
+        } catch (RuntimeException exception) {
+            LOGGER.error("Failed to delete image object {}: {}", key, exception.getClass().getSimpleName());
             throw new ImageStorageException("Image storage provider failed", exception);
         }
     }
