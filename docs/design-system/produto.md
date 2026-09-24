@@ -17,7 +17,9 @@ ou detecção automática por imagem. Não apresentar métricas históricas sem 
 
 ## Orientação a validar com produto e contratos
 
-Nenhum dos padrões abaixo representa uma tela ou contrato já implementado:
+Os padrões abaixo descrevem extensões futuras, exceto o registro autenticado de
+ocorrência, já implementado com categoria, título, descrição, bairro, referência
+textual e uma fotografia obrigatória:
 
 - Consulta pública: priorizar mapa e fotos, com alternativa textual e acesso sem
   geolocalização. A pessoa deve poder escolher um local sem conceder GPS.
@@ -25,12 +27,12 @@ Nenhum dos padrões abaixo representa uma tela ou contrato já implementado:
   Evitar uma cor por categoria; não depender somente de cor.
 - Cartão/detalhe: foto, título, categoria, localização resumida e status textual.
   Quando faltar foto, comunicar a ausência, sem imagem que pareça evidência real.
-- Registro guiado: proposta a validar, sem impor cinco etapas, coordenadas
-  obrigatórias, mapa, geocoding ou permissão de GPS nesta entrega.
+- Registro guiado: o formulário atual é uma etapa única, sem coordenadas
+  obrigatórias, mapa, geocoding ou permissão de GPS; usa referência textual.
 - “Recebido”, “Em análise”, “Em andamento”, “Resolvido” e “Rejeitado” são sugestões
   de vocabulário. Não são enum da API. O frontend valida health `UP` e o contrato de cadastro; confirmar o contrato
-  de ocorrências antes de implementar tokens `report` ou
-  mapeamentos de andamento.
+  de andamento antes de implementar tokens `report` ou mapeamentos. A ocorrência
+  criada nasce PENDENTE.
 - Meus relatos: reutilizar o guard de autenticação implementado quando necessário; não
   bloquear consulta pública por padrão sem decisão de requisitos. Exemplo vazio:
   “Você ainda não tem relatos.” Só oferecer ação quando tiver destino funcional.

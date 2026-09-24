@@ -1,7 +1,6 @@
 # Prova técnica de armazenamento de imagens
 
-Este guia descreve a integração técnica com um bucket privado do Cloudflare R2. Os endpoints não representam o fluxo definitivo de ocorrência e
-não criam registros no PostgreSQL.
+Este guia descreve a integração técnica com um bucket privado do Cloudflare R2. O registro autenticado de ocorrência usa a mesma abstração e grava a referência do objeto no PostgreSQL.
 
 A [prova de seleção e captura no frontend](image-selection-proof.md) em
 `/prova-imagem` mantém a imagem apenas em memória e não utiliza estes endpoints.
@@ -13,7 +12,8 @@ A [prova de seleção e captura no frontend](image-selection-proof.md) em
 - Formatos aceitos: JPEG (`image/jpeg`), PNG (`image/png`) e WebP
   (`image/webp`).
 - Limite da regra: 5 MiB por arquivo (5 × 1024 × 1024 = 5.242.880 bytes).
-- Key interna: `proofs/{UUID}.{extensão-validada}`.
+- Keys internas: `proofs/{UUID}.{extensão-validada}` para a prova técnica e
+   `occurrences/{UUID}.{extensão-validada}` para ocorrências.
 - Identidade devolvida: `UUID.extensão`, sem nome original, bucket ou URL do R2.
 
 O MIME informado pelo cliente e a assinatura do conteúdo são validados. O nome
@@ -45,7 +45,7 @@ git check-ignore -v backend/.env
 
 ## Acesso HTTP bloqueado
 
-A base de segurança bloqueia estes endpoints em todos os perfis, inclusive dev.
+A base de segurança bloqueia a prova técnica em todos os perfis, inclusive dev.
 O roteiro anterior de upload público não funciona mais: POST sem CSRF válido
 retorna 403; GET sem identidade retorna 401. Mesmo com CSRF válido, o upload
 continua negado. Configurar R2 não altera essa política e não há login temporário.
@@ -74,8 +74,15 @@ independentes mantêm a cadeia real e comprovam bloqueio sem chamar o provedor.
 Esses testes não acessam a Cloudflare nem usam credenciais reais. Downloads de
 dependências/imagens exigem rede quando não estão em cache. Docker é necessário para os testes de integração, incluindo segurança e PostgreSQL/Flyway.
 
+## Ocorrências
+
+`POST /api/occurrences` é autenticado e recebe os campos textuais e exatamente
+uma parte `image` em multipart. O serviço valida o conteúdo, grava a imagem em
+`occurrences/` e só então persiste a ocorrência PENDENTE com o `userId` da
+sessão. Se a persistência falhar, remove o objeto recém-criado.
+
 ## Limites deliberados
 
-Esta prova não implementa ocorrência, usuário, autenticação, tabela de imagem,
-migration V2, URL pública/assinada, transformação, moderação ou remoção de EXIF.
-A referência será ligada ao domínio somente quando `Occurrence` for modelada.
+Esta integração não implementa URL pública/assinada, transformação, moderação,
+remoção de EXIF ou uma rotina agendada de varredura de órfãos. A referência da
+imagem de ocorrência fica na própria tabela `occurrences`.

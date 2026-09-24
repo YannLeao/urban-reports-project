@@ -35,7 +35,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setState({ status: 'anonymous', message })
   }, [advance])
 
-  const request = useCallback(async (path: string, method = 'GET', signal?: AbortSignal) => {
+  const request = useCallback(async (path: string, method = 'GET', signal?: AbortSignal, body?: BodyInit) => {
     const snapshot = current.current
     const version = generation.current
     if (!snapshot) throw new PrivateRequestError(401)
@@ -46,7 +46,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     if (signal?.aborted) cancel()
     else signal?.addEventListener('abort', cancel, { once: true })
     try {
-      const response = await privateRequest(path, snapshot.accessToken, controller.signal, method)
+      const response = await privateRequest(path, snapshot.accessToken, controller.signal, method, body)
       if (generation.current !== version) throw new DOMException('Sessão alterada', 'AbortError')
       return response
     } catch (error) {
