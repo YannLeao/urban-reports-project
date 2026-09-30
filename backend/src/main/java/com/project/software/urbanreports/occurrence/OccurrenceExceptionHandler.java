@@ -17,6 +17,14 @@ import org.springframework.web.multipart.support.MissingServletRequestPartExcept
 
 @RestControllerAdvice(assignableTypes = OccurrenceController.class)
 public class OccurrenceExceptionHandler {
+    @ExceptionHandler(OccurrenceWriteException.class)
+    ResponseEntity<ApiErrorResponse> write(OccurrenceWriteException exception, HttpServletRequest request) {
+        return error(exception.status, exception.code, null, request);
+    }
+    @ExceptionHandler(com.project.software.urbanreports.storage.application.ImageNotFoundException.class)
+    ResponseEntity<ApiErrorResponse> missingImage(Exception exception, HttpServletRequest request) {
+        return error(HttpStatus.NOT_FOUND, "IMAGE_NOT_FOUND", null, request);
+    }
     @ExceptionHandler(OccurrenceValidationException.class)
     ResponseEntity<ApiErrorResponse> validation(OccurrenceValidationException exception, HttpServletRequest request) {
         return error(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", exception.fields(), request);

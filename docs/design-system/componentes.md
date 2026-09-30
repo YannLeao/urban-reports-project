@@ -63,8 +63,10 @@ O símbolo interno é decorativo, e tone não infere estado de domínio. `Card` 
 section simples com props nativas; nomeie a seção por heading/aria-labelledby.
 Consumidores atuais: status e referência visual. Não empilhar cards sem motivo.
 
-Dialog, bottom sheet, controles de mapa e cartões de ocorrência **não estão
-implementados**. Antes de criá-los, definir comportamento de teclado, entrada e
+Bottom sheet e controles de mapa não estão implementados. Cartões de relatos
+privados usam foto 4:3 com corte na lista e imagem inteira no detalhe. Exclusão
+usa dialog nativo modal com foco inicial em Cancelar, Escape, retorno de foco
+e bloqueio durante envio. Antes de criá-los, definir comportamento de teclado, entrada e
 retorno de foco, Escape, semântica e necessidades reais. Não simular modal com
 uma div posicionada sobre a tela.
 
@@ -101,3 +103,12 @@ e `onValidationChange?: (validating: boolean) => void` para notificar o consumid
 sincronamente no início/fim da validação e na invalidação de leituras. Os props
 são opcionais e preservam a prova técnica. O formulário usa essa notificação
 para bloquear submit durante troca de foto e disabled durante upload.
+
+## Dialog de confirmação
+
+`Dialog` preserva props/ref nativas de dialog. O consumidor abre com showModal,
+foca Cancelar, fecha com close e devolve foco ao acionador em onClose. Modal
+nativo torna o fundo inerte; o componente mantém Tab/Shift+Tab nos controles
+visíveis habilitados. Escape usa comportamento nativo, bloqueado em envio.
+A referência dev demonstra confirmação sem request. A tela real identifica o
+relato pelo título, avisa irreversibilidade e usa ação destrutiva auxiliar.

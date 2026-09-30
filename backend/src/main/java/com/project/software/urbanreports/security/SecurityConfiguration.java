@@ -50,6 +50,8 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.GET, "/api/occurrence-categories").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/occurrences", "/api/occurrences/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/occurrences").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/occurrences/*").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/occurrences/*").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
                         .requestMatchers(HttpMethod.HEAD, "/api/health").permitAll()
                         .requestMatchers(HttpMethod.GET, DOCUMENTATION_PATHS).permitAll()

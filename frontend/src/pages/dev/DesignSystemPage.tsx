@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { Dialog } from '../../components/ui/Dialog'
+import { useRef, useState } from 'react'
 import { ImagePicker } from '../../features/image/ImagePicker'
 import { Button } from '../../components/ui/Button'
 import { Input, Select, Textarea } from '../../components/ui/Field'
@@ -6,6 +7,9 @@ import { Alert, StatusBadge } from '../../components/ui/Feedback'
 import { Card } from '../../components/ui/Card'
 
 export default function DesignSystemPage() {
+  const dialog = useRef<HTMLDialogElement>(null)
+  const trigger = useRef<HTMLButtonElement>(null)
+  const cancel = useRef<HTMLButtonElement>(null)
   const [image, setImage] = useState<File | null>(null)
   const [imageDisabled, setImageDisabled] = useState(false)
   const [imageValidating, setImageValidating] = useState(false)
@@ -51,6 +55,16 @@ export default function DesignSystemPage() {
         <Alert tone="warning" role="note">Não foi possível validar sua sessão. Confira sua conexão.</Alert>
         <Alert tone="warning" role="note">Não foi possível confirmar o encerramento da sessão. Tente sair novamente.</Alert>
       </div></Card>
+      <Card><h2>Relatos pendentes</h2>
+        <StatusBadge tone="info" label="Pendente" />
+        <Textarea label="Detalhes (opcional) — exemplo" description="Se quiser, conte algo que a foto não mostra. Até 1000 caracteres." />
+        <Button ref={trigger} variant="quiet" className="text-feedback-danger-foreground" onClick={() => { dialog.current?.showModal(); cancel.current?.focus() }}>Exemplo de confirmação de exclusão</Button>
+        <Dialog ref={dialog} aria-labelledby="example-delete-title" onClose={() => trigger.current?.focus()} className="m-auto max-w-reading rounded-card border border-border-control bg-surface-raised p-6 text-text-primary backdrop:bg-text-primary/50">
+          <h2 id="example-delete-title">Excluir relato</h2><p>Poste apagado na praça (exemplo)</p><p>Esta ação não pode ser desfeita.</p>
+          <Button ref={cancel} variant="secondary" onClick={() => dialog.current?.close()}>Cancelar</Button>
+          <Button variant="quiet" className="text-feedback-danger-foreground" onClick={() => dialog.current?.close()}>Excluir exemplo</Button>
+        </Dialog>
+      </Card>
       <Card><h2>Feedback textual</h2><div className="grid gap-8 pb-8">
         {(['success', 'warning', 'danger', 'info'] as const).map(tone => <div key={tone}><StatusBadge tone={tone} label={`Exemplo ${tone}`} /><Alert tone={tone} role="note" className="mt-4">Mensagem demonstrativa: o texto explica a situação e orienta o próximo passo.</Alert></div>)}
       </div></Card>

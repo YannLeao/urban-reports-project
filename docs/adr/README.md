@@ -26,3 +26,5 @@ um novo ADR que substitui o anterior.
 - [0012 — Conteúdo e limites de imagens](0012-validar-conteudo-e-limites-de-imagens.md)
 
 - [0013 — Recuperação durável de uploads](0013-recuperar-uploads-com-journal-duravel.md)
+
+- [0014 — Gestão de relatos e descarte](0014-gerir-relatos-e-descarte-de-imagens.md)

@@ -50,15 +50,27 @@ public class OccurrenceController {
 
     @PostMapping(path = "/occurrences", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<OccurrenceResponse> create(@AuthenticationPrincipal AuthenticatedIdentity identity,
-            @RequestParam Integer categoryId, @RequestParam String title, @RequestParam String description,
+            @RequestParam Integer categoryId, @RequestParam String title, @RequestParam(required = false) String description,
             @RequestParam String neighborhood, @RequestParam String reference,
             @RequestPart("image") MultipartFile image, HttpServletRequest request) throws Exception {
+        validateParts(request, true);
+        OccurrenceResponse response = service.create(identity.userId(),
+                new OccurrenceRequest(categoryId, title, description, neighborhood, reference), image);
+        return ResponseEntity.status(201).cacheControl(CacheControl.noStore()).body(response);
+    }
+
+    private void validateParts(HttpServletRequest request, boolean creating) throws Exception {
         var parts = request.getParts();
-        var required = java.util.Set.of("categoryId", "title", "description", "neighborhood", "reference", "image");
+        var required = java.util.Set.of("categoryId", "title", "neighborhood", "reference");
         for (String name : required) {
             if (parts.stream().filter(part -> name.equals(part.getName())).count() != 1) {
                 throw new OccurrenceValidationException(java.util.Map.of(name, List.of("Envie exatamente uma parte por campo obrigatório.")));
             }
+        }
+        for (String name : java.util.List.of("description", "image")) {
+            long count = parts.stream().filter(part -> name.equals(part.getName())).count();
+            if (count > 1 || (creating && name.equals("image") && count != 1))
+                throw new OccurrenceValidationException(java.util.Map.of(name, List.of("Envie uma única parte por campo.")));
         }
         for (var part : parts) {
             boolean file = part.getSubmittedFileName() != null;
@@ -66,9 +78,31 @@ public class OccurrenceController {
                 throw new OccurrenceValidationException(java.util.Map.of("image", List.of("Envie somente um arquivo, no campo image.")));
             }
         }
-        OccurrenceResponse response = service.create(identity.userId(),
-                new OccurrenceRequest(categoryId, title, description, neighborhood, reference), image);
-        return ResponseEntity.status(201).body(response);
+    }
+
+    @GetMapping("/occurrences/{id}/image")
+    public ResponseEntity<byte[]> image(@AuthenticationPrincipal AuthenticatedIdentity identity, @PathVariable UUID id) {
+        var image = service.image(identity.userId(), id);
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).header("X-Content-Type-Options", "nosniff")
+                .contentType(MediaType.parseMediaType(image.contentType())).body(image.content());
+    }
+
+    @org.springframework.web.bind.annotation.PutMapping(path = "/occurrences/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<OccurrenceResponse> update(@AuthenticationPrincipal AuthenticatedIdentity identity,
+            @PathVariable UUID id, @org.springframework.web.bind.annotation.RequestHeader(value = "If-Match", required = false) String match,
+            @RequestParam Integer categoryId, @RequestParam String title, @RequestParam(required = false) String description,
+            @RequestParam String neighborhood, @RequestParam String reference,
+            @RequestPart(value = "image", required = false) MultipartFile image, HttpServletRequest request) throws Exception {
+        validateParts(request, false);
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.update(identity.userId(), id, match,
+                new OccurrenceRequest(categoryId, title, description, neighborhood, reference), image));
+    }
+
+    @org.springframework.web.bind.annotation.DeleteMapping("/occurrences/{id}")
+    public ResponseEntity<Void> delete(@AuthenticationPrincipal AuthenticatedIdentity identity, @PathVariable UUID id,
+            @org.springframework.web.bind.annotation.RequestHeader(value = "If-Match", required = false) String match) {
+        service.delete(identity.userId(), id, match);
+        return ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build();
     }
 
     public record OccurrenceCategoryResponse(Integer id, String name) {}

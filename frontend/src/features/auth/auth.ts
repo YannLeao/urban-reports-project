@@ -14,7 +14,7 @@ export interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
   retry: () => void
-  request: (path: string, method?: string, signal?: AbortSignal, body?: BodyInit) => Promise<Response>
+  request: (path: string, method?: string, signal?: AbortSignal, body?: BodyInit, headers?: Record<string, string>) => Promise<Response>
 }
 export const AuthContext = createContext<AuthContextValue | null>(null)
 export function useAuth() {

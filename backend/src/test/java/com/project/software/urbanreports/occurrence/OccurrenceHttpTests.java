@@ -43,7 +43,7 @@ class OccurrenceHttpTests {
 
     @BeforeEach void login() throws Exception {
         when(clock.instant()).thenReturn(NOW);
-        storage.calls.set(0); storage.fail = false; storage.loseResponse = false;
+        storage.calls.set(0); storage.fail = false; storage.loseResponse = false; storage.failDelete = false;
         String email = UUID.randomUUID() + "@example.com";
         String password = "synthetic password for HTTP tests";
         var registered = json("/api/auth/register", Map.of("name", "Pessoa teste", "email", email, "password", password), null);
@@ -83,7 +83,7 @@ class OccurrenceHttpTests {
     }
 
     @Test void textBoundsTrimAndUnicodeMatchPostgres() throws Exception {
-        var bounds = Map.of("title", new int[]{5, 100}, "description", new int[]{20, 1000},
+        var bounds = Map.of("title", new int[]{5, 100},
                 "neighborhood", new int[]{2, 100}, "reference", new int[]{5, 200});
         for (var entry : bounds.entrySet()) {
             for (int size : new int[]{entry.getValue()[0] - 1, entry.getValue()[1] + 1}) {
@@ -101,7 +101,7 @@ class OccurrenceHttpTests {
 
     @Test void missingInvalidAndRepeatedFieldsNeverReachStorage() throws Exception {
         for (String name : List.of("categoryId", "title", "description", "neighborhood", "reference", "image")) {
-            var missing = valid(); missing.removeIf(part -> part.name().equals(name)); reject(missing, 400);
+            if (!name.equals("description")) { var missing = valid(); missing.removeIf(part -> part.name().equals(name)); reject(missing, 400); }
             var duplicate = valid(); duplicate.add(duplicate.stream().filter(part -> part.name().equals(name)).findFirst().orElseThrow());
             reject(duplicate, 400);
         }
@@ -213,12 +213,188 @@ class OccurrenceHttpTests {
     @Test void v4ConstraintsRejectInvalidRowsWithoutChangingMigration() throws Exception {
         var result = upload(valid(), token);
         UUID id = UUID.fromString(mapper.readTree(result.body()).get("id").asString());
-        for (String assignment : List.of("title = 'tiny'", "description = 'tiny'", "neighborhood = 'x'", "reference = 'tiny'",
+        for (String assignment : List.of("title = 'tiny'",  "neighborhood = 'x'", "reference = 'tiny'",
                 "status = 'APPROVED'", "category_id = 999", "author_id = '00000000-0000-0000-0000-000000000000'")) {
             assertThatThrownBy(() -> jdbc.update("update occurrences set " + assignment + " where id = ?", id))
                     .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
         }
         assertThat(jdbc.queryForObject("select count(*) from flyway_schema_history where version = '4' and success", Integer.class)).isEqualTo(1);
+    }
+
+    @Test void missingOrInvalidStoredPhotoDoesNotBreakPrivateDetail() throws Exception {
+        var created = upload(valid(), token);
+        String path = "/api/occurrences/" + mapper.readTree(created.body()).get("id").asString();
+        String key = storage.lastKey;
+        storage.fail = true;
+        assertThat(action(path + "/image", "GET", token, null).statusCode()).isEqualTo(502);
+        storage.fail = false;
+        storage.contents.put(key, new StoredImageContent("<html>".getBytes(StandardCharsets.UTF_8), 6, "text/html"));
+        assertThat(action(path + "/image", "GET", token, null).statusCode()).isEqualTo(502);
+        storage.objects.remove(key);
+        assertThat(action(path + "/image", "GET", token, null).statusCode()).isEqualTo(404);
+        assertThat(action(path, "GET", token, null).statusCode()).isEqualTo(200);
+    }
+
+    @Test void optionalDescriptionAcrossCreationAndEditingUsesCodePoints() throws Exception {
+        for (String value : List.of("", " \t\r\n ", "Muito lixo.", "😀".repeat(1000))) {
+            var parts = replace(valid(), text("description", value));
+            var created = upload(parts, token);
+            assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
+            UUID id = UUID.fromString(mapper.readTree(created.body()).get("id").asString());
+            String expected = value.trim().isEmpty() ? null : value.trim();
+            assertThat(jdbc.queryForObject("select description from occurrences where id = ?", String.class, id)).isEqualTo(expected);
+            parts.removeIf(part -> part.name().equals("image"));
+            var edited = multipart("/api/occurrences/" + id, "PUT", parts, token, "\"0\"");
+            assertThat(edited.statusCode()).as(edited.body()).isEqualTo(200);
+            assertThat(mapper.readTree(edited.body()).get("version").asLong()).isEqualTo(1);
+            var cleared = multipart("/api/occurrences/" + id, "PUT", replace(parts, text("description", "  ")), token, "\"1\"");
+            assertThat(cleared.statusCode()).as(cleared.body()).isEqualTo(200);
+            assertThat(mapper.readTree(cleared.body()).get("description").isNull()).isTrue();
+            assertThat(multipart("/api/occurrences/" + id, "PUT", replace(parts, text("description", "😀".repeat(1001))), token, "\"2\"").statusCode()).isEqualTo(400);
+        }
+        var omitted = valid(); omitted.removeIf(part -> part.name().equals("description"));
+        var result = upload(omitted, token);
+        assertThat(result.statusCode()).as(result.body()).isEqualTo(201);
+        assertThat(mapper.readTree(result.body()).get("description").isNull()).isTrue();
+        omitted.removeIf(part -> part.name().equals("image"));
+        assertThat(multipart("/api/occurrences/" + mapper.readTree(result.body()).get("id").asString(), "PUT", omitted, token, "\"0\"").statusCode()).isEqualTo(200);
+        reject(replace(valid(), text("description", "😀".repeat(1001))), 400);
+    }
+
+    HttpResponse<String> action(String path, String method, String credential, String match) throws Exception {
+        var request = HttpRequest.newBuilder(uri(path)).method(method, HttpRequest.BodyPublishers.noBody());
+        if (credential != null) request.header("Authorization", "Bearer " + credential);
+        if (match != null) request.header("If-Match", match);
+        return send(request);
+    }
+
+    @Test void privateImageAndWritesRequireOwnershipSessionAndCurrentVersion() throws Exception {
+        String ownerToken = token;
+        var created = upload(valid(), token);
+        UUID id = UUID.fromString(mapper.readTree(created.body()).get("id").asString());
+        String path = "/api/occurrences/" + id;
+        String key = storage.lastKey;
+        var photo = client.send(HttpRequest.newBuilder(uri(path + "/image")).header("Authorization", "Bearer " + token).GET().build(), HttpResponse.BodyHandlers.ofByteArray());
+        assertThat(photo.statusCode()).isEqualTo(200);
+        assertThat(photo.body()).containsExactly(ImageFixtures.photo("png"));
+        assertThat(photo.headers().firstValue("Cache-Control")).contains("no-store");
+        assertThat(photo.headers().firstValue("X-Content-Type-Options")).contains("nosniff");
+        assertThat(photo.headers().firstValue("Content-Type")).contains("image/png");
+        var fields = valid(); fields.removeIf(part -> part.name().equals("image"));
+        assertThat(multipart(path, "PUT", fields, token, null).statusCode()).isEqualTo(428);
+        assertThat(action(path, "DELETE", token, null).statusCode()).isEqualTo(428);
+        assertThat(multipart(path, "PUT", fields, token, "\"99\"").statusCode()).isEqualTo(412);
+        assertThat(action(path, "DELETE", token, "\"99\"").statusCode()).isEqualTo(412);
+        login(); // second real citizen and session
+        for (String route : List.of(path, path + "/image")) {
+            assertThat(action(route, "GET", token, null).statusCode()).isEqualTo(404);
+            assertThat(action(route, "GET", null, null).statusCode()).isEqualTo(401);
+        }
+        assertThat(multipart(path, "PUT", fields, token, "\"0\"").statusCode()).isEqualTo(404);
+        assertThat(action(path, "DELETE", token, "\"0\"").statusCode()).isEqualTo(404);
+        assertThat(multipart(path, "PUT", fields, null, "\"0\"").statusCode()).isEqualTo(401);
+        assertThat(action(path, "DELETE", null, "\"0\"").statusCode()).isEqualTo(401);
+        assertThat(multipart("/api/occurrences/" + UUID.randomUUID(), "PUT", fields, token, "\"0\"").statusCode()).isEqualTo(404);
+        assertThat(action("/api/occurrences/" + UUID.randomUUID(), "DELETE", token, "\"0\"").statusCode()).isEqualTo(404);
+        var updated = multipart(path, "PUT", fields, ownerToken, "\"0\"");
+        assertThat(updated.statusCode()).as(updated.body()).isEqualTo(200);
+        assertThat(jdbc.queryForObject("select image_key from occurrences where id = ?", String.class, id)).isEqualTo(key);
+        assertThat(storage.deleted).doesNotContain(key);
+        assertThat(multipart(path, "PUT", fields, ownerToken, "\"0\"").statusCode()).isEqualTo(412);
+        when(clock.instant()).thenReturn(NOW.plusSeconds(1800));
+        assertThat(action(path + "/image", "GET", ownerToken, null).statusCode()).isEqualTo(401);
+        when(clock.instant()).thenReturn(NOW);
+        assertThat(json("/api/auth/logout", Map.of(), ownerToken).statusCode()).isEqualTo(204);
+        assertThat(action(path + "/image", "GET", ownerToken, null).statusCode()).isEqualTo(401);
+        assertThat(action(path, "DELETE", ownerToken, "\"1\"").statusCode()).isEqualTo(401);
+    }
+
+    @Test void replacementAndDeletionRetireOnlyAfterCommitAndRetryAfterRestart() throws Exception {
+        var created = upload(valid(), token);
+        UUID id = UUID.fromString(mapper.readTree(created.body()).get("id").asString());
+        String old = storage.lastKey, path = "/api/occurrences/" + id;
+        assertThat(multipart(path, "PUT", valid(), token, "\"0\"").statusCode()).isEqualTo(200);
+        String current = storage.lastKey;
+        assertThat(current).isNotEqualTo(old);
+        assertThat(storage.objects).contains(old, current);
+        assertThat(jdbc.queryForObject("select state from image_upload_journal where image_key = ?", String.class, old)).isEqualTo("TOMBSTONE");
+        when(clock.instant()).thenReturn(NOW.plusSeconds(301));
+        storage.failDelete = true; journal.recover();
+        assertThat(storage.objects).contains(old, current);
+        storage.failDelete = false;
+        when(clock.instant()).thenReturn(NOW.plusSeconds(362)); journal.recover();
+        assertThat(storage.objects).doesNotContain(old).contains(current);
+        assertThat(action(path, "DELETE", token, "\"1\"").statusCode()).isEqualTo(204);
+        assertThat(storage.objects).contains(current);
+        for (String route : List.of(path, path + "/image")) assertThat(action(route, "GET", token, null).statusCode()).isEqualTo(404);
+        assertThat(action(path, "DELETE", token, "\"1\"").statusCode()).isEqualTo(404);
+        assertThat(action("/api/occurrences", "GET", token, null).body()).doesNotContain(id.toString());
+        when(clock.instant()).thenReturn(NOW.plusSeconds(700));
+        new UploadJournal(jdbc, manager, imageService, clock, Duration.ofMinutes(5), 20).recover();
+        assertThat(storage.objects).doesNotContain(current);
+    }
+
+    @Autowired org.springframework.transaction.PlatformTransactionManager manager;
+    @Autowired ImageStorageService imageService;
+
+    @Test void failedCommitPreservesOldPhotoAndRollsBackRetirement() throws Exception {
+        var created = upload(valid(), token);
+        UUID id = UUID.fromString(mapper.readTree(created.body()).get("id").asString());
+        String old = storage.lastKey;
+        jdbc.execute("create function reject_test_edit() returns trigger language plpgsql as $$ begin raise exception 'synthetic commit failure'; end $$");
+        jdbc.execute("create constraint trigger reject_test_edit after update on occurrences deferrable initially deferred for each row execute function reject_test_edit()");
+        String fresh;
+        try {
+            assertThat(multipart("/api/occurrences/" + id, "PUT", valid(), token, "\"0\"").statusCode()).isEqualTo(500);
+            fresh = storage.lastKey;
+            assertThat(jdbc.queryForObject("select image_key from occurrences where id = ?", String.class, id)).isEqualTo(old);
+            assertThat(jdbc.queryForObject("select version from occurrences where id = ?", Long.class, id)).isZero();
+            assertThat(jdbc.queryForObject("select state from image_upload_journal where image_key = ?", String.class, old)).isEqualTo("LINKED");
+            assertThat(jdbc.queryForObject("select state from image_upload_journal where image_key = ?", String.class, fresh)).isEqualTo("PENDING");
+        } finally { jdbc.execute("drop trigger reject_test_edit on occurrences"); jdbc.execute("drop function reject_test_edit()"); }
+        when(clock.instant()).thenReturn(NOW.plusSeconds(301)); journal.recover();
+        assertThat(storage.objects).contains(old).doesNotContain(fresh);
+    }
+
+    @Test void concurrentEditsAndEditVersusDeleteAcceptAtMostOneVersion() throws Exception {
+        for (boolean deletion : List.of(false, true)) {
+            var created = upload(valid(), token);
+            UUID id = UUID.fromString(mapper.readTree(created.body()).get("id").asString());
+            String path = "/api/occurrences/" + id;
+            var gate = new java.util.concurrent.CountDownLatch(1);
+            try (var executor = java.util.concurrent.Executors.newFixedThreadPool(2)) {
+                var first = executor.submit(() -> { gate.await(); return multipart(path, "PUT", valid(), token, "\"0\""); });
+                var second = executor.submit(() -> { gate.await(); return deletion ? action(path, "DELETE", token, "\"0\"") : multipart(path, "PUT", valid(), token, "\"0\""); });
+                gate.countDown();
+                var codes = List.of(first.get(30, java.util.concurrent.TimeUnit.SECONDS).statusCode(), second.get(30, java.util.concurrent.TimeUnit.SECONDS).statusCode());
+                assertThat(codes.stream().filter(code -> code == 200 || code == 204).count()).isEqualTo(1);
+                assertThat(codes.stream().filter(code -> code == 412 || code == 404).count()).isEqualTo(1);
+                assertThat(jdbc.queryForObject("select count(*) from occurrences where id = ? and version > 1", Integer.class, id)).isZero();
+                when(clock.instant()).thenReturn(NOW.plusSeconds(301)); journal.recover();
+                for (String key : jdbc.queryForList("select image_key from occurrences where id = ?", String.class, id)) assertThat(storage.objects).contains(key);
+                when(clock.instant()).thenReturn(NOW);
+            }
+        }
+    }
+
+    @Test void rejectedImageAndMultipartKeepAssociationAndPreflightAllowsIfMatch() throws Exception {
+        var created = upload(valid(), token);
+        UUID id = UUID.fromString(mapper.readTree(created.body()).get("id").asString());
+        String path = "/api/occurrences/" + id, old = storage.lastKey;
+        for (var parts : List.of(replace(valid(), image(new byte[0], "image/png")), replace(valid(), image(new byte[]{1,2}, "image/png")), replace(valid(), text("categoryId", "999"))))
+            assertThat(multipart(path, "PUT", parts, token, "\"0\"").statusCode()).isEqualTo(400);
+        var duplicate = valid(); duplicate.add(text("description", "extra"));
+        assertThat(multipart(path, "PUT", duplicate, token, "\"0\"").statusCode()).isEqualTo(400);
+        assertThat(jdbc.queryForObject("select image_key from occurrences where id = ?", String.class, id)).isEqualTo(old);
+        assertThat(storage.deleted).doesNotContain(old);
+        storage.fail = true;
+        assertThat(multipart(path, "PUT", valid(), token, "\"0\"").statusCode()).isEqualTo(502);
+        assertThat(jdbc.queryForObject("select image_key from occurrences where id = ?", String.class, id)).isEqualTo(old);
+        var cors = send(HttpRequest.newBuilder(uri(path)).method("OPTIONS", HttpRequest.BodyPublishers.noBody())
+                .header("Origin", "http://localhost:5173").header("Access-Control-Request-Method", "PUT")
+                .header("Access-Control-Request-Headers", "authorization,if-match"));
+        assertThat(cors.statusCode()).isEqualTo(200);
+        assertThat(cors.headers().firstValue("Access-Control-Allow-Headers").orElse("").toLowerCase()).contains("if-match");
     }
 
     void reject(List<Part> parts, int expected) throws Exception {
@@ -244,6 +420,9 @@ class OccurrenceHttpTests {
         return send(request);
     }
     HttpResponse<String> upload(List<Part> parts, String credential) throws Exception {
+        return multipart("/api/occurrences", "POST", parts, credential, null);
+    }
+    HttpResponse<String> multipart(String path, String method, List<Part> parts, String credential, String version) throws Exception {
         var bytes = new ByteArrayOutputStream();
         for (var part : parts) {
             String header = "--" + BOUNDARY + "\r\nContent-Disposition: form-data; name=\"" + part.name() + "\""
@@ -252,10 +431,11 @@ class OccurrenceHttpTests {
             bytes.write(header.getBytes(StandardCharsets.UTF_8)); bytes.write(part.content()); bytes.write("\r\n".getBytes(StandardCharsets.UTF_8));
         }
         bytes.write(("--" + BOUNDARY + "--\r\n").getBytes(StandardCharsets.UTF_8));
-        var request = HttpRequest.newBuilder(uri("/api/occurrences"))
+        var request = HttpRequest.newBuilder(uri(path))
                 .header("Content-Type", "multipart/form-data; boundary=" + BOUNDARY)
-                .POST(HttpRequest.BodyPublishers.ofByteArray(bytes.toByteArray()));
+                .method(method, HttpRequest.BodyPublishers.ofByteArray(bytes.toByteArray()));
         if (credential != null) request.header("Authorization", "Bearer " + credential);
+        if (version != null) request.header("If-Match", version);
         return send(request);
     }
     static List<Part> valid() {
@@ -289,10 +469,17 @@ class OccurrenceHttpTests {
         @Override public void storeAt(String key, InputStream input, long length, String type) {
             store(input, length, type, "occurrences");
             lastKey = key;
-            objects.add(key);
+            objects.add(key); contents.put(key, new StoredImageContent(lastBytes, lastBytes.length, type));
             if (loseResponse) throw new ImageStorageException("Lost PUT response");
         }
-        @Override public void delete(String key) { deleted.add(key); objects.remove(key); }
-        @Override public StoredImageContent load(String key) { throw new AssertionError("No public read in this scope"); }
+        @Override public void delete(String key) { if (failDelete) throw new ImageStorageException("synthetic delete failure"); deleted.add(key); objects.remove(key); }
+        final java.util.Map<String, StoredImageContent> contents = new java.util.concurrent.ConcurrentHashMap<>();
+        volatile boolean failDelete;
+        @Override public StoredImageContent load(String key) {
+            if (fail) throw new ImageStorageException("synthetic provider failure");
+            var image = contents.get(key);
+            if (image == null || !objects.contains(key)) throw new ImageNotFoundException(key);
+            return image;
+        }
     }
 }

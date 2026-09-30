@@ -1,52 +1,80 @@
-# Consulta privada de relatos
+# Consulta e gestão privada de relatos
 
-## Contrato atual
+## Contrato HTTP
 
-`GET /api/occurrences` exige Bearer com sessão válida e retorna um array dos
-relatos cujo autor é o usuário autenticado. Sem relatos, retorna `[]` com 200.
-A ordem é `createdAt DESC, id DESC`; não há paginação nesta entrega.
-Parâmetros como `userId` não alteram a autoria consultada.
+Todas as rotas exigem Bearer com sessão válida. GET /api/occurrences retorna
+somente relatos do autor autenticado, em createdAt DESC, id DESC, sem paginação.
+GET /api/occurrences/{id} retorna apenas o próprio relato; alheio e inexistente
+retornam o mesmo 404 OCCURRENCE_NOT_FOUND. Parâmetros de autoria são ignorados.
+O DTO contém id, categoryId/categoryName, title, description (null se ausente),
+neighborhood, reference, status, createdAt e version (inteiro não negativo).
+Autor, chave de storage, bucket e URL do provedor não são expostos.
 
-`GET /api/occurrences/{id}` exige a mesma sessão e um UUID. Retorna 200 somente
-para um relato do próprio usuário. Relato inexistente ou de outra conta retorna
-404 com `OCCURRENCE_NOT_FOUND` no DTO comum de erro, sem revelar dados do autor.
-UUID inválido retorna 400; ausência, expiração ou revogação de sessão retorna 401.
+GET /api/occurrences/{id}/image usa a mesma autorização antes de ler storage.
+Retorna JPEG/PNG/WebP validado, até 5 MiB, no-store e nosniff. Ausência do objeto
+retorna 404 IMAGE_NOT_FOUND; provedor indisponível/conteúdo inválido retorna 502.
+Leitura R2 é limitada a 5 MiB + 1 byte e fecha o stream. A fotografia não torna
+bucket público nem remove EXIF; publicação e sanitização pertencem a R07.
 
-Respostas de sucesso usam `Cache-Control: no-store` para evitar cache HTTP de
-dados privados. As duas respostas usam o DTO de registro: id, categoryId, categoryName, title,
-description, neighborhood, reference, status e createdAt. O único estado atual
-é `PENDING`, apresentado como Pendente. Não expõem referência do objeto, bucket,
-URL de imagem ou identificador do autor. O storage técnico continua bloqueado.
+PUT /api/occurrences/{id} usa multipart com todos os campos textuais obrigatórios
+do [cadastro](occurrence-registration.md), description opcional e image opcional.
+Imagem omitida mantém a atual; arquivo vazio é inválido. Repetições e arquivos
+extras são recusados. Autor/status/createdAt são controlados pelo servidor.
+200 retorna DTO atualizado após commit; cada edição incrementa version.
+DELETE /api/occurrences/{id} exclui fisicamente e retorna 204 após commit.
+GET de dados/foto e DELETE subsequentes retornam 404; não existe lixeira.
+
+Ambas as escritas exigem If-Match com versão decimal entre aspas, por exemplo
+`If-Match: "0"`. A ocorrência é bloqueada por id + autor na transação curta,
+antes de revalidar PENDING e versão. 428 indica precondição ausente, 412 versão
+inválida/antiga, 409 estado não alterável, 404 alheio/ausente e 401 sessão inválida.
+O envelope comum de erro e no-store são preservados. CORS permite If-Match,
+PUT e DELETE, sem cookies. CORS não substitui autorização.
+
+## Imagens e concorrência
+
+Na edição com substituição, intenção durável precede upload remoto. Nenhum lock
+na ocorrência permanece aberto durante o upload. Ao vincular a nova intenção,
+a transação bloqueia o relato, compara versão e agenda tombstone da foto antiga
+junto à troca. Perda da corrida deixa upload novo recuperável. Exclusão e
+agendamento também são atômicos no banco. Rollback não publica descarte.
+O worker ignora LINKED, verifica referências sob lock do journal e remove apenas
+objetos elegíveis. Chaves exclusivas não são reutilizadas, e link exige PENDING.
+Detalhes no [ADR 0014](adr/0014-gerir-relatos-e-descarte-de-imagens.md).
+Moderação futura deve usar o mesmo lock/versão; nenhum novo estado é criado.
 
 ## Frontend
 
-`/meus-relatos` e `/meus-relatos/:id` são privadas e acessíveis por Minha conta.
-A lista mostra categoria, local, data e estado e oferece navegação ao detalhe.
-O detalhe mostra também descrição. Há carregamento, lista vazia, erro público
-e nova tentativa manual sem recarregar a aplicação.
+Rotas privadas: /meus-relatos, /meus-relatos/:id e /meus-relatos/:id/editar.
+Lista prioriza foto, título, local, categoria, data e Pendente. IntersectionObserver
+inicia fotos apenas quando os cards entram na viewport. Corte 4:3 na lista;
+detalhe mantém proporção reservada 4:3 com object-contain para imagem inteira.
+Falha de foto é independente dos dados e não inventa evidência visual.
+Cliente autenticado busca bytes; object URLs ficam apenas em memória e são
+revogadas ao trocar versão, desmontar ou encerrar sessão. Token não vai à URL.
 
-Query usa chaves `['private', userId, 'occurrences', ...]`, AbortSignal e schemas
-Zod. Não há retry automático, polling ou refetch por foco/reconexão. Ao retornar
-à página, os dados são considerados antigos e consultados novamente.
-O AuthProvider cancela/remove consultas privadas ao encerrar ou trocar a sessão;
-401 encerra sessão, enquanto 403 e falha de rede permitem nova tentativa.
+Queries usam ['private', userId, 'occurrences', ...], AbortSignal, sem retry,
+polling ou refetch por foco/reconexão. Mutações diretas também não repetem envios.
+Commit confirmado cancela consultas anteriores e renova lista/detalhe/foto.
+Exclusão desmonta o detalhe antes de removê-lo do cache para evitar nova leitura.
+Sessão encerrada remove consultas/rascunhos e impede resposta tardia na UI.
+401 encerra sessão; 403/conflito/rede não. Resultado incerto orienta consultar
+novamente, sem afirmar rollback. Edição preserva rascunho/foto em memória na falha.
 
-## Limites e validação
+Excluir usa dialog nativo modal, título do relato, explicação irreversível,
+foco inicial em Cancelar, Escape e retorno ao acionador. Durante envio, bloqueia
+cancelamento e ações concorrentes. Cancelar edição/exclusão não envia mutação.
 
-Esta entrega cobre somente listagem e detalhe textual. Não implementa edição,
-exclusão, visualização de fotografia ou novos estados. A conclusão da issue #23
-requer definir e implementar os critérios restantes separadamente.
+## Verificação e limites
 
-Backend: `OccurrenceQueryIntegrationTests` usa PostgreSQL descartável, cadeia de
-segurança real, cadastro e login; verifica autoria, detalhe alheio/inexistente,
-ordenação e ausência de campos internos. Execute `./mvnw verify` em backend/,
-com Java 21 e Docker disponíveis.
+OccurrenceHttpTests usa PostgreSQL descartável, JWT/login/sessões e cadeia real,
+com double apenas do provedor. Cobre descrição opcional/Unicode, isolamento,
+foto, versões, edição/exclusão, corrida e rollback no commit, backoff e restart.
+OccurrenceWritePolicyTests testa estado disallowed na fronteira de domínio:
+null não é estado persistido. O banco só admite PENDING; prova integrada de outro
+estado real fica para a evolução aprovada da moderação.
+Testes frontend usam páginas reais, Query/AuthProvider e fetch controlado.
 
-Frontend: `MyReportsPage.test.tsx` usa AuthProvider, Router, Query e fetch
-controlado para exercitar lista/detalhe, cancelamento, validação de resposta,
-retry manual e 401. Execute lint, typecheck, test e build conforme o
-[guia frontend](frontend-development.md).
-
-Aceite publicado exige registrar SHA, pipeline e URLs na MR/issue, consultar com
-duas contas sintéticas e conferir que uma não acessa relatos da outra, além de
-navegação, teclado e viewport móvel. Testes locais não comprovam esse aceite.
+R07 ainda não fornece consulta pública: integrar remoção/invalidação nessa camada
+quando existir, sem criar consulta pública fictícia. Ambiente publicado, aparelho
+físico e aceite integral #23 requerem evidências próprias na MR/issue.

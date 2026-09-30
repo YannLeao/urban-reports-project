@@ -67,14 +67,17 @@ public class R2ImageStorage implements ImageStorage {
     @Override
     public StoredImageContent load(String key) {
         try {
-            var response = s3Client.getObjectAsBytes(GetObjectRequest.builder()
+            try (var response = s3Client.getObject(GetObjectRequest.builder()
                     .bucket(properties.bucket())
                     .key(key)
-                    .build());
+                    .build())) {
             String contentType = response.response().contentType();
-            byte[] content = response.asByteArray();
-            LOGGER.info("Loaded technical proof image with key {}", key);
+            byte[] content = response.readNBytes(5 * 1024 * 1024 + 1);
+            if (content.length > 5 * 1024 * 1024) throw new ImageStorageException("Stored image exceeds limit");
             return new StoredImageContent(content, content.length, contentType);
+            }
+        } catch (java.io.IOException exception) {
+            throw new ImageStorageException("Image could not be read", exception);
         } catch (NoSuchKeyException exception) {
             LOGGER.info("Technical proof image was not found for key {}", key);
             throw new ImageNotFoundException(key);

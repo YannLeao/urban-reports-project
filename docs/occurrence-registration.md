@@ -6,11 +6,11 @@
 semeadas na V4 (`id`, `name`). `POST /api/occurrences` exige Bearer com sessão
 válida e `multipart/form-data`. A rota frontend é `/registrar-ocorrencia`.
 
-| Parte obrigatória | Regra |
+| Parte | Regra |
 | --- | --- |
 | categoryId | Inteiro de uma categoria existente |
 | title | 5–100 pontos de código |
-| description | 20–1000 pontos de código |
+| description (opcional) | Até 1000 pontos de código; omitida/vazia após trim vira null |
 | neighborhood | 2–100 pontos de código |
 | reference | 5–200 pontos de código |
 | image | Um arquivo não vazio, segundo as regras abaixo |
@@ -18,7 +18,7 @@ válida e `multipart/form-data`. A rota frontend é `/registrar-ocorrencia`.
 Campos textuais recebem trim externo ASCII (U+0009–U+000D e U+0020), sem mudar
 espaços internos. Java, TypeScript e `char_length` PostgreSQL contam pontos de
 código, inclusive emojis; NUL/UTF-16 inválido não são aceitos. Cada parte
-obrigatória deve ocorrer exatamente uma vez. Arquivos em outros campos,
+obrigatória deve ocorrer exatamente uma vez; description pode ser omitida, mas não repetida. Arquivos em outros campos,
 arquivos extras e image repetida são recusados, inclusive `filename=""`.
 Nome vazio não transforma arquivo em campo textual. Campos textuais extras são
 ignorados; autoria/status forjados nunca alteram a persistência.
@@ -26,7 +26,7 @@ ignorados; autoria/status forjados nunca alteram a persistência.
 O servidor deriva autor da `AuthenticatedIdentity`, gera a key
 `occurrences/{UUID}.{extensão}` e mantém status técnico `PENDING` (Pendente).
 201 retorna id, categoryId/categoryName, title, description, neighborhood,
-reference, status e createdAt. Não retorna Location: ainda não há GET público de
+reference, status, createdAt e version. Não retorna Location: ainda não há GET público de
 ocorrência. Não expõe bucket, URL do provedor ou nome original do arquivo.
 
 ## Imagens
@@ -120,8 +120,8 @@ fica para melhoria posterior: perda da resposta pode ocorrer após commit;
 reenvio manual pode duplicar, mesmo com guarda contra cliques concorrentes.
 
 Handoff R07/R09/R10: reutilizar a key canônica e associação da ocorrência;
-definir autorização de leitura, sanitização de metadados antes da publicação
-R07 e coordenação de exclusões com o journal. Não abrir leitura pública
+preservar a leitura privada e o descarte coordenado descritos em
+[consulta](occurrence-query.md); sanitizar metadados antes da publicação R07. Não abrir leitura pública
 para justificar Location ou provar persistência.
 
 Aceite completo de R05/R06 ainda requer evidência em MR/issue de SHA, pipeline,
@@ -160,3 +160,16 @@ falha ou pendente; não preencher com evidência inferida de configuração.
 Sem acesso ao aparelho ou ambiente publicado, código e testes locais podem ser
 concluídos, mantendo o aceite integrado pendente. Mocks/jsdom e viewport mobile
 não comprovam câmera física, R2 remoto, deployment ou restart publicado.
+
+## Descrição opcional e ordem de publicação
+
+Decisão de produto autorizada na tarefa de gestão dos próprios relatos (RF-14,
+RN-12/RN-13; Refs #23): detalhes não têm mais mínimo de 20 pontos de código.
+Ausência, vazio e espaços ASCII externos viram null; texto curto é válido,
+quebras internas são preservadas e 1001 pontos de código são recusados, sem corte.
+A V6 preserva textos existentes. Publicar backend com V6 antes do frontend que
+omite descrição. O frontend aceita resposta com description ausente como null;
+version é obrigatória para habilitar escrita segura.
+
+Após 201, a confirmação mostra título/Pendente e oferece Ver relato, Meus relatos
+ou Registrar outro problema. UUID só serve ao contrato e à navegação interna.

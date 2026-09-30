@@ -132,3 +132,12 @@ Health/Swagger continuam testados nos três perfis. Storage com filtros desligad
 Frontend testa bootstrap, retorno, expiração, 401/403/rede, logout confirmado/falho,
 storage indisponível e respostas tardias. Publicação e roteiro de navegador seguem
 [deploy frontend](frontend-deployment.md). Testes locais não comprovam deploy.
+
+## Gestão privada de ocorrências
+
+GET de fotografia, PUT e DELETE exigem a sessão revogável existente. Autoria é
+derivada de AuthenticatedIdentity; escrita bloqueia ocorrência por id + autor e
+revalida PENDING/If-Match. Relato alheio é indistinguível de inexistente (404).
+CORS inclui If-Match, PUT/DELETE, mantendo Bearer sem credentials.
+Foto privada usa no-store/nosniff e jamais inclui token ou chave em URL pública.
+Contrato e precondições: [gestão de relatos](occurrence-query.md).

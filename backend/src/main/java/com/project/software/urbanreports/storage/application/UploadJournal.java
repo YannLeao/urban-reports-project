@@ -49,6 +49,19 @@ public class UploadJournal {
         });
     }
 
+    public <T> T write(Supplier<T> write) { return transaction.execute(status -> write.get()); }
+
+    // Must participate in the association-changing transaction. Historical keys are enrolled explicitly.
+    public void retire(String key) {
+        if (!org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive())
+            throw new IllegalStateException("Retirement requires transaction");
+        jdbc.update("""
+                insert into image_upload_journal(image_key, state, created_at, next_attempt_at)
+                values (?, 'TOMBSTONE', ?, ?) on conflict(image_key) do update
+                set state = 'TOMBSTONE', next_attempt_at = excluded.next_attempt_at, last_error = null
+                """, key, Timestamp.from(clock.instant()), Timestamp.from(clock.instant().plus(safetyDelay)));
+    }
+
     public void recover() {
         transaction.executeWithoutResult(status -> {
             var keys = jdbc.queryForList("""

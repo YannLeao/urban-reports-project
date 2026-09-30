@@ -17,7 +17,7 @@ storage. Cadastro de cidadão em `/cadastro` persiste contas reais, sem login
 automático.
 Login em `/entrar` e sessão revogável em `/minha-conta` estão implementados.
 A [consulta privada de relatos](docs/occurrence-query.md) oferece listagem e
-detalhe textual em `/meus-relatos`, sem edição ou exclusão.
+fotografia, detalhe, edição e exclusão dos próprios relatos pendentes em `/meus-relatos`.
 O registro autenticado em `/registrar-ocorrencia` integra categorias, fotografia e
 persistência. Consulte o [contrato de ocorrência](docs/occurrence-registration.md):
 a implementação não comprova, por si só, o aceite publicado ou a captura física.
