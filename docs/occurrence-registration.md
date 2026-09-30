@@ -97,10 +97,11 @@ contrato textual verificam limites Unicode; não comprovam o formulário físico
 
 ## Limites e próximas entregas
 
-O catch atual tenta compensar falha de gravação com delete; não cobre commit
-posterior nem queda do processo. A próxima correção deve registrar intenção de
-upload durável e recuperação coordenada. Não declarar atomicidade R2/PostgreSQL,
-nem excluir órfãos históricos automaticamente.
+A criação usa [journal durável](adr/0013-recuperar-uploads-com-journal-duravel.md)
+e retorna 201 após commit confirmado. Falhas de PUT, gravação ou commit deixam
+a intenção recuperável; o recuperador nunca exclui uma key vinculada ou com
+referência confirmada. A recuperação é eventual, sem atomicidade R2/PostgreSQL.
+Ver [operação e reconciliação](image-storage.md#recuperação-durável).
 
 A correção seguinte do formulário deve coordenar seleção/validação/envio,
 preservar dados nas falhas e tornar todos os erros visíveis. Idempotência HTTP
@@ -109,7 +110,7 @@ reenvio manual pode duplicar, mesmo com guarda contra cliques concorrentes.
 
 Handoff R07/R09/R10: reutilizar a key canônica e associação da ocorrência;
 definir autorização de leitura, sanitização de metadados antes da publicação
-R07 e coordenação de exclusões com o futuro journal. Não abrir leitura pública
+R07 e coordenação de exclusões com o journal. Não abrir leitura pública
 para justificar Location ou provar persistência.
 
 Aceite completo de R05/R06 ainda requer evidência em MR/issue de SHA, pipeline,

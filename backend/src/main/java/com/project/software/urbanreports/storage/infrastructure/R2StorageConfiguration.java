@@ -21,6 +21,11 @@ public class R2StorageConfiguration {
                 .region(Region.of(properties.region()))
                 .credentialsProvider(StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(properties.accessKey(), properties.secretKey())))
+                .overrideConfiguration(config -> config
+                        .apiCallTimeout(java.time.Duration.ofSeconds(60))
+                        .apiCallAttemptTimeout(java.time.Duration.ofSeconds(25))
+                        .retryStrategy(software.amazon.awssdk.retries.StandardRetryStrategy.builder()
+                                .maxAttempts(2).build()))
                 .forcePathStyle(true)
                 .build();
     }

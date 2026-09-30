@@ -38,19 +38,17 @@ public class R2ImageStorage implements ImageStorage {
     @Override
     public StoredImage store(InputStream content, long contentLength, String contentType, String prefix) {
         String key = prefix + "/" + UUID.randomUUID() + "." + extension(contentType);
+        storeAt(key, content, contentLength, contentType);
+        return new StoredImage(key);
+    }
+
+    @Override
+    public void storeAt(String key, InputStream content, long contentLength, String contentType) {
         try {
-            s3Client.putObject(PutObjectRequest.builder()
-                            .bucket(properties.bucket())
-                            .key(key)
-                            .contentType(contentType)
-                            .contentLength(contentLength)
-                            .build(),
+            s3Client.putObject(PutObjectRequest.builder().bucket(properties.bucket()).key(key)
+                    .contentType(contentType).contentLength(contentLength).build(),
                     RequestBody.fromInputStream(content, contentLength));
-            LOGGER.info("Stored technical proof image with key {}", key);
-            return new StoredImage(key);
         } catch (RuntimeException exception) {
-            LOGGER.error("Failed to store technical proof image with key {}: {}",
-                    key, exception.getClass().getSimpleName());
             throw new ImageStorageException("Image storage provider failed", exception);
         }
     }
