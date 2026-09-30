@@ -48,6 +48,7 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/auth/logout").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/occurrence-categories").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/occurrences", "/api/occurrences/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/occurrences").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
                         .requestMatchers(HttpMethod.HEAD, "/api/health").permitAll()

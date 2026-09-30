@@ -9,6 +9,8 @@ import { HomePage } from '../pages/HomePage'
 import { StatusPage } from '../pages/StatusPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { ReportOccurrencePage } from '../pages/ReportOccurrencePage'
+import { MyReportsPage } from '../pages/MyReportsPage'
+import { OccurrenceDetailPage } from '../pages/OccurrenceDetailPage'
 
 const DesignSystemPage = import.meta.env.DEV
   ? lazy(() => import('../pages/dev/DesignSystemPage'))
@@ -23,6 +25,8 @@ export function AppRoutes() {
       <Route element={<PrivateRoute />}>
         <Route path="/minha-conta" element={<AccountPage />} />
         <Route path="/registrar-ocorrencia" element={<ReportOccurrencePage />} />
+        <Route path="/meus-relatos" element={<MyReportsPage />} />
+        <Route path="/meus-relatos/:id" element={<OccurrenceDetailPage />} />
       </Route>
       <Route path="/cadastro" element={<RegistrationPage />} />
       <Route path="/status" element={<StatusPage />} />

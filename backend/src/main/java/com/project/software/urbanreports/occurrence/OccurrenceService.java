@@ -7,7 +7,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -41,6 +43,19 @@ public class OccurrenceService {
                     clean(request.neighborhood()), clean(request.reference()), prepared.key(), clock.instant());
             return OccurrenceResponse.from(occurrences.saveAndFlush(occurrence));
         });
+    }
+
+    @Transactional(readOnly = true)
+    public List<OccurrenceResponse> findByAuthorId(UUID authorId) {
+        Sort sort = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
+        return occurrences.findByAuthorId(authorId, sort).stream().map(OccurrenceResponse::from).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public OccurrenceResponse findById(UUID authorId, UUID occurrenceId) {
+        return occurrences.findByIdAndAuthorId(occurrenceId, authorId)
+                .map(OccurrenceResponse::from)
+                .orElseThrow(() -> new OccurrenceNotFoundException(occurrenceId));
     }
 
     private Map<String, List<String>> validate(OccurrenceRequest request, MultipartFile image) {

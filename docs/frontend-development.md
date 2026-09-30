@@ -222,3 +222,10 @@ reenvio manual pode duplicá-lo. Não há retry automático nem idempotência HT
 `ReportOccurrencePage.test.tsx` exercita o formulário real com AuthProvider,
 fetch controlado e inspeção multipart. Roteiro publicado/físico e limites em
 [contrato de ocorrência](occurrence-registration.md#roteiro-consolidado-de-evidências-r05r06).
+
+## Consulta privada de relatos
+
+`/meus-relatos` e `/meus-relatos/:id` usam PrivateRoute, AuthProvider e Query,
+com cache por usuário, cancelamento e validação Zod. Erros permitem refetch
+manual sem reload; 401 encerra sessão pelo provider. Contrato, limites e
+verificação em [consulta de relatos](occurrence-query.md).

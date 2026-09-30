@@ -59,7 +59,7 @@ test('unknown route offers a return to home', async () => {
 
 test.each(['http', 'network'])('%s failure is visible and manual retry recovers', async (failure) => {
   if (failure === 'http') fetchMock.mockResolvedValueOnce(new Response(null, { status: 503 }))
-  else fetchMock.mockRejectedValueOnce(new TypeError('internal network details'))
+  else fetchMock.mockImplementationOnce(() => Promise.reject(new TypeError('internal network details')))
   fetchMock.mockResolvedValueOnce(Response.json({ status: 'UP' }))
   const user = userEvent.setup()
   renderPage('/status')

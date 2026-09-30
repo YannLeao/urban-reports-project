@@ -3,11 +3,14 @@ package com.project.software.urbanreports.occurrence;
 import com.project.software.urbanreports.auth.AuthenticatedIdentity;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.http.MediaType;
+import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -30,6 +33,19 @@ public class OccurrenceController {
     public List<OccurrenceCategoryResponse> categories() {
         return categories.findAll(Sort.by(Sort.Direction.ASC, "id")).stream()
             .map(category -> new OccurrenceCategoryResponse(category.getId(), category.getName())).toList();
+    }
+
+    @GetMapping("/occurrences")
+    public ResponseEntity<List<OccurrenceResponse>> mine(@AuthenticationPrincipal AuthenticatedIdentity identity) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .body(service.findByAuthorId(identity.userId()));
+    }
+
+    @GetMapping("/occurrences/{id}")
+    public ResponseEntity<OccurrenceResponse> detail(@AuthenticationPrincipal AuthenticatedIdentity identity,
+            @PathVariable UUID id) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .body(service.findById(identity.userId(), id));
     }
 
     @PostMapping(path = "/occurrences", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)

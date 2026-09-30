@@ -22,6 +22,11 @@ public class OccurrenceExceptionHandler {
         return error(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", exception.fields(), request);
     }
 
+    @ExceptionHandler(OccurrenceNotFoundException.class)
+    ResponseEntity<ApiErrorResponse> notFound(OccurrenceNotFoundException exception, HttpServletRequest request) {
+        return error(HttpStatus.NOT_FOUND, "OCCURRENCE_NOT_FOUND", null, request);
+    }
+
     @ExceptionHandler(InvalidImageException.class)
     ResponseEntity<ApiErrorResponse> image(InvalidImageException exception, HttpServletRequest request) {
         return error(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", Map.of("image", List.of(exception.getMessage())), request);
@@ -47,6 +52,6 @@ public class OccurrenceExceptionHandler {
     private ResponseEntity<ApiErrorResponse> error(HttpStatus status, String code, Map<String, List<String>> fields, HttpServletRequest request) {
         return ResponseEntity.status(status).cacheControl(org.springframework.http.CacheControl.noStore()).body(
                 new ApiErrorResponse(Instant.now(), status.value(), status.getReasonPhrase(),
-                        "Occurrence could not be submitted", request.getRequestURI(), code, fields));
+                        "Occurrence request could not be completed", request.getRequestURI(), code, fields));
     }
 }
