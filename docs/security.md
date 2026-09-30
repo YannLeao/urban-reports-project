@@ -15,6 +15,7 @@ paralelismo 1, salt 16 bytes e hash 32 bytes, sem normalizar senhas.
 | POST `/api/auth/logout` | Sessão válida e Content-Type application/json; 204 após commit |
 | GET/HEAD `/api/health` | Público |
 | GET `/api/occurrence-categories` | Sessão válida; oito categorias |
+| GET `/api/occurrences` e `/api/occurrences/{id}` | Sessão válida; somente autoria própria; detalhe alheio/inexistente retorna 404; [contrato](occurrence-query.md) |
 | POST `/api/occurrences` | Sessão válida; multipart conforme [contrato](occurrence-registration.md); autor e PENDING definidos no servidor |
 | GET/HEAD caminhos Swagger já existentes | Disponíveis somente com dev explícito; base/prod retornam 404 |
 | Storage técnico, Actuator, demais caminhos e `/error` direto | denyAll; 401 anônimo, 403 autenticado |

@@ -60,7 +60,7 @@ test('failed login clears password, gives generic error, focuses summary and nev
 })
 
 test('bootstrap does not expose private content before me; network outage allows retry', async () => {
-  stored(); fetchMock.mockRejectedValueOnce(new TypeError('network')).mockResolvedValueOnce(Response.json(person))
+  stored(); fetchMock.mockImplementationOnce(() => Promise.reject(new TypeError('network'))).mockResolvedValueOnce(Response.json(person))
   renderPage()
   expect(screen.queryByText(person.name)).not.toBeInTheDocument()
   expect(await screen.findByText(/Não foi possível validar/)).toBeVisible()
@@ -71,7 +71,7 @@ test('bootstrap does not expose private content before me; network outage allows
 
 test.each([401, 403, 503, 'network'])('private %s handles invalid session separately from denied/unavailable', async (status) => {
   stored(); fetchMock.mockResolvedValueOnce(Response.json(person))
-  if (status === 'network') fetchMock.mockRejectedValueOnce(new TypeError('network'))
+  if (status === 'network') fetchMock.mockImplementationOnce(() => Promise.reject(new TypeError('network')))
   else fetchMock.mockResolvedValueOnce(new Response(null, { status: Number(status) }))
   const client = renderPage('/minha-conta', true)
   await screen.findByText(person.name)
@@ -101,7 +101,7 @@ test.each([204, 401])('logout %s confirms end and removes private cache', async 
 
 test.each([503, 'network'])('logout %s preserves token and permits retry', async (status) => {
   stored(); fetchMock.mockResolvedValueOnce(Response.json(person))
-  if (status === 'network') fetchMock.mockRejectedValueOnce(new TypeError('network'))
+  if (status === 'network') fetchMock.mockImplementationOnce(() => Promise.reject(new TypeError('network')))
   else fetchMock.mockResolvedValueOnce(new Response(null, { status: 503 }))
   fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }))
   renderPage(); await screen.findByText(person.name)

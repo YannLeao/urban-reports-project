@@ -56,7 +56,7 @@ test('local errors focus first field and preserve passwords without a request', 
 })
 
 test.each(['conflict', 'fields', 'network', 'invalid-success', 'server', 'invalid-json'])('%s failure keeps identity, clears secrets and explains next step', async (kind) => {
-  if (kind === 'network') fetchMock.mockRejectedValue(new TypeError('private details'))
+  if (kind === 'network') fetchMock.mockImplementation(() => Promise.reject(new TypeError('private details')))
   else if (kind === 'invalid-success') fetchMock.mockResolvedValue(Response.json({ token: 'unexpected' }, { status: 201 }))
   else if (kind === 'invalid-json') fetchMock.mockResolvedValue(new Response('<html>', { status: 502 }))
   else fetchMock.mockResolvedValue(Response.json({
