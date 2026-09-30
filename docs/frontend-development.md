@@ -194,3 +194,17 @@ respostas antigas de alterar identidade. 401 expira estado; 403/rede não fazem
 logout. Sair anuncia conclusão só após 204/401; falha mantém credencial.
 
 Consulte [segurança](security.md) e [ponte de recuperação](password-recovery-integration.md).
+
+## Registro de ocorrência
+
+`/registrar-ocorrencia` exige sessão e usa o ImagePicker compartilhado. Carrega
+categorias autenticadas e envia FormData com Bearer, mantendo o boundary gerado
+pelo navegador. O [contrato HTTP](occurrence-registration.md) define campos,
+Unicode e limites. Os limites HTML em unidades UTF-16 foram removidos desses
+campos: a validação explícita conta pontos de código e permite emojis até o
+mesmo limite do PostgreSQL. Trim externo usa U+0009–U+000D/U+0020, como Java.
+
+O formulário tem carregamento, envio, confirmação e erros, mas a coordenação
+entre validação de foto e submit, bloqueio do seletor durante envio e a
+apresentação completa dos erros ainda dependem da correção do formulário.
+Não tratar a existência da rota como evidência de captura física ou de aceite.

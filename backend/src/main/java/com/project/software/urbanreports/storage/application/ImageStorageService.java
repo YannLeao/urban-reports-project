@@ -49,14 +49,12 @@ public class ImageStorageService {
             throw new InvalidImageException("Image must not be empty");
         }
         if (file.getSize() > MAX_IMAGE_SIZE) {
-            throw new InvalidImageException("Image must not exceed 5 MB");
+            throw new InvalidImageException("A imagem deve ter no máximo 5 MiB (5.242.880 bytes).");
         }
 
         ImageFormat format = ImageFormat.fromDeclaredContentType(file.getContentType());
         byte[] content = readContent(file);
-        if (!format.matches(content)) {
-            throw new InvalidImageException("Image content does not match the declared media type");
-        }
+        ImageContentValidation.validate(content, format);
 
         try {
                 StoredImage stored = storage().store(
@@ -88,7 +86,7 @@ public class ImageStorageService {
         try (var input = file.getInputStream()) {
             byte[] content = input.readNBytes((int) MAX_IMAGE_SIZE + 1);
             if (content.length > MAX_IMAGE_SIZE) {
-                throw new InvalidImageException("Image must not exceed 5 MB");
+                throw new InvalidImageException("A imagem deve ter no máximo 5 MiB (5.242.880 bytes).");
             }
             return content;
         } catch (IOException exception) {

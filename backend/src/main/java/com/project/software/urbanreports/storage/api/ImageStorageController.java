@@ -35,7 +35,7 @@ public class ImageStorageController {
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Store a technical proof image",
-            description = "Accepts one JPEG, PNG or WebP image of at most 5 MB. This is not the future occurrence endpoint.")
+            description = "Accepts one static JPEG, PNG or WebP image of at most 5 MiB (5,242,880 bytes), with sides up to 8192 pixels and at most 25,000,000 pixels. Technical endpoint; occurrences use /api/occurrences.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Image stored in the private bucket"),
             @ApiResponse(responseCode = "400", description = "Empty, invalid or mismatched image",

@@ -25,7 +25,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
-import java.util.Base64;
+import com.project.software.urbanreports.support.ImageFixtures;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -150,20 +150,9 @@ class ImageStorageControllerTests {
         );
     }
 
-    private static byte[] jpeg() {
-        return Base64.getDecoder().decode(
-                "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////2wBDAf//////////////////////////////////////////////////////////////////////////////////////wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAf/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAF//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABBQJ//8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAwEBPwF//8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAgEBPwF//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQAGPwJ//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPyF//9oADAMBAAIAAwAAABD/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oACAEDAQE/EH//xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oACAECAQE/EH//xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oACAEBAAE/EH//2Q==");
-    }
-
-    private static byte[] png() {
-        return Base64.getDecoder().decode(
-                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
-    }
-
-    private static byte[] webp() {
-        return Base64.getDecoder().decode(
-                "UklGRiIAAABXRUJQVlA4IBYAAAAwAQCdASoBAAEAAUAmJaQAA3AA/v89WAAAAA==");
-    }
+    private static byte[] jpeg() { return ImageFixtures.photo("jpg"); }
+    private static byte[] png() { return ImageFixtures.photo("png"); }
+    private static byte[] webp() { return ImageFixtures.photo("webp"); }
 
     @TestConfiguration(proxyBeanMethods = false)
     static class FakeStorageConfiguration {

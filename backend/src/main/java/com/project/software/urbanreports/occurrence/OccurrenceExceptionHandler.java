@@ -27,7 +27,9 @@ public class OccurrenceExceptionHandler {
         return error(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", Map.of("image", List.of(exception.getMessage())), request);
     }
 
-    @ExceptionHandler({MissingServletRequestPartException.class, MissingServletRequestParameterException.class})
+    @ExceptionHandler({MissingServletRequestPartException.class, MissingServletRequestParameterException.class,
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class,
+            org.springframework.web.method.annotation.MethodArgumentConversionNotSupportedException.class})
     ResponseEntity<ApiErrorResponse> missing(Exception exception, HttpServletRequest request) {
         return error(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", Map.of("request", List.of("All occurrence fields and exactly one image are required")), request);
     }

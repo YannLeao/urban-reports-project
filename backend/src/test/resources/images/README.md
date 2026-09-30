@@ -1,0 +1,1 @@
+Fixtures sintéticas geradas com Pillow: dois retângulos RGB de 8 × 6 pixels, sem dados pessoais. photo.* são imagens estáticas; animated.* contêm dois frames (100 ms, loop). JPEG/PNG/WebP são arquivos completos, não apenas assinaturas.

@@ -57,9 +57,11 @@ public class OccurrenceService {
 
     private static boolean length(String value, int min, int max) {
         if (value == null) return false;
-        int length = value.trim().length();
+        String cleaned = clean(value);
+        if (cleaned.codePoints().anyMatch(c -> c == 0 || c >= 0xD800 && c <= 0xDFFF)) return false;
+        int length = cleaned.codePointCount(0, cleaned.length());
         return length >= min && length <= max;
     }
 
-    private static String clean(String value) { return value.trim(); }
+    private static String clean(String value) { return com.project.software.urbanreports.identity.RegistrationValidation.trim(value); }
 }

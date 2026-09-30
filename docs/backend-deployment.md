@@ -155,7 +155,7 @@ e remotos na MR da alteração.
 
 Os endpoints técnicos estão bloqueados pela [base de segurança](security.md),
 inclusive com R2 configurado. Não faça upload real como prova de deploy. Confirme
-401 JSON no GET de id sintático e 403 JSON no POST vazio, sem seguir redirects:
+401 JSON no GET de id sintático e no POST vazio sem Bearer, sem seguir redirects:
 
 ```bash
 curl --include "$BACKEND_PRODUCTION_URL/api/storage/images/00000000-0000-0000-0000-000000000000.png"

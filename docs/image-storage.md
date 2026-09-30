@@ -16,7 +16,8 @@ A [prova de seleção e captura no frontend](image-selection-proof.md) em
    `occurrences/{UUID}.{extensão-validada}` para ocorrências.
 - Identidade devolvida: `UUID.extensão`, sem nome original, bucket ou URL do R2.
 
-O MIME informado pelo cliente e a assinatura do conteúdo são validados. O nome
+O MIME informado, a estrutura e a decodificação dos pixels são validados no
+servidor, conforme os [limites de imagem](occurrence-registration.md#imagens). O nome
 original não participa da key. O bucket deve permanecer privado e a recuperação
 sempre passa pelo backend.
 
@@ -46,10 +47,10 @@ git check-ignore -v backend/.env
 ## Acesso HTTP bloqueado
 
 A base de segurança bloqueia a prova técnica em todos os perfis, inclusive dev.
-O roteiro anterior de upload público não funciona mais: POST sem CSRF válido
-retorna 403; GET sem identidade retorna 401. Mesmo com CSRF válido, o upload
-continua negado. Configurar R2 não altera essa política e não há login temporário.
-A #36 definirá o contrato autorizado. Não envie imagem real para provar bloqueio.
+O roteiro anterior de upload público não funciona mais: sem Bearer válido,
+POST e GET retornam 401; autenticados, retornam 403. CSRF está desabilitado na
+cadeia Bearer sem cookies (ADR 0011). Configurar R2 não altera essa política.
+A criação autorizada acontece em `/api/occurrences`, sem abrir storage técnico.
 
 Para verificar localmente, sem acessar objeto de terceiros:
 
@@ -58,7 +59,7 @@ curl --include http://localhost:8080/api/storage/images/00000000-0000-0000-0000-
 curl --include --request POST http://localhost:8080/api/storage/images
 ```
 
-Espere 401 JSON no GET e 403 JSON no POST. O contrato técnico acima permanece
+Espere 401 JSON no GET e no POST sem credencial. O contrato técnico acima permanece
 interno e é validado por testes; veja a [matriz de segurança](security.md).
 
 ## Testes automatizados
@@ -78,11 +79,19 @@ dependências/imagens exigem rede quando não estão em cache. Docker é necess�
 
 `POST /api/occurrences` é autenticado e recebe os campos textuais e exatamente
 uma parte `image` em multipart. O serviço valida o conteúdo, grava a imagem em
-`occurrences/` e só então persiste a ocorrência PENDENTE com o `userId` da
-sessão. Se a persistência falhar, remove o objeto recém-criado.
+`occurrences/` e só então persiste a ocorrência `PENDING` com o `userId` da
+sessão. O catch atual tenta excluir o objeto se a gravação falhar dentro do método.
+Isso não cobre falha no commit posterior nem queda do processo. Recuperação
+durável permanece pendente; não há garantia de remoção imediata em toda falha.
 
 ## Limites deliberados
 
 Esta integração não implementa URL pública/assinada, transformação, moderação,
 remoção de EXIF ou uma rotina agendada de varredura de órfãos. A referência da
 imagem de ocorrência fica na própria tabela `occurrences`.
+
+A validação usa JPEG/PNG do JDK 21 e `imageio-webp` TwelveMonkeys 3.15.1
+(BSD-3-Clause, Java puro) para WebP. Não reencoda, recorta, gira nem remove EXIF.
+Antes da entrega pública R07, definir sanitização de metadados e autorização de
+leitura; o bucket privado e a decodificação não garantem anonimização. Consulte
+[ADR 0012](adr/0012-validar-conteudo-e-limites-de-imagens.md).
