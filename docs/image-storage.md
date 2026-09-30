@@ -136,3 +136,14 @@ não apaga histórico e não altera objetos de outros projetos.
 e PostgreSQL descartável; cobre rollback, commit com constraint diferida,
 restart, retry, tombstone e lock de upload ativo. Doubles substituem R2; não
 comprovam comportamento remoto. Ver ADR 0013.
+
+## Descarte de relatos
+
+Substituição/exclusão agenda a chave antiga como TOMBSTONE na mesma transação
+que troca/remove a referência. O worker existente retoma após restart, com
+backoff e tentativas limitadas por lote; não depende de callback em memória.
+Vínculos só usam PENDING sob lock do journal; chaves não são reutilizadas.
+Objetos referenciados são preservados. Falha registra apenas DELETE_FAILED em
+last_error; conferir fila/next_attempt_at sem exportar bytes ou credenciais.
+Não remover tombstones manualmente nem executar varredura de órfãos históricos.
+Ver [ADR 0014](adr/0014-gerir-relatos-e-descarte-de-imagens.md).

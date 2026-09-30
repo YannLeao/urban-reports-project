@@ -85,3 +85,10 @@ alvo. Alinhar versões principais exige uma alteração própria de infraestrutu
 com análise de compatibilidade e migração dos dados existentes; trocar a tag não
 atualiza um volume PostgreSQL de outra versão. Não exclua volumes como rotina de
 validação.
+
+## Gestão de relatos
+
+V6 remove NOT NULL/mínimo antigo de description, mantém máximo de 1000 pontos
+de código e preserva textos existentes. Acrescenta version BIGINT não negativo,
+inicial 0. V4/V5 não são alteradas. Tombstones reutilizam o schema V5, sem nova
+fila; retirada de referência e intenção de descarte entram na mesma transação.

@@ -84,11 +84,11 @@ export class PrivateRequestError extends Error {
 }
 
 // Relative API paths only. Redirects must never forward a credential to another endpoint.
-export async function privateRequest(path: string, token: string, signal: AbortSignal, method = 'GET', body?: BodyInit) {
+export async function privateRequest(path: string, token: string, signal: AbortSignal, method = 'GET', body?: BodyInit, headers?: Record<string, string>) {
   if (!/^\/api\/[a-zA-Z0-9/_-]+$/.test(path)) throw new Error('Caminho privado inválido.')
   const response = await fetch(`${getApiUrl()}${path}`, {
     method, signal, credentials: 'omit', redirect: 'error',
-    headers: { Authorization: `Bearer ${token}`, ...(!body && method === 'POST' ? { 'Content-Type': 'application/json' } : {}) },
+    headers: { ...headers, Authorization: `Bearer ${token}`, ...(!body && method === 'POST' ? { 'Content-Type': 'application/json' } : {}) },
     ...(body ? { body } : method === 'POST' ? { body: '{}' } : {}),
   })
   if (!response.ok) {

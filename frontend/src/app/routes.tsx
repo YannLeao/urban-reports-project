@@ -1,3 +1,4 @@
+import { EditOccurrencePage } from '../pages/EditOccurrencePage'
 import { LoginPage } from '../pages/LoginPage'
 import { AccountPage } from '../pages/AccountPage'
 import { PrivateRoute } from '../features/auth/PrivateRoute'
@@ -26,6 +27,7 @@ export function AppRoutes() {
         <Route path="/minha-conta" element={<AccountPage />} />
         <Route path="/registrar-ocorrencia" element={<ReportOccurrencePage />} />
         <Route path="/meus-relatos" element={<MyReportsPage />} />
+        <Route path="/meus-relatos/:id/editar" element={<EditOccurrencePage />} />
         <Route path="/meus-relatos/:id" element={<OccurrenceDetailPage />} />
       </Route>
       <Route path="/cadastro" element={<RegistrationPage />} />

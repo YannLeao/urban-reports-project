@@ -13,13 +13,21 @@ public class Occurrence {
     @JoinColumn(name = "category_id", nullable = false)
     private OccurrenceCategory category;
     @Column(nullable = false, length = 100) private String title;
-    @Column(nullable = false, length = 1000) private String description;
+    @Column(length = 1000) private String description;
     @Column(nullable = false, length = 100) private String neighborhood;
     @Column(name = "reference", nullable = false, length = 200) private String locationReference;
     @Column(name = "image_key", nullable = false, unique = true, length = 255) private String imageKey;
     @Enumerated(EnumType.STRING) @Column(nullable = false, length = 32) private OccurrenceStatus status;
     @Column(name = "created_at", nullable = false) private Instant createdAt;
 
+    @Column(nullable = false) private long version;
+    public long getVersion() { return version; }
+    public void update(OccurrenceCategory category, String title, String description, String neighborhood,
+            String reference, String imageKey) {
+        this.category = category; this.title = title; this.description = description;
+        this.neighborhood = neighborhood; this.locationReference = reference; this.imageKey = imageKey;
+        this.version++;
+    }
     protected Occurrence() {}
 
     public Occurrence(UUID authorId, OccurrenceCategory category, String title, String description,

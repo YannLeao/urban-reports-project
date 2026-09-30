@@ -20,8 +20,8 @@ O padrão de seleção de fotografia também está no catálogo; sua
 [prova pública transitória](../image-selection-proof.md) em `/prova-imagem`
 não depende da API nem envia a imagem. O [cadastro público](../identity.md) usa
 Input/Button/Alert e estados ilustrados no catálogo. Login e minha conta usam
-os mesmos componentes, incluindo validação de sessão e falha de logout. Mapa, relatos, dialogs e
-bottom sheets são orientações futuras.
+os mesmos componentes, incluindo validação de sessão e falha de logout. Relatos privados priorizam fotografia, edição e exclusão com dialog nativo.
+Mapa e bottom sheets são orientações futuras.
 
 ## Manutenção
 

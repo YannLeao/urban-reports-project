@@ -44,7 +44,7 @@ async function fill() {
   renderPage()
   await screen.findByRole('option', { name: 'Iluminação pública' })
   fireEvent.change(screen.getByLabelText('Categoria'), { target: { value: '1' } })
-  for (const [label, value] of [['Título', '  Poste apagado 💡  '], ['Descrição', 'A iluminação desta rua está apagada.'], ['Bairro', 'Centro'], ['Ponto de referência', 'Ao lado da escola']]) {
+  for (const [label, value] of [['Título', '  Poste apagado 💡  '], ['Detalhes (opcional)', 'A iluminação desta rua está apagada.'], ['Bairro', 'Centro'], ['Ponto de referência', 'Ao lado da escola']]) {
     fireEvent.change(screen.getByLabelText(label), { target: { value } })
   }
   choose(); await finish()
@@ -71,10 +71,13 @@ test('sends one authenticated multipart snapshot, blocks all edits and resets on
   expect([...body.keys()]).toEqual(['categoryId', 'title', 'description', 'neighborhood', 'reference', 'image'])
   expect(body.get('title')).toBe('Poste apagado 💡')
   expect((body.get('image') as File).name).toBe('photo.png')
-  for (const label of ['Categoria', 'Título', 'Descrição', 'Bairro', 'Ponto de referência', 'Arquivo de imagem', 'Fotografia pela câmera']) expect(screen.getByLabelText(label)).toBeDisabled()
+  for (const label of ['Categoria', 'Título', 'Detalhes (opcional)', 'Bairro', 'Ponto de referência', 'Arquivo de imagem', 'Fotografia pela câmera']) expect(screen.getByLabelText(label)).toBeDisabled()
   for (const name of ['Trocar imagem', 'Tirar outra foto', 'Remover imagem']) expect(screen.getByRole('button', { name })).toBeDisabled()
   await act(async () => { resolve(Response.json(result, { status: 201 })) })
-  expect(await screen.findByText(/registrada e encaminhada/)).toHaveFocus()
+  expect(await screen.findByText('Relato registrado')).toHaveFocus()
+  expect(screen.queryByText(result.id)).not.toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Ver relato' })).toHaveAttribute('href', `/meus-relatos/${result.id}`)
+  await userEvent.click(screen.getByRole('button', { name: 'Registrar outro problema' }))
   expect(screen.getByLabelText('Título')).toHaveValue('')
   expect(screen.queryByRole('img')).not.toBeInTheDocument()
 })
@@ -85,7 +88,7 @@ test('blocks submit during replacement validation and sends only the latest acce
   expect(screen.getByRole('button', { name: 'Enviar ocorrência' })).toBeDisabled()
   submit(); expect(fetchMock).toHaveBeenCalledTimes(2)
   await finish(); submit()
-  await screen.findByText(/registrada e encaminhada/)
+  await screen.findByText('Relato registrado')
   expect(((fetchMock.mock.calls[2][1]?.body as FormData).get('image') as File).name).toBe('second.png')
 })
 
@@ -131,7 +134,7 @@ test.each(['network', 'malformed', 'wrong-status'])('%s expresses uncertain outc
   expect(await screen.findByRole('alert')).toHaveTextContent('reenviar pode criar uma ocorrência duplicada')
   expect(screen.getByText(/photo.png/)).toBeVisible()
   fetchMock.mockResolvedValueOnce(Response.json(result, { status: 201 }))
-  submit(); await screen.findByText(/registrada e encaminhada/)
+  submit(); await screen.findByText('Relato registrado')
   expect(fetchMock).toHaveBeenCalledTimes(4)
 })
 
@@ -142,4 +145,21 @@ test('401 ends the session through AuthProvider without persisting form data', a
   expect(sessionStorage.getItem(STORAGE_KEY)).toBeNull()
   expect(sessionStorage.length).toBe(0)
   expect(fetchMock).toHaveBeenCalledTimes(3)
+})
+
+
+test.each(['', '  ', 'Muito lixo.', '😀'.repeat(1000)])('accepts optional description or short Unicode content', async description => {
+  await fill()
+  fireEvent.change(screen.getByLabelText('Detalhes (opcional)'), { target: { value: description } })
+  fetchMock.mockResolvedValueOnce(Response.json(result, { status: 201 }))
+  submit()
+  expect(await screen.findByRole('heading', { name: 'Relato registrado' })).toBeVisible()
+  expect((fetchMock.mock.calls[2][1]?.body as FormData).get('description')).toBe(description.trim())
+})
+test('rejects 1001 Unicode points before sending multipart', async () => {
+  await fill()
+  fireEvent.change(screen.getByLabelText('Detalhes (opcional)'), { target: { value: '😀'.repeat(1001) } })
+  submit()
+  expect(screen.getByLabelText('Detalhes (opcional)')).toHaveFocus()
+  expect(fetchMock).toHaveBeenCalledTimes(2)
 })

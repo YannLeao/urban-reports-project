@@ -204,9 +204,8 @@ Unicode e limites. Os limites HTML em unidades UTF-16 foram removidos desses
 campos: a validação explícita conta pontos de código e permite emojis até o
 mesmo limite do PostgreSQL. Trim externo usa U+0009–U+000D/U+0020, como Java.
 
-O formulário tem carregamento, envio, confirmação e erros, mas a coordenação
-entre validação de foto e submit, bloqueio do seletor durante envio e a
-apresentação completa dos erros ainda dependem da correção do formulário.
+O formulário coordena validação de foto e submit, bloqueia o seletor durante
+envio e apresenta erros públicos com foco e preservação do rascunho.
 Não tratar a existência da rota como evidência de captura física ou de aceite.
 
 ## Registro de ocorrência
@@ -229,3 +228,11 @@ fetch controlado e inspeção multipart. Roteiro publicado/físico e limites em
 com cache por usuário, cancelamento e validação Zod. Erros permitem refetch
 manual sem reload; 401 encerra sessão pelo provider. Contrato, limites e
 verificação em [consulta de relatos](occurrence-query.md).
+
+## Gestão de relatos pendentes
+
+`/meus-relatos/:id/editar` reutiliza o formulário com
+campos existentes, descrição opcional e troca de foto. Foto privada é buscada
+pelo cliente Bearer e usa URL local descartável; cards iniciam leitura na viewport.
+Sucesso humano de cadastro oferece acompanhamento; edição/exclusão renovam caches
+privados sem retries. Contrato, diálogo e limites em [gestão](occurrence-query.md).

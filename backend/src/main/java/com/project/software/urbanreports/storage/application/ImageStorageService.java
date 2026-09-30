@@ -84,6 +84,19 @@ public class ImageStorageService {
         }
     }
 
+    public StoredImageContent loadOccurrence(String key) {
+        if (key == null || !key.matches("occurrences/[0-9a-f-]{36}\\.(jpg|png|webp)"))
+            throw new ImageStorageException("Invalid occurrence image association");
+        var image = storage().load(key);
+        byte[] bytes = image.content();
+        if (bytes.length == 0 || bytes.length > MAX_IMAGE_SIZE) throw new ImageStorageException("Invalid stored image size");
+        try {
+            var format = ImageFormat.fromDeclaredContentType(image.contentType());
+            ImageContentValidation.validate(bytes, format);
+            return new StoredImageContent(bytes, bytes.length, format.contentType());
+        } catch (InvalidImageException failure) { throw new ImageStorageException("Invalid stored image content"); }
+    }
+
     public StoredImageContent load(String id) {
         if (!PUBLIC_ID.matcher(id).matches()) {
             throw new ImageNotFoundException(id);
