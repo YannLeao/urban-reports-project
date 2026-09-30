@@ -95,3 +95,9 @@ com foco no erro genérico. Cadastro concluído oferece login sem senha em naveg
 `/minha-conta` tem nome/e-mail e Sair; sem edição ou painel fictício. Bootstrap
 mostra estado de validação, falha oferece Tentar novamente e logout incerto
 preserva a tela com mensagem e retry. Não apresentar recuperação sem rota real.
+
+O ImagePicker aceita também `disabled?: boolean` para bloquear todos os controles
+e `onValidationChange?: (validating: boolean) => void` para notificar o consumidor
+sincronamente no início/fim da validação e na invalidação de leituras. Os props
+são opcionais e preservam a prova técnica. O formulário usa essa notificação
+para bloquear submit durante troca de foto e disabled durante upload.

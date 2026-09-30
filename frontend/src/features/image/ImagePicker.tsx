@@ -6,6 +6,8 @@ import { checkImageDecoding, IMAGE_ACCEPT, validateImageFile } from './image-fil
 export type ImagePickerProps = {
   value: File | null
   onChange: (file: File | null) => void
+  disabled?: boolean
+  onValidationChange?: (validating: boolean) => void
 }
 
 function Preview({ file }: { file: File }) {
@@ -18,7 +20,7 @@ function Preview({ file }: { file: File }) {
   return url ? <img className="w-full max-h-[60vh] object-contain bg-surface-raised border border-border-subtle rounded-control" src={url} alt="Prévia da imagem selecionada" /> : null
 }
 
-export function ImagePicker({ value, onChange }: ImagePickerProps) {
+export function ImagePicker({ value, onChange, disabled = false, onValidationChange }: ImagePickerProps) {
   const id = useId()
   const fileInput = useRef<HTMLInputElement>(null)
   const cameraInput = useRef<HTMLInputElement>(null)
@@ -28,10 +30,18 @@ export function ImagePicker({ value, onChange }: ImagePickerProps) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const validationListener = useRef(onValidationChange)
+  validationListener.current = onValidationChange
+  function validationChanged(validating: boolean) {
+    setBusy(validating)
+    validationListener.current?.(validating)
+  }
+
   useEffect(() => {
     setError(null)
     setBusy(false)
-    return () => { pending.current?.abort() }
+    validationListener.current?.(false)
+    return () => { pending.current?.abort(); validationListener.current?.(false) }
   }, [value])
 
   useEffect(() => {
@@ -44,32 +54,33 @@ export function ImagePicker({ value, onChange }: ImagePickerProps) {
   async function select(event: ChangeEvent<HTMLInputElement>) {
     const file = event.currentTarget.files?.[0]
     event.currentTarget.value = ''
-    if (!file) return
+    if (!file || disabled) return
     pending.current?.abort()
     const controller = new AbortController()
     pending.current = controller
     setError(null)
     const reason = validateImageFile(file)
     if (reason) {
-      setBusy(false)
+      validationChanged(false)
       setError(reason)
       return
     }
-    setBusy(true)
+    validationChanged(true)
     try {
       await checkImageDecoding(file, controller.signal)
       if (!controller.signal.aborted) onChange(file)
     } catch {
       if (!controller.signal.aborted) setError('Não conseguimos abrir essa imagem. Escolha outro arquivo JPEG, PNG ou WebP.')
     } finally {
-      if (!controller.signal.aborted) setBusy(false)
+      if (!controller.signal.aborted) validationChanged(false)
     }
   }
 
   function remove() {
+    if (disabled) return
     focusChooser.current = true
     pending.current?.abort()
-    setBusy(false)
+    validationChanged(false)
     setError(null)
     onChange(null)
   }
@@ -81,12 +92,12 @@ export function ImagePicker({ value, onChange }: ImagePickerProps) {
       <Preview file={value} />
       <figcaption className="mt-2 wrap-anywhere text-small text-text-secondary">{value.name} · {value.size.toLocaleString('pt-BR')} bytes</figcaption>
     </figure>}
-    <input hidden ref={fileInput} type="file" accept={IMAGE_ACCEPT} aria-label="Arquivo de imagem" aria-describedby={describedBy} disabled={busy} onChange={event => { void select(event) }} />
-    <input hidden ref={cameraInput} type="file" accept={IMAGE_ACCEPT} capture="environment" aria-label="Fotografia pela câmera" aria-describedby={describedBy} disabled={busy} onChange={event => { void select(event) }} />
+    <input hidden ref={fileInput} type="file" accept={IMAGE_ACCEPT} aria-label="Arquivo de imagem" aria-describedby={describedBy} disabled={disabled || busy} onChange={event => { void select(event) }} />
+    <input hidden ref={cameraInput} type="file" accept={IMAGE_ACCEPT} capture="environment" aria-label="Fotografia pela câmera" aria-describedby={describedBy} disabled={disabled || busy} onChange={event => { void select(event) }} />
     <div className="flex flex-wrap gap-3">
-      <Button ref={chooseButton} disabled={busy} aria-describedby={describedBy} onClick={() => fileInput.current?.click()}>{value ? 'Trocar imagem' : 'Escolher imagem'}</Button>
-      <Button variant="secondary" disabled={busy} aria-describedby={describedBy} onClick={() => cameraInput.current?.click()}>{value ? 'Tirar outra foto' : 'Tirar foto'}</Button>
-      {(value || busy) && <Button variant="quiet" onClick={remove}>Remover imagem</Button>}
+      <Button ref={chooseButton} disabled={disabled || busy} aria-describedby={describedBy} onClick={() => fileInput.current?.click()}>{value ? 'Trocar imagem' : 'Escolher imagem'}</Button>
+      <Button variant="secondary" disabled={disabled || busy} aria-describedby={describedBy} onClick={() => cameraInput.current?.click()}>{value ? 'Tirar outra foto' : 'Tirar foto'}</Button>
+      {(value || busy) && <Button variant="quiet" disabled={disabled} onClick={remove}>Remover imagem</Button>}
     </div>
     <p id={`${id}-camera`} className="text-small text-text-secondary">A câmera depende do aparelho e do navegador. Se ela não abrir, use a escolha de arquivo.</p>
     <div role="status">{busy ? 'Verificando imagem…' : ''}</div>

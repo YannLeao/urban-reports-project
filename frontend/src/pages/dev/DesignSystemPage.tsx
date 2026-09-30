@@ -7,6 +7,8 @@ import { Card } from '../../components/ui/Card'
 
 export default function DesignSystemPage() {
   const [image, setImage] = useState<File | null>(null)
+  const [imageDisabled, setImageDisabled] = useState(false)
+  const [imageValidating, setImageValidating] = useState(false)
   return <>
     <section className="pt-12 pb-8 md:pt-16"><p className="mb-3 text-small font-bold text-brand-default">Referência de desenvolvimento</p>
       <h1>Design system Alô Cidade</h1><p className="mb-0 text-lead text-text-secondary">Exemplos demonstrativos. Nenhum dado é enviado ao serviço.</p></section>
@@ -16,7 +18,11 @@ export default function DesignSystemPage() {
         <div className="border border-border-control rounded-control p-4 bg-brand-accent text-text-primary">Ação · coral</div>
         <div className="border border-border-control rounded-control p-4 bg-surface-canvas text-text-primary">Superfície · clara</div>
       </div><h3>A cidade é o conteúdo.</h3><p>A interface deve sair do caminho. Manrope: atenção, conexão, localização, ação.</p><small>Texto de apoio e orientações.</small></Card>
-      <Card><h2>Seleção de fotografia</h2><ImagePicker value={image} onChange={setImage} /></Card>
+      <Card><h2>Seleção de fotografia</h2>
+        <Button variant="secondary" onClick={() => setImageDisabled(value => !value)}>{imageDisabled ? 'Habilitar fotografia' : 'Simular envio: bloquear fotografia'}</Button>
+        <p>{imageValidating ? 'O formulário aguarda a validação da fotografia.' : 'Sem validação pendente.'}</p>
+        <ImagePicker value={image} onChange={setImage} disabled={imageDisabled} onValidationChange={setImageValidating} />
+      </Card>
       <Card><h2>Botões</h2><div className="grid gap-8 pb-8">
         {(['primary', 'secondary', 'quiet'] as const).map(variant => <div key={variant} className="flex flex-wrap items-start gap-4">
           <Button variant={variant}>Ação {variant}</Button><Button variant={variant} className="outline-solid outline-[length:var(--ds-action-focus-width)] outline-action-focus-ring outline-offset-[var(--ds-action-focus-offset)]">Exemplo de foco</Button>

@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { z } from 'zod'
 import { Alert } from '../components/ui/Feedback'
 import { Button } from '../components/ui/Button'
@@ -28,6 +28,17 @@ export function ReportOccurrencePage() {
   const [errors, setErrors] = useState<Errors>({})
   const [notice, setNotice] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+  const submitting = useRef(false)
+  const validatingImage = useRef(false)
+  const [imageBusy, setImageBusy] = useState(false)
+  const feedback = useRef<HTMLDivElement>(null)
+  const form = useRef<HTMLFormElement>(null)
+  const [success, setSuccess] = useState(false)
+
+  useEffect(() => {
+    if (notice) feedback.current?.focus()
+    else if (Object.keys(errors).length) form.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
+  }, [notice, errors])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -56,10 +67,13 @@ export function ReportOccurrencePage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (submitting.current || validatingImage.current || loadingCategories) return
     setNotice(null)
+    setSuccess(false)
     const next = validate()
     setErrors(next)
     if (Object.keys(next).length || !image) return
+    submitting.current = true
     setPending(true)
     const body = new FormData()
     body.append('categoryId', categoryId)
@@ -70,16 +84,30 @@ export function ReportOccurrencePage() {
     body.append('image', image, image.name)
     try {
       const response = await request('/api/occurrences', 'POST', undefined, body)
+      if (response.status !== 201) throw new Error('Unconfirmed response')
       const result = occurrenceSchema.parse(await response.json())
+      setSuccess(true)
       setNotice(`Ocorrência ${result.id} registrada e encaminhada para análise.`)
       setCategoryId(''); setTitle(''); setDescription(''); setNeighborhood(''); setReference(''); setImage(null); setErrors({})
     } catch (error) {
+      const mapped: Errors = {}
       if (error instanceof PrivateRequestError) {
-        const serverErrors = error.fieldErrors ?? {}
-        setErrors(Object.fromEntries(Object.entries(serverErrors).map(([key, values]) => [key, values[0]])) as Errors)
-        if (!Object.keys(serverErrors).length) setNotice('Não foi possível enviar agora. Tente novamente.')
-      } else setNotice('Não foi possível enviar agora. Tente novamente.')
-    } finally { setPending(false) }
+        for (const key of Object.keys(error.fieldErrors ?? {})) {
+          if (key === 'categoryId') mapped.categoryId = 'Escolha uma categoria válida.'
+          else if (key === 'title') mapped.title = 'Use entre 5 e 100 caracteres.'
+          else if (key === 'description') mapped.description = 'Use entre 20 e 1000 caracteres.'
+          else if (key === 'neighborhood') mapped.neighborhood = 'Use entre 2 e 100 caracteres.'
+          else if (key === 'reference') mapped.reference = 'Use entre 5 e 200 caracteres.'
+          else if (key === 'image') mapped.image = 'Escolha uma foto estática JPEG, PNG ou WebP de até 5 MiB, com lados até 8192 pixels e até 25 milhões de pixels. A imagem deve estar completa e legível.'
+        }
+        if (error.status === 401) setNotice('Sua sessão terminou. Entre novamente para registrar a ocorrência.')
+        else if (error.status === 413 || error.code === 'IMAGE_TOO_LARGE') setNotice('A imagem ou o envio excedeu o limite. Escolha uma foto de até 5 MiB.')
+        else if (error.code === 'IMAGE_STORAGE_UNAVAILABLE') setNotice('O serviço de fotos está indisponível. Seus dados foram mantidos; tente novamente mais tarde.')
+        else if (error.status === 400) setNotice('Não foi possível enviar. Confira os campos e a fotografia antes de tentar novamente.')
+        else setNotice('O serviço não confirmou o registro. Seus dados foram mantidos. Tentar novamente pode criar uma ocorrência duplicada.')
+      } else setNotice('Não foi possível confirmar o registro. Confira sua conexão. Seus dados foram mantidos; reenviar pode criar uma ocorrência duplicada.')
+      setErrors(mapped)
+    } finally { submitting.current = false; setPending(false) }
   }
 
   return <section className="py-8" aria-labelledby="report-title">
@@ -87,9 +115,9 @@ export function ReportOccurrencePage() {
       <p className="mb-2 text-small font-bold text-brand-default">Registro cidadão</p>
       <h1 id="report-title">Registrar um problema urbano</h1>
       <p className="text-lead text-text-secondary">Conte o que aconteceu e indique um ponto de referência para a equipe localizar o problema.</p>
-      {notice && <Alert className="mt-6" tone={notice.startsWith('Ocorrência') ? 'success' : 'danger'} role="status">{notice}</Alert>}
+      {notice && <Alert ref={feedback} tabIndex={-1} className="mt-6" tone={success ? 'success' : 'danger'} role={success ? 'status' : 'alert'}>{notice}</Alert>}
       <Card className="mt-6">
-        <form className="grid min-w-0 gap-5" onSubmit={event => { void submit(event) }} noValidate>
+        <form ref={form} aria-busy={pending} className="grid min-w-0 gap-5" onSubmit={event => { void submit(event) }} noValidate>
           <Select label="Categoria" value={categoryId} error={errors.categoryId} disabled={loadingCategories || pending} onChange={event => setCategoryId(event.target.value)}>
             <option value="">Selecione uma categoria</option>
             {categories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
@@ -100,10 +128,13 @@ export function ReportOccurrencePage() {
           <Input label="Ponto de referência" description="Informe rua, número, esquina ou outro detalhe que ajude a encontrar o local." value={reference} error={errors.reference} disabled={pending} onChange={event => setReference(event.target.value)} />
           <div className={errors.image ? 'rounded-control border border-feedback-danger-foreground p-3' : ''}>
             <p className="mb-2 font-bold">Foto do problema</p>
-            <ImagePicker value={image} onChange={setImage} />
+            <ImagePicker value={image} onChange={setImage} disabled={pending} onValidationChange={busy => {
+              validatingImage.current = busy
+              setImageBusy(busy)
+            }} />
             {errors.image && <p className="mt-2 text-small text-feedback-danger-foreground" role="alert">{errors.image}</p>}
           </div>
-          <Button type="submit" loading={pending} disabled={loadingCategories}>{pending ? 'Enviando…' : 'Enviar ocorrência'}</Button>
+          <Button type="submit" loading={pending} disabled={loadingCategories || imageBusy || pending}>{pending ? 'Enviando…' : 'Enviar ocorrência'}</Button>
         </form>
       </Card>
     </div>

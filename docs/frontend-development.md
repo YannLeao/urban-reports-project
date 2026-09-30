@@ -208,3 +208,17 @@ O formulário tem carregamento, envio, confirmação e erros, mas a coordenaçã
 entre validação de foto e submit, bloqueio do seletor durante envio e a
 apresentação completa dos erros ainda dependem da correção do formulário.
 Não tratar a existência da rota como evidência de captura física ou de aceite.
+
+## Registro de ocorrência
+
+`/registrar-ocorrencia` é privada e carrega categorias pelo cliente autenticado.
+O formulário usa o ImagePicker controlado; bloqueia envio durante validação de
+foto e todos os campos/controles durante upload. Guarda síncrona evita reentrada.
+Erros locais focam o campo; erros HTTP recebem resumo em PT-BR com foco.
+Falhas preservam dados e foto; reset exige 201 válido. 401 encerra a sessão,
+sem guardar dados privados. Rede/resposta inválida não confirma o registro, e
+reenvio manual pode duplicá-lo. Não há retry automático nem idempotência HTTP.
+
+`ReportOccurrencePage.test.tsx` exercita o formulário real com AuthProvider,
+fetch controlado e inspeção multipart. Roteiro publicado/físico e limites em
+[contrato de ocorrência](occurrence-registration.md#roteiro-consolidado-de-evidências-r05r06).
