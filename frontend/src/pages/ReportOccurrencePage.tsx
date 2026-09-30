@@ -8,6 +8,7 @@ import { ImagePicker } from '../features/image/ImagePicker'
 import { validateImageFile } from '../features/image/image-file'
 import { useAuth } from '../features/auth/auth'
 import { PrivateRequestError } from '../lib/api'
+import { cleanOccurrenceText, validOccurrenceText } from '../features/occurrence/occurrence-text'
 
 const categoriesSchema = z.array(z.object({ id: z.number(), name: z.string() }))
 const occurrenceSchema = z.object({ id: z.uuid(), status: z.literal('PENDING') })
@@ -41,10 +42,10 @@ export function ReportOccurrencePage() {
   function validate(): Errors {
     const next: Errors = {}
     if (!categoryId) next.categoryId = 'Escolha uma categoria.'
-    if (title.trim().length < 5 || title.trim().length > 100) next.title = 'Use entre 5 e 100 caracteres.'
-    if (description.trim().length < 20 || description.trim().length > 1000) next.description = 'Use entre 20 e 1000 caracteres.'
-    if (neighborhood.trim().length < 2 || neighborhood.trim().length > 100) next.neighborhood = 'Use entre 2 e 100 caracteres.'
-    if (reference.trim().length < 5 || reference.trim().length > 200) next.reference = 'Use entre 5 e 200 caracteres.'
+    if (!validOccurrenceText(title, 5, 100)) next.title = 'Use entre 5 e 100 caracteres.'
+    if (!validOccurrenceText(description, 20, 1000)) next.description = 'Use entre 20 e 1000 caracteres.'
+    if (!validOccurrenceText(neighborhood, 2, 100)) next.neighborhood = 'Use entre 2 e 100 caracteres.'
+    if (!validOccurrenceText(reference, 5, 200)) next.reference = 'Use entre 5 e 200 caracteres.'
     if (!image) next.image = 'Escolha exatamente uma imagem.'
     else {
       const reason = validateImageFile(image)
@@ -62,10 +63,10 @@ export function ReportOccurrencePage() {
     setPending(true)
     const body = new FormData()
     body.append('categoryId', categoryId)
-    body.append('title', title.trim())
-    body.append('description', description.trim())
-    body.append('neighborhood', neighborhood.trim())
-    body.append('reference', reference.trim())
+    body.append('title', cleanOccurrenceText(title))
+    body.append('description', cleanOccurrenceText(description))
+    body.append('neighborhood', cleanOccurrenceText(neighborhood))
+    body.append('reference', cleanOccurrenceText(reference))
     body.append('image', image, image.name)
     try {
       const response = await request('/api/occurrences', 'POST', undefined, body)
@@ -93,10 +94,10 @@ export function ReportOccurrencePage() {
             <option value="">Selecione uma categoria</option>
             {categories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
           </Select>
-          <Input label="Título" value={title} error={errors.title} minLength={5} maxLength={100} disabled={pending} onChange={event => setTitle(event.target.value)} />
-          <Textarea label="Descrição" value={description} error={errors.description} minLength={20} maxLength={1000} disabled={pending} onChange={event => setDescription(event.target.value)} />
-          <Input label="Bairro" value={neighborhood} error={errors.neighborhood} minLength={2} maxLength={100} disabled={pending} onChange={event => setNeighborhood(event.target.value)} />
-          <Input label="Ponto de referência" description="Informe rua, número, esquina ou outro detalhe que ajude a encontrar o local." value={reference} error={errors.reference} minLength={5} maxLength={200} disabled={pending} onChange={event => setReference(event.target.value)} />
+          <Input label="Título" value={title} error={errors.title} disabled={pending} onChange={event => setTitle(event.target.value)} />
+          <Textarea label="Descrição" value={description} error={errors.description} disabled={pending} onChange={event => setDescription(event.target.value)} />
+          <Input label="Bairro" value={neighborhood} error={errors.neighborhood} disabled={pending} onChange={event => setNeighborhood(event.target.value)} />
+          <Input label="Ponto de referência" description="Informe rua, número, esquina ou outro detalhe que ajude a encontrar o local." value={reference} error={errors.reference} disabled={pending} onChange={event => setReference(event.target.value)} />
           <div className={errors.image ? 'rounded-control border border-feedback-danger-foreground p-3' : ''}>
             <p className="mb-2 font-bold">Foto do problema</p>
             <ImagePicker value={image} onChange={setImage} />

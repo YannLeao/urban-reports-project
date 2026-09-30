@@ -23,3 +23,4 @@ um novo ADR que substitui o anterior.
 - [0010 — Cadastro público de cidadão](0010-estabelecer-cadastro-de-cidadao.md)
 
 - [0011 — Sessões JWT revogáveis](0011-adotar-sessoes-jwt-revogaveis.md)
+- [0012 — Conteúdo e limites de imagens](0012-validar-conteudo-e-limites-de-imagens.md)

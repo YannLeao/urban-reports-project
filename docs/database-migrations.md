@@ -13,6 +13,7 @@ formato `V<versão>__<descrição>.sql`, por exemplo:
 V1__create_schema_probe.sql
 V2__create_user_accounts.sql
 V3__create_auth_sessions.sql
+V4__create_occurrences.sql
 ```
 
 Depois que uma migration for aplicada em qualquer ambiente compartilhado, seu
@@ -27,6 +28,12 @@ A V3 cria [sessões revogáveis](security.md): UUID/jti, FK user_id, instantes U
 revoked_at opcional, CHECK de expiração e índice por conta. Não altera V1/V2,
 não guarda JWT bruto e não inclui tokens de recuperação. Retenção/limpeza de
 sessões inativas fica para uma política futura.
+
+A V4 semeia as oito categorias e cria `occurrences`, com FKs de autor/categoria,
+key de imagem única, status técnico `PENDING` e limites textuais por
+`char_length` (pontos de código Unicode). A validação Java/TypeScript segue essa
+contagem após trim externo ASCII. A correção de upload não altera V4 nem cria
+schema adicional; recuperação durável exige uma migration futura própria.
 
 ## Como o checksum protege o histórico
 
