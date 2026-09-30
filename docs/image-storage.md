@@ -80,9 +80,9 @@ dependências/imagens exigem rede quando não estão em cache. Docker é necess�
 `POST /api/occurrences` é autenticado e recebe os campos textuais e exatamente
 uma parte `image` em multipart. O serviço valida o conteúdo, grava a imagem em
 `occurrences/` e só então persiste a ocorrência `PENDING` com o `userId` da
-sessão. O catch atual tenta excluir o objeto se a gravação falhar dentro do método.
-Isso não cobre falha no commit posterior nem queda do processo. Recuperação
-durável permanece pendente; não há garantia de remoção imediata em toda falha.
+sessão. A key é registrada antes do PUT em journal durável e vinculada na mesma
+transação da ocorrência; veja recuperação abaixo. Falhas são recuperadas
+eventualmente, sem garantia de remoção imediata.
 
 ## Limites deliberados
 
@@ -95,3 +95,44 @@ A validação usa JPEG/PNG do JDK 21 e `imageio-webp` TwelveMonkeys 3.15.1
 Antes da entrega pública R07, definir sanitização de metadados e autorização de
 leitura; o bucket privado e a decodificação não garantem anonimização. Consulte
 [ADR 0012](adr/0012-validar-conteudo-e-limites-de-imagens.md).
+
+## Recuperação durável
+
+Novos uploads de ocorrência registram a key antes do PUT na V5. Validação ocorre
+antes da intenção; a intenção confirma em transação própria. Upload e associação
+mantêm lock no journal até commit, com custo de conexão aberta durante I/O.
+201 exige commit confirmado. Em falha ou resultado incerto, o estado durável
+decide a recuperação; não há delete cego no catch.
+
+`IMAGE_RECOVERY_ENABLED=true` habilita scheduler; `IMAGE_RECOVERY_INTERVAL=60000`
+é intervalo/atraso inicial em milissegundos. `IMAGE_RECOVERY_SAFETY_DELAY=PT5M`
+(mínimo PT2M) e `IMAGE_RECOVERY_BATCH_SIZE=20` (1–100) controlam elegibilidade/lote.
+Valores também podem ser propriedades Spring. Compose usa esses defaults;
+para overrides, transmitir explicitamente variáveis ao serviço backend.
+
+R2 tem timeout total de 60 segundos, 25 segundos por tentativa e duas tentativas.
+O recuperador bloqueia linhas elegíveis com SKIP LOCKED, confere ausência de
+referência e executa DELETE idempotente. Falha mantém tombstone pendente de exclusão, contador,
+DELETE_FAILED sem mensagem do provedor e backoff de 60 s até uma hora.
+Após sucesso, TOMBSTONE é rechecado a cada hora indefinidamente: PUT com resposta
+perdida pode terminar tardiamente no provedor. LINKED nunca é excluído. Estado e
+próxima tentativa sobrevivem ao restart; banco/R2 indisponível adia recuperação.
+Uma queda após DELETE e antes de commit repete DELETE com segurança.
+
+Não prometer atomicidade absoluta. Monitorar contagem/idade de pendências e
+last_error com consultas administrativas read-only ao journal. Não purgar
+intenção/tombstone manualmente. Futuras exclusões devem coordenar o journal;
+objetos ligados e tombstones exigem política de retenção explícita.
+
+Para órfãos antigos, inventariar em modo read-only somente o prefixo autorizado
+`occurrences/`, exportando keys/datas (sem bytes ou URLs públicas). Comparar com
+`SELECT image_key FROM occurrences` e `SELECT image_key, state FROM
+image_upload_journal` no mesmo ambiente; marcar candidatos para revisão humana.
+Ausência de referência em uma fotografia pontual não autoriza exclusão: repetir
+após janela segura e confirmar escopo/atividade. Esta entrega não varre bucket,
+não apaga histórico e não altera objetos de outros projetos.
+
+`UploadRecoveryTests` chama recuperação deterministicamente com Clock controlado
+e PostgreSQL descartável; cobre rollback, commit com constraint diferida,
+restart, retry, tombstone e lock de upload ativo. Doubles substituem R2; não
+comprovam comportamento remoto. Ver ADR 0013.

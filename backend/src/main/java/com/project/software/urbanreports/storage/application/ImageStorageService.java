@@ -28,8 +28,23 @@ public class ImageStorageService {
         return publicId(storeWithPrefix(file, "proofs"));
     }
 
-    public String storeForOccurrence(MultipartFile file) {
-        return storeWithPrefix(file, "occurrences");
+    public record PreparedImage(String key, byte[] content, String contentType) {}
+
+    public PreparedImage prepareOccurrence(MultipartFile file) {
+        if (file.isEmpty() || file.getSize() > MAX_IMAGE_SIZE) {
+            throw new InvalidImageException("A imagem deve ser não vazia e ter no máximo 5 MiB.");
+        }
+        ImageFormat format = ImageFormat.fromDeclaredContentType(file.getContentType());
+        byte[] content = readContent(file);
+        ImageContentValidation.validate(content, format);
+        storage(); // Fail before recording an intent when storage is unavailable.
+        return new PreparedImage("occurrences/" + java.util.UUID.randomUUID() + "." + format.extension(),
+                content, format.contentType());
+    }
+
+    public void upload(PreparedImage image) {
+        storage().storeAt(image.key(), new ByteArrayInputStream(image.content()),
+                image.content().length, image.contentType());
     }
 
     public void delete(String key) {

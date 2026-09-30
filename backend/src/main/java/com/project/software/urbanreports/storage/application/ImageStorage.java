@@ -12,6 +12,11 @@ public interface ImageStorage {
 
     StoredImageContent load(String key);
 
+    default void storeAt(String key, InputStream content, long contentLength, String contentType) {
+        throw new ImageStorageException("Explicit destination upload is not supported");
+    }
+
     default void delete(String key) {
+        throw new ImageStorageException("Deletion is not supported");
     }
 }

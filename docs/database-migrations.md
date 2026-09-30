@@ -14,6 +14,7 @@ V1__create_schema_probe.sql
 V2__create_user_accounts.sql
 V3__create_auth_sessions.sql
 V4__create_occurrences.sql
+V5__create_image_upload_journal.sql
 ```
 
 Depois que uma migration for aplicada em qualquer ambiente compartilhado, seu
@@ -32,8 +33,8 @@ sessões inativas fica para uma política futura.
 A V4 semeia as oito categorias e cria `occurrences`, com FKs de autor/categoria,
 key de imagem única, status técnico `PENDING` e limites textuais por
 `char_length` (pontos de código Unicode). A validação Java/TypeScript segue essa
-contagem após trim externo ASCII. A correção de upload não altera V4 nem cria
-schema adicional; recuperação durável exige uma migration futura própria.
+contagem após trim externo ASCII. A V5 adiciona o journal de uploads novos: key, estado, datas, tentativas e erro
+sanitizado, com índice de pendências. Não modifica V4 nem inventaria objetos antigos.
 
 ## Como o checksum protege o histórico
 

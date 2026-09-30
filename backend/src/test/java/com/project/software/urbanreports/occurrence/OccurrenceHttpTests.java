@@ -24,7 +24,7 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = {"spring.config.import=", "spring.profiles.active=", "image.storage.endpoint="})
+        properties = {"spring.config.import=", "spring.profiles.active=", "image.storage.endpoint=", "image.recovery.enabled=false"})
 @Import({TestcontainersConfiguration.class, OccurrenceHttpTests.StorageConfiguration.class})
 class OccurrenceHttpTests {
     static final Instant NOW = Instant.parse("2026-09-30T12:00:00Z");
@@ -34,6 +34,7 @@ class OccurrenceHttpTests {
     @Autowired ObjectMapper mapper;
     @Autowired JdbcTemplate jdbc;
     @Autowired FakeStorage storage;
+    @Autowired UploadJournal journal;
     @MockitoBean Clock clock;
     HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     String token;
@@ -42,7 +43,7 @@ class OccurrenceHttpTests {
 
     @BeforeEach void login() throws Exception {
         when(clock.instant()).thenReturn(NOW);
-        storage.calls.set(0); storage.fail = false;
+        storage.calls.set(0); storage.fail = false; storage.loseResponse = false;
         String email = UUID.randomUUID() + "@example.com";
         String password = "synthetic password for HTTP tests";
         var registered = json("/api/auth/register", Map.of("name", "Pessoa teste", "email", email, "password", password), null);
@@ -159,6 +160,56 @@ class OccurrenceHttpTests {
         assertThat(count()).isEqualTo(before);
     }
 
+    @Test void uploadedObjectWithLostResponseIsRecoveredWithoutOccurrence() throws Exception {
+        storage.loseResponse = true;
+        assertThat(upload(valid(), token).statusCode()).isEqualTo(502);
+        String key = storage.lastKey;
+        assertThat(storage.objects).contains(key);
+        assertThat(count()).isEqualTo(before);
+        when(clock.instant()).thenReturn(NOW.plusSeconds(301));
+        journal.recover();
+        assertThat(storage.objects).doesNotContain(key);
+        assertThat(storage.deleted).contains(key);
+    }
+
+    @Test void flushAndDeferredCommitFailuresRecoverUploadedObjects() throws Exception {
+        for (boolean deferred : List.of(false, true)) {
+            jdbc.execute("""
+                    create function reject_test_occurrence() returns trigger language plpgsql as $$
+                    begin raise exception 'synthetic persistence failure'; end $$
+                    """);
+            jdbc.execute(deferred
+                    ? "create constraint trigger reject_test_occurrence after insert on occurrences deferrable initially deferred for each row execute function reject_test_occurrence()"
+                    : "create trigger reject_test_occurrence before insert on occurrences for each row execute function reject_test_occurrence()");
+            try {
+                assertThat(upload(valid(), token).statusCode()).isEqualTo(500);
+                String key = storage.lastKey;
+                assertThat(storage.objects).contains(key);
+                assertThat(count()).isEqualTo(before);
+                assertThat(jdbc.queryForObject("select state from image_upload_journal where image_key = ?", String.class, key))
+                        .isEqualTo("PENDING");
+                when(clock.instant()).thenReturn(NOW.plusSeconds(301)); journal.recover();
+                assertThat(storage.objects).doesNotContain(key);
+            } finally {
+                jdbc.execute("drop trigger reject_test_occurrence on occurrences");
+                jdbc.execute("drop function reject_test_occurrence()");
+                when(clock.instant()).thenReturn(NOW);
+            }
+        }
+    }
+
+    @Test void recoveryPreservesReferenceEvenWhenJournalNeedsReconciliation() throws Exception {
+        var response = upload(valid(), token);
+        assertThat(response.statusCode()).isEqualTo(201);
+        String key = storage.lastKey;
+        jdbc.update("update image_upload_journal set state = 'PENDING', next_attempt_at = ? where image_key = ?",
+                java.sql.Timestamp.from(NOW.minusSeconds(1)), key);
+        journal.recover();
+        assertThat(jdbc.queryForObject("select state from image_upload_journal where image_key = ?", String.class, key))
+                .isEqualTo("LINKED");
+        assertThat(storage.deleted).doesNotContain(key);
+    }
+
     @Test void v4ConstraintsRejectInvalidRowsWithoutChangingMigration() throws Exception {
         var result = upload(valid(), token);
         UUID id = UUID.fromString(mapper.readTree(result.body()).get("id").asString());
@@ -223,6 +274,9 @@ class OccurrenceHttpTests {
     @TestConfiguration(proxyBeanMethods = false)
     static class StorageConfiguration { @Bean FakeStorage fakeStorage() { return new FakeStorage(); } }
     static class FakeStorage implements ImageStorage {
+        volatile boolean loseResponse;
+        java.util.Set<String> objects = java.util.concurrent.ConcurrentHashMap.newKeySet();
+        java.util.Set<String> deleted = java.util.concurrent.ConcurrentHashMap.newKeySet();
         AtomicInteger calls = new AtomicInteger(); volatile boolean fail; volatile String lastKey; volatile byte[] lastBytes;
         @Override public StoredImage store(InputStream input, long length, String type) { throw new AssertionError("Prefix required"); }
         @Override public StoredImage store(InputStream input, long length, String type, String prefix) {
@@ -232,6 +286,13 @@ class OccurrenceHttpTests {
             lastKey = prefix + "/" + UUID.randomUUID() + "." + (type.equals("image/jpeg") ? "jpg" : type.substring(6));
             return new StoredImage(lastKey);
         }
+        @Override public void storeAt(String key, InputStream input, long length, String type) {
+            store(input, length, type, "occurrences");
+            lastKey = key;
+            objects.add(key);
+            if (loseResponse) throw new ImageStorageException("Lost PUT response");
+        }
+        @Override public void delete(String key) { deleted.add(key); objects.remove(key); }
         @Override public StoredImageContent load(String key) { throw new AssertionError("No public read in this scope"); }
     }
 }
