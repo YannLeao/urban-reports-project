@@ -86,3 +86,9 @@ Registrar resultados na MR/issue, incluindo versão da aplicação, URL, aparelh
 sistema e navegador. Emulação de viewport não substitui câmera física; arquivo
 HEIC/HEIF rejeitado não conta como captura válida. O guia descreve o contrato e o
 roteiro recorrente; resultados de uma entrega pertencem à MR correspondente.
+
+O ImagePicker aceita também `disabled?: boolean` para bloquear todos os controles
+e `onValidationChange?: (validating: boolean) => void` para notificar o consumidor
+sincronamente no início/fim da validação e na invalidação de leituras. Os props
+são opcionais e preservam a prova técnica. O formulário usa essa notificação
+para bloquear submit durante troca de foto e disabled durante upload.

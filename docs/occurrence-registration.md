@@ -103,8 +103,19 @@ a intenção recuperável; o recuperador nunca exclui uma key vinculada ou com
 referência confirmada. A recuperação é eventual, sem atomicidade R2/PostgreSQL.
 Ver [operação e reconciliação](image-storage.md#recuperação-durável).
 
-A correção seguinte do formulário deve coordenar seleção/validação/envio,
-preservar dados nas falhas e tornar todos os erros visíveis. Idempotência HTTP
+O formulário coordena seleção/validação/envio: enquanto uma nova foto é
+validada, o envio fica bloqueado, inclusive quando há foto anterior válida.
+Durante upload, campos, seleção, câmera e remoção ficam bloqueados. Uma guarda
+síncrona impede chamadas concorrentes antes do próximo render. Cancelamento ou
+escolha inválida preservam campos e foto anterior; falha HTTP preserva o formulário.
+Reset e sucesso exigem resposta 201 com id UUID e status PENDING válidos.
+
+Erros conhecidos são apresentados em PT-BR; request e chaves desconhecidas
+recebem aviso geral acessível, sem mensagens internas do servidor. O aviso recebe
+foco; validação local foca o primeiro campo inválido. 413 explica o limite, falha
+de storage orienta nova tentativa e rede/resposta inválida expressam resultado
+incerto. Não há retry automático. 401 encerra a sessão pelo AuthProvider e a rota
+privada sai do formulário; dados/fotografia não são persistidos para recuperação. Idempotência HTTP
 fica para melhoria posterior: perda da resposta pode ocorrer após commit;
 reenvio manual pode duplicar, mesmo com guarda contra cliques concorrentes.
 
@@ -119,3 +130,33 @@ e aparelho físico no formulário real (aparelho/SO/navegador/versão, abrir/can
 câmera preservando campos, tirar foto, prévia, enviar e confirmar). Registrar
 fallback, 360 px e falha de upload. A prova anterior de R00 em `/prova-imagem`
 deve ser preservada como tal; não substitui o formulário com upload.
+
+## Roteiro consolidado de evidências R05/R06
+
+Registrar resultados datados na MR/issue, com SHA de cada serviço, links de
+pipeline/deployment e URLs efetivamente testadas. Marcar cada etapa como aprovada,
+falha ou pendente; não preencher com evidência inferida de configuração.
+
+| Critério | Evidência necessária |
+| --- | --- |
+| R05: contrato e persistência | Suítes HTTP/recuperação com PostgreSQL real e fake de storage; separadamente, cadastro/login e upload publicado com PostgreSQL/R2 |
+| R05: restart | Reiniciar aplicação isolada mantendo banco/bucket; confirmar mesma ocorrência e objeto por inspeção administrativa autorizada, sem abrir GET público |
+| R06: captura integrada | Aparelho físico, SO/navegador/versão e URL de `/registrar-ocorrencia`; preencher, abrir/cancelar câmera, preservar campos, tirar foto, conferir prévia, enviar e confirmar |
+| R06: fallback e falhas | Galeria, 360 px, teclado/foco, nome longo, loading e falha de upload preservando campos/foto |
+
+1. Usar conta sintética e foto sem dados pessoais. Registrar cadastro/login,
+   categoria, envio 201 e associação autor/PENDING/key, sem anexar Bearer ou senha.
+2. Em aparelho físico via HTTPS, cancelar câmera com campos e foto já escolhidos;
+   verificar preservação. Capturar JPEG/PNG/WebP válido e completar o envio real.
+3. Usar seleção alternativa; verificar 360 px, teclado, foco, zoom 200%, nome
+   longo e bloqueio de todos os controles no envio. Provocar falha em ambiente
+   controlado, conferir preservação e aviso geral.
+4. Confirmar persistência após restart controlado por adaptador/inspeção
+   administrativa autorizada. Não reiniciar produção apenas para demonstrar.
+5. Anexar links/resultados nas MRs com Refs #21, Refs #36 e Refs #37. A prova
+   física anterior de R00 foi informada pelo usuário: preservar como prova de
+   `/prova-imagem`; ela não comprova captura e upload no formulário real.
+
+Sem acesso ao aparelho ou ambiente publicado, código e testes locais podem ser
+concluídos, mantendo o aceite integrado pendente. Mocks/jsdom e viewport mobile
+não comprovam câmera física, R2 remoto, deployment ou restart publicado.
