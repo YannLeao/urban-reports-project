@@ -221,9 +221,16 @@ class AdminProvisioningIntegrationTests {
     @Test void moderationRacingAuthorEditsAndDeletesPreservesVersionsAndNoOrphans() throws Exception {
         var admin = activatedAdmin(); var citizen = citizen(); var report = report(citizen.id());
         runTogether(() -> { try { moderation.transition(admin, report.getId(), "\"0\"", new OccurrenceTransition(OccurrenceStatus.IN_ANALYSIS, null)); } catch (OccurrenceWriteException stale) { /* Author won. */ } },
-                () -> { try { ownReports.update(citizen.id(), report.getId(), "\"0\"", new OccurrenceRequest(1, "Título editado", null, "Centro", "Praça central"), null); } catch (OccurrenceWriteException stale) { /* Moderator won. */ } });
+                () -> { try { ownReports.update(citizen.id(), report.getId(), "\"0\"", new OccurrenceRequest(1, "Título editado", null, "Centro", "Praça central", "0", "123.123456789"), null); } catch (OccurrenceWriteException stale) { /* Moderator won. */ } });
         var after = reports.findById(report.getId()).orElseThrow();
         assertThat(after.getVersion()).isEqualTo(1);
+        if (after.getStatus() == OccurrenceStatus.IN_ANALYSIS) {
+            assertThat(after.getLatitude()).isNull(); assertThat(after.getLongitude()).isNull();
+        } else {
+            assertThat(after.getLatitude()).isZero(); assertThat(after.getLongitude()).isEqualTo(123.123456789);
+        }
+        assertThat(moderation.find(admin, report.getId()).report().latitude()).isEqualTo(after.getLatitude());
+        assertThat(moderation.find(admin, report.getId()).report().longitude()).isEqualTo(after.getLongitude());
         assertThat(jdbc.queryForObject("SELECT count(*) FROM occurrence_history WHERE occurrence_id = ?", Integer.class, report.getId()))
                 .isEqualTo(after.getStatus() == OccurrenceStatus.IN_ANALYSIS ? 1 : 0);
         var deleted = report(citizen.id());

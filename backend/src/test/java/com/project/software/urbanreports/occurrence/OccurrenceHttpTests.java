@@ -55,6 +55,65 @@ class OccurrenceHttpTests {
         before = count();
     }
 
+    @Test void locationContractRejectsInvalidPairsBeforeUpload() throws Exception {
+        var absent = valid(); absent.removeIf(part -> List.of("latitude", "longitude").contains(part.name()));
+        reject(absent, 400);
+        for (String axis : List.of("latitude", "longitude")) {
+            for (String value : List.of("", " ", "null", "NaN", "Infinity", "-Infinity", "1e999", "0x1.0p2", "1,5", "text",
+                    axis.equals("latitude") ? "90.000001" : "180.000001",
+                    axis.equals("latitude") ? "-90.000001" : "-180.000001"))
+                reject(replace(valid(), text(axis, value)), 400);
+        }
+        assertThat(storage.calls).hasValue(0);
+        assertThat(count()).isEqualTo(before);
+    }
+
+    @Test void locationRoundTripsBoundsZerosAndPrecisionInPrivateAndPublicReads() throws Exception {
+        for (double[] point : List.of(new double[]{0, 0}, new double[]{0, 180}, new double[]{90, 0},
+                new double[]{-90, -180}, new double[]{-23.550520123456, -46.633308987654})) {
+            var parts = replace(replace(valid(), text("latitude", Double.toString(point[0]))), text("longitude", Double.toString(point[1])));
+            var created = upload(parts, token);
+            assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
+            var id = mapper.readTree(created.body()).get("id").asString();
+            for (String path : List.of("/api/occurrences/" + id, "/api/public/occurrences/" + id)) {
+                var response = action(path, "GET", token, null);
+                assertThat(response.statusCode()).as(response.body()).isEqualTo(200);
+                var body = mapper.readTree(response.body());
+                assertThat(body.get("latitude").asDouble()).isEqualTo(point[0]);
+                assertThat(body.get("longitude").asDouble()).isEqualTo(point[1]);
+            }
+        }
+    }
+
+    @Test void locationUpdatePreservesOmissionRejectsClearingAndEnrichesLegacy() throws Exception {
+        var created = upload(valid(), token);
+        UUID id = UUID.fromString(mapper.readTree(created.body()).get("id").asString());
+        String path = "/api/occurrences/" + id;
+        var omitted = valid(); omitted.removeIf(part -> List.of("latitude", "longitude", "image").contains(part.name()));
+        var unchanged = multipart(path, "PUT", omitted, token, "\"0\"");
+        assertThat(unchanged.statusCode()).as(unchanged.body()).isEqualTo(200);
+        assertThat(mapper.readTree(unchanged.body()).get("latitude").asDouble()).isEqualTo(-23.550520);
+        var cleared = new ArrayList<>(omitted); cleared.add(text("latitude", "")); cleared.add(text("longitude", ""));
+        assertThat(multipart(path, "PUT", cleared, token, "\"1\"").statusCode()).isEqualTo(400);
+        assertThat(jdbc.queryForObject("SELECT version FROM occurrences WHERE id = ?", Long.class, id)).isEqualTo(1L);
+        var moved = replace(replace(new ArrayList<>(omitted), text("latitude", "0")), text("longitude", "123.123456789"));
+        assertThat(multipart(path, "PUT", moved, token, "\"1\"").statusCode()).isEqualTo(200);
+        assertThat(jdbc.queryForObject("SELECT longitude FROM occurrences WHERE id = ?", Double.class, id)).isEqualTo(123.123456789);
+        // Model an existing pre-V9 row, without synthesizing any geographic point.
+        jdbc.update("UPDATE occurrences SET latitude = NULL, longitude = NULL WHERE id = ?", id);
+        for (String read : List.of(path, "/api/public/occurrences/" + id)) {
+            var legacy = mapper.readTree(action(read, "GET", token, null).body());
+            assertThat(legacy.get("latitude").isNull()).isTrue();
+            assertThat(legacy.get("longitude").isNull()).isTrue();
+        }
+        var legacyEdit = multipart(path, "PUT", omitted, token, "\"2\"");
+        assertThat(legacyEdit.statusCode()).isEqualTo(200);
+        assertThat(mapper.readTree(legacyEdit.body()).get("latitude").isNull()).isTrue();
+        assertThat(multipart(path, "PUT", moved, token, "\"3\"").statusCode()).isEqualTo(200);
+        assertThat(jdbc.queryForObject("SELECT latitude FROM occurrences WHERE id = ?", Double.class, id)).isZero();
+        assertThat(multipart(path, "PUT", valid(), token, "\"3\"").statusCode()).isEqualTo(412);
+    }
+
     @Test void categoriesAndRealFormatsPersistWithServerOwnedIdentity() throws Exception {
         var categories = send(HttpRequest.newBuilder(uri("/api/occurrence-categories"))
                 .header("Authorization", "Bearer " + token).GET());
@@ -100,7 +159,7 @@ class OccurrenceHttpTests {
     }
 
     @Test void missingInvalidAndRepeatedFieldsNeverReachStorage() throws Exception {
-        for (String name : List.of("categoryId", "title", "description", "neighborhood", "reference", "image")) {
+        for (String name : List.of("categoryId", "title", "description", "neighborhood", "reference", "image", "latitude", "longitude")) {
             if (!name.equals("description")) { var missing = valid(); missing.removeIf(part -> part.name().equals(name)); reject(missing, 400); }
             var duplicate = valid(); duplicate.add(duplicate.stream().filter(part -> part.name().equals(name)).findFirst().orElseThrow());
             reject(duplicate, 400);
@@ -345,8 +404,11 @@ class OccurrenceHttpTests {
         jdbc.execute("create constraint trigger reject_test_edit after update on occurrences deferrable initially deferred for each row execute function reject_test_edit()");
         String fresh;
         try {
-            assertThat(multipart("/api/occurrences/" + id, "PUT", valid(), token, "\"0\"").statusCode()).isEqualTo(500);
+            var moved = replace(replace(valid(), text("latitude", "0")), text("longitude", "123.123456789"));
+            assertThat(multipart("/api/occurrences/" + id, "PUT", moved, token, "\"0\"").statusCode()).isEqualTo(500);
             fresh = storage.lastKey;
+            assertThat(jdbc.queryForObject("select latitude from occurrences where id = ?", Double.class, id)).isEqualTo(-23.550520);
+            assertThat(jdbc.queryForObject("select longitude from occurrences where id = ?", Double.class, id)).isEqualTo(-46.633308);
             assertThat(jdbc.queryForObject("select image_key from occurrences where id = ?", String.class, id)).isEqualTo(old);
             assertThat(jdbc.queryForObject("select version from occurrences where id = ?", Long.class, id)).isZero();
             assertThat(jdbc.queryForObject("select state from image_upload_journal where image_key = ?", String.class, old)).isEqualTo("LINKED");
@@ -441,7 +503,7 @@ class OccurrenceHttpTests {
     static List<Part> valid() {
         return new ArrayList<>(List.of(text("categoryId", "1"), text("title", "  Buraco na rua  "),
                 text("description", "Descrição sintética do problema urbano."), text("neighborhood", "Centro"),
-                text("reference", "Próximo à praça"), image(ImageFixtures.photo("png"), "image/png")));
+                text("reference", "Próximo à praça"), image(ImageFixtures.photo("png"), "image/png"), text("latitude", "-23.550520"), text("longitude", "-46.633308")));
     }
     static List<Part> replace(List<Part> parts, Part replacement) {
         parts.removeIf(part -> part.name().equals(replacement.name())); parts.add(replacement); return parts;
