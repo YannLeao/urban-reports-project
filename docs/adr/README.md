@@ -32,3 +32,5 @@ um novo ADR que substitui o anterior.
 - [0015 — Base de histórico de moderação](0015-preparar-historico-de-moderacao.md)
 
 - [0016 — Identidade administrativa e moderação](0016-provisionar-identidade-administrativa.md)
+
+- [0017 — Relatório administrativo em snapshot](0017-consultar-relatorio-em-snapshot.md)
