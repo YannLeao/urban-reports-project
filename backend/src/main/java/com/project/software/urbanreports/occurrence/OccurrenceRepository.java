@@ -11,4 +11,6 @@ public interface OccurrenceRepository extends JpaRepository<Occurrence, UUID> {
     java.util.Optional<Occurrence> lockOwned(UUID id, UUID authorId);
 	List<Occurrence> findByAuthorId(UUID authorId, Sort sort);
 	java.util.Optional<Occurrence> findByIdAndAuthorId(UUID id, UUID authorId);
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = "category")
+    org.springframework.data.domain.Page<Occurrence> findAllBy(org.springframework.data.domain.Pageable pageable);
 }
