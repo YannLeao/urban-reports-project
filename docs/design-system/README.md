@@ -22,7 +22,7 @@ aparece na navegação pública, não envia dados e seu módulo não integra pro
 O padrão de seleção de fotografia também está no catálogo; sua
 [prova local de desenvolvimento](../image-selection-proof.md) em `/prova-imagem`
 não depende da API nem envia a imagem. O [cadastro público](../identity.md) usa
-Input/Button/Alert e estados ilustrados no catálogo. Login e minha conta usam
+Input/PasswordField/Button/Alert e estados ilustrados no catálogo. Login e minha conta usam
 os mesmos componentes, incluindo validação de sessão e falha de logout. Relatos privados priorizam fotografia, edição e exclusão com dialog nativo.
 Gestão de administradores e ativação reutilizam campos/feedback; moderação usa
 os mesmos cartões, fotografia, contador Unicode e histórico. O seletor de
@@ -103,3 +103,7 @@ o preview apenas para verificação no estágio de build; ele não entra no bund
 
 O CSS manual do preview é uma exceção documental: apresenta várias telas num
 único HTML independente. Layouts da aplicação continuam usando Tailwind.
+
+Registro, câmera, confirmação visual de GPS, acompanhamento e painéis seguem as
+[composições de produto](../frontend-report-experience.md); estados de relato usam
+OccurrenceStatus com os tokens report.*, distintos do feedback genérico.

@@ -189,3 +189,42 @@ O componente Dialog da aplicação mantém seu contrato modal próprio.
 Na rejeição demonstrativa, o contador usa pontos de código após o mesmo trim
 ASCII do contrato; confirmar fica disponível entre 10 e 500. Trocar motivo não
 modifica a explicação. A confirmação anuncia somente a validação do exemplo.
+
+## PasswordField
+
+`components/ui/PasswordField` aceita as mesmas props/ref de `Input`, exceto
+`type`, que pertence ao componente. Reutiliza `Field`: `label`, descrição,
+erro, ID e `aria-describedby` continuam associados ao input. Cada instância
+mantém sua própria visibilidade; o botão de 44 px alterna “Mostrar senha” e
+“Ocultar senha”, sem submit, alteração de valor ou revelação da confirmação.
+O ref aponta para o input e o foco permanece no controle acionado.
+
+```tsx
+<PasswordField ref={passwordInput} label="Senha" name="password"
+  autoComplete="new-password" value={password} onChange={onPasswordChange}
+  description="De 15 a 128 caracteres. Espaços e acentos são permitidos."
+  error={errors.password} disabled={pending} required />
+```
+
+Use `current-password` no login e `new-password` na criação/redefinição e
+confirmação. O componente não valida, persiste ou envia senha. O consumidor
+preserva a política Unicode atual e limpa segredos conforme o fluxo. A futura
+recuperação deve consumir este componente sem duplicar seu controle visual.
+
+## OccurrenceStatus e composições de relato
+
+`features/occurrence/OccurrenceStatus` recebe `status: Occurrence['status']`,
+validado pelo schema de fronteira. Usa os pares canônicos `report.pending`,
+`report.analysis`, `report.resolved` e `report.rejected`, com texto e símbolo
+decorativo distintos. Não use `StatusBadge` genérico para estado de relato.
+Estado não muda categoria/aparência dos pinos e não indica progresso percentual.
+
+Cards de lista usam fotografia com largura integral e conteúdo com padding
+local, sem Card dentro de Card. Título é link; o artigo não é clicável.
+`OccurrencePhoto` e `PublicOccurrencePhoto` aceitam `flush` para retirar a margem
+externa em cards/linhas. `full` continua preservando a imagem inteira e
+`thumbnail` continua restrito aos resumos sob demanda da exploração.
+
+`Card density="compact"` usa padding menor em linhas de painéis. O padrão
+continua com o espaçamento anterior; não tente sobrescrevê-lo com classes de
+padding conflitantes. Veja [composição dos percursos](../frontend-report-experience.md).

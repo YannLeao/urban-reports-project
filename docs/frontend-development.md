@@ -256,3 +256,6 @@ com o formulário; OccurrenceMap usa pinos canônicos de `features/location/pins
 com adaptador carregado sob demanda e sem arquivos de docs no runtime.
 Configuração/provedor/build continuam os da localização. Contrato e roteiro:
 [mapas de consultas](occurrence-maps.md).
+
+As composições de [registro, acompanhamento e painéis](frontend-report-experience.md)
+descrevem o uso de PasswordField, OccurrenceStatus, fotografia e sugestão de GPS.
