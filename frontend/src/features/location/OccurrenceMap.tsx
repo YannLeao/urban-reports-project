@@ -71,11 +71,16 @@ export function OccurrenceMap({ items, selected, onSelect, onGroup, view, onView
     else fit()
     draw()
     instance.on('zoomend', draw)
-    instance.on('moveend', () => {
+    const moved = () => {
+      if (map.current !== instance) return
       const center = instance.getCenter().wrap()
       latest.current.onView?.({ latitude: center.lat, longitude: center.lng, zoom: instance.getZoom() })
-    })
-    return () => { map.current = null; library.current = null; layer.current = null; setReady(false) }
+    }
+    instance.on('moveend', moved)
+    return () => {
+      instance.off('zoomend', draw); instance.off('moveend', moved)
+      map.current = null; library.current = null; layer.current = null; setReady(false)
+    }
   }
   if (!adapter) return <div><p role="status">{failure ? 'Não foi possível carregar os pinos. Consulte os relatos em texto.' : 'Carregando mapa…'}</p>
     {failure && <><p>Recarregue a página para tentar novamente. O contexto da consulta será mantido na URL.</p><Button size="compact" variant="secondary" onClick={() => window.location.reload()}>Recarregar página e pinos</Button></>}</div>
