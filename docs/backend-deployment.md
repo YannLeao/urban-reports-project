@@ -205,3 +205,15 @@ Após revisão e pipeline verde, publique backend primeiro e siga o percurso no
 [guia frontend](frontend-deployment.md#percurso-de-autenticação-publicado). Não
 faça merge automático. Não há rate limit de login; dimensionamento e mitigação
 de tentativas automatizadas precisam de avaliação operacional.
+
+## Convites e bootstrap administrativo
+
+A V8 preserva USERs ativos e adiciona provisionamento/ativação de ADMIN.
+Configurar ADMIN_FRONTEND_ORIGIN com a origem canônica HTTPS, ADMIN_MAIL_FROM e
+SMTP_HOST/PORT/USERNAME/PASSWORD/AUTH/STARTTLS em configuração protegida. Usar
+SMTP autenticado com STARTTLS em produção. Sem envio disponível a conta continua
+pendente, com resultado FAILED e recuperação por reenvio. Não passar tokens no
+log nem confundir aceite SMTP com recebimento. O [guia administrativo](admin-provisioning.md)
+define bootstrap interativo pela mesma imagem, sem servidor HTTP ou senha em CLI.
+Não executar bootstrap/deploy implicitamente. Preparar frontend para novos papéis
+antes de emiti-los; não há prova de execução remota nesta alteração.

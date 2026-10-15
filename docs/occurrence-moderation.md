@@ -2,13 +2,11 @@
 
 ## Estado da integração
 
-A base de estados, histórico privado, intenção durável de notificação e
-visibilidade pública está implementada. Comando, fila e telas administrativas
-dependem da fundação compartilhada de identidade: o modelo atual só tem USER,
-sem atividade de conta, ADMIN/SUPER_ADMIN ou provisionamento legítimo.
-Cadastro público continua exclusivamente USER. Não há promoção temporária.
-A central de notificações também não está implementada. Esta base não conclui
-RF-15–RF-20 nem o aceite completo da issue #24.
+O fluxo administrativo usa a identidade compartilhada de
+[provisionamento](admin-provisioning.md). ADMIN ativo acessa fila, detalhe,
+foto e transições; SUPER_ADMIN não herda essa permissão. Cadastro público
+permanece USER. A central de notificações continua separada: cada transição
+persiste intenção durável, sem alegar entrega da notificação interna.
 
 ## Estados e justificativa
 
@@ -16,7 +14,7 @@ PENDING (Pendente), IN_ANALYSIS (Em análise), RESOLVED (Resolvida) e REJECTED
 (Rejeitada). Somente PENDING → IN_ANALYSIS, PENDING → REJECTED,
 IN_ANALYSIS → RESOLVED e IN_ANALYSIS → REJECTED são válidas. Estados finais
 não têm saída. `OccurrenceTransition` e `transitionSchema` centralizam regras
-para integrar ao futuro comando/formulário; ainda não persistem transições.
+usadas pelo comando administrativo e formulário de rejeição.
 
 Rejeição exige 10–500 pontos de código Unicode após trim externo somente de
 U+0009–U+000D e U+0020, igual ao contrato textual existente. NUL e UTF-16
@@ -27,9 +25,9 @@ inclusive vazia. Renderizar texto sem interpretar HTML.
 
 ## Persistência e leitura
 
-V7 é a próxima versão livre nesta checkout. Conferir migrations concorrentes
-antes de integrar identidade; renumerar somente se ainda não aplicada em ambiente
-compartilhado. V1–V6 permanecem intactas e Hibernate em validate. V7 amplia o
+V7 introduziu estados/histórico; V8 acrescenta identidade administrativa.
+Conferir numeração de futuras migrations antes de integrar trabalho concorrente.
+Migrations aplicadas permanecem intactas e Hibernate em validate. V7 amplia o
 CHECK de estados, preserva os dados e não fabrica histórico retroativo.
 
 `occurrence_history` guarda UUID do evento/ocorrência/responsável, origem,
@@ -55,34 +53,55 @@ A elegibilidade é verificada antes de chamar ImageStorage. Autor mantém acesso
 privado. PENDING, IN_ANALYSIS e RESOLVED seguem públicos. O futuro mapa deve
 reutilizar esse filtro. O DTO público nunca inclui histórico interno.
 
-## Contrato pendente de escrita administrativa
+## API administrativa e concorrência
 
-A identidade compartilhada deve fornecer papel exato ADMIN, atividade atual,
-provisionamento legítimo, login/sessão/revogação e desativação com lock da mesma
-linha de `user_accounts`. SUPER_ADMIN não herda moderação. Revalidar autorização
-no serviço mesmo fora do controller. Não criar entidade paralela de identidade.
+Todas as rotas exigem sessão revogável e ADMIN atualmente ACTIVE. O serviço
+revalida autorização mesmo quando chamado fora do controller. USER, SUPER_ADMIN,
+ADMIN pendente/desativado e anônimo não moderam.
 
-Rotas previstas sob `/api/admin/occurrences`: GET da fila (somente
-PENDING/IN_ANALYSIS, createdAt ASC/id ASC, page inicial 0, size padrão 20/máximo
-50), GET `/{id}` (inclui finalizados, versão e histórico com nome legível do
-responsável), GET `/{id}/image` e POST `/{id}/transitions` com JSON `{target,
-reason}` e If-Match. São contratos ainda sem endpoints registrados. A cadeia
-atual os recusa por negação padrão.
+- GET `/api/admin/occurrences?page=0&size=20`: items/page/size/totalItems/totalPages,
+  somente PENDING/IN_ANALYSIS, createdAt ASC/id ASC, size 1–50.
+- GET `/api/admin/occurrences/{id}`: `{report,history}`, inclusive finalizados.
+  report segue DTO privado com versão, sem histórico duplicado; history inclui
+  estados, horário, justificativa e nome legível do responsável, sem e-mail.
+- GET `/api/admin/occurrences/{id}/image`: bytes privados, no-store/nosniff,
+  usando ImageStorage existente, sem URLs com token.
+- POST `/api/admin/occurrences/{id}/transitions`: JSON `{target,reason}`,
+  If-Match decimal entre aspas obrigatório. Sucesso: mesmo detalhe atualizado
+  e ETag da versão resultante, somente após commit.
 
-No futuro serviço transacional, bloquear conta antes de ocorrência. Confirmar
-ADMIN ativo sob lock de conta é o ponto de autorização: desativação anterior
-impede ação; desativação aguardando a transação não cancela ação já autorizada.
-Revalidar versão e estado sob o mesmo lock de ocorrência usado por edição e
-exclusão. Moderação não bloqueia journal nem faz I/O de storage; preserva a
-ordem journal → ocorrência dos escritores com foto (ADR 0014). Não introduzir
-caminho ocorrência → journal → conta. Implementação e testes dessas disputas
-continuam pendentes da fundação.
+JSON limitado a 8192 bytes; extras/tipos coercíveis são recusados. Ausência/null
+de reason é válida fora de rejeição; qualquer string é recusada. Erros seguem
+ApiErrorResponse: 400 validação, 428 sem If-Match, 412 versão divergente,
+409 transição incompatível, 404 ocorrência ausente, 401/403 conforme sessão/papel.
+A versão é verificada antes de estado para um comando de moderação válido.
 
-Após autorização: validar comando, exigir If-Match (428 ausente, 412 divergente),
-conferir máquina (409 incompatível), mudar estado, incrementar versão e inserir
-evento na mesma transação. Validação: 400 no envelope ApiErrorResponse.
-Responsável vem da identidade e horário do Clock. Responder após commit.
-Não publicar escritor que confirme estado sem evento.
+O serviço trava a conta do ADMIN, revalida sessão/papel/status e só então trava
+a ocorrência. A autorização confirmada sob lock da conta é o ponto de
+serialização com desativação: se esta confirmou antes, recusa; se aguarda o
+lock, a ação autorizada pode confirmar primeiro. Não promete cancelamento
+retroativo. A mesma linha de ocorrência é disputada por edição/exclusão do autor.
+Moderação não trava journal nem faz I/O de storage, preservando ADR 0014.
+
+Estado, incremento de versão, evento com responsável autenticado/horário do
+Clock e intenção de notificação confirmam na mesma transação. Falha no commit
+reverte tudo. Repetição/conflito não acrescenta evento. Edição antiga em PENDING
+não confirma após análise; exclusão não remove relato analisado/finalizado.
+Upload que perdeu uma disputa continua recuperável pelo journal existente.
+
+## Interface
+
+`/administracao/relatos` tem fila paginada, fotografia, conteúdo prioritário,
+carregamento, erro com retry e vazio. `/administracao/relatos/{id}` mostra foto
+inteira, dados, histórico cronológico e somente ações válidas. Rejeição abre
+campo com contador em pontos de código, erro acessível e foco. Guarda síncrona
+impede envio repetido. Conflitos mostram aviso e recarregam o relato, sem sucesso
+falso. Finalizados permanecem legíveis, sem ações.
+
+Queries usam `['private', userId, 'moderation', ...]`, AbortSignal e limpeza no
+encerramento da sessão. Sucesso invalida fila/detalhes afetados e consultas
+públicas; detalhe público antigo do relato é removido para não conservar um
+rejeitado em cache. Guard/navegação por papel complementam a proteção do servidor.
 
 ## Notificações
 
@@ -101,16 +120,12 @@ Não há callback em memória nem stub declarado como integração concluída.
 
 ## Compatibilidade e demonstração
 
-Publicar primeiro frontend que reconheça os quatro estados. Autenticação desta
-base continua aceitando só USER; suporte aos novos papéis precisa preceder sua
-emissão. Depois integrar identidade, coordenar migrations, publicar backend e
-habilitar fluxo administrativo. Bundle antigo que aceita só PENDING/USER não
-pode receber novos valores. Esta ordem não autoriza deploy implicitamente.
+Publicar frontend que reconhece os quatro estados e três papéis antes de emitir
+novos valores. Depois publicar backend com migrations V7/V8 e provisionar pelo
+bootstrap explícito autorizado. Bundle antigo USER/PENDING não pode receber os
+novos valores. Esta ordem não implica autorização de deploy.
 
-Após integração, usar contas provisionadas legitimamente: entrar como ADMIN
-ativo, iniciar análise, resolver outro relato em análise, rejeitar com
-justificativa, consultar cronologia como autor e provar negativas para USER,
-SUPER_ADMIN, ADMIN inativo, anônimo e sessão revogada. Conferir disputas entre
-administradores/edição/exclusão e recuperação da foto. Demonstrar uma notificação
-por evento quando a central estiver integrada. Esse roteiro administrativo
-permanece pendente; fixtures de banco não substituem o fluxo real.
+O [roteiro de provisionamento](admin-provisioning.md#roteiro-de-revisão) cobre
+criar/ativar/moderar/desativar com contas legítimas, consulta como autor e matriz
+de negativas. Notificações internas permanecem pendentes da central; não fechar
+a issue #24 como aceite integrado completo por existir apenas a intenção durável.

@@ -1,9 +1,8 @@
 # Segurança da API e sessões
 
-A [base de histórico de moderação](occurrence-moderation.md) não habilita
-acesso administrativo: identidade continua somente USER, sem atividade ou
-provisionamento administrativo. `/api/admin/**` permanece sob denyAll.
-O contrato pendente exige ADMIN exato e ativo, revalidado no serviço.
+A [moderação](occurrence-moderation.md) exige ADMIN exato e ACTIVE.
+[Provisionamento](admin-provisioning.md) exige SUPER_ADMIN exato e ACTIVE,
+sem hierarquia de papéis. Sessões de conta pendente/desativada são recusadas.
 
 Spring Boot 4.1.1 / Spring Security 7.1.1 implementam autenticação pelo Resource
 Server/Jose com JWT RS256 e sessões PostgreSQL. O [ADR 0011](adr/0011-adotar-sessoes-jwt-revogaveis.md)
@@ -21,8 +20,11 @@ paralelismo 1, salt 16 bytes e hash 32 bytes, sem normalizar senhas.
 | GET/HEAD `/api/health` | Público |
 | GET `/api/occurrence-categories` | Sessão válida; oito categorias |
 | GET `/api/occurrences` e `/api/occurrences/{id}` | Sessão válida; somente autoria própria; detalhe alheio/inexistente retorna 404; [contrato](occurrence-query.md) |
-| POST `/api/occurrences` | Sessão válida; multipart conforme [contrato](occurrence-registration.md); autor e PENDING definidos no servidor |
+| POST `/api/occurrences` | Sessão válida, papel USER; multipart conforme [contrato](occurrence-registration.md); autor e PENDING definidos no servidor |
 | GET/HEAD caminhos Swagger já existentes | Disponíveis somente com dev explícito; base/prod retornam 404 |
+| GET/POST `/api/super-admin/admins` e subrotas | SUPER_ADMIN ativo; gestão/convites/desativação |
+| GET/POST `/api/admin/occurrences` e subrotas | ADMIN ativo; fila, detalhe, imagem e transições |
+| POST `/api/auth/admin-activations` | Público, JSON limitado; confirmação de convite, sem sessão automática |
 | Storage técnico, Actuator, demais caminhos e `/error` direto | denyAll; 401 anônimo, 403 autenticado |
 | Dispatch interno ERROR | Preserva processamento/status original |
 
@@ -46,7 +48,7 @@ JWT exige iss/aud/sub/jti/iat/exp; sub e jti são UUIDs canônicos. Verifica ass
 RS256 exclusivo, kid conhecido, issuer/audience e validade de exatamente 1800
 segundos. Clock é injetável, com **zero tolerância temporal**. Sessão deve existir,
 pertencer ao sub, estar não revogada e não expirada; iat/exp correspondem aos
-instantes persistidos. Conta deve existir e fornece o papel atual. Não há role
+instantes persistidos. Conta deve existir, estar ACTIVE e fornece o papel atual. Não há role
 claim, cache de sessão, sid redundante, Redis ou refresh token.
 
 V3 cria auth_sessions com FK de conta, timestamps, CHECK de validade e índice
