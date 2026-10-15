@@ -1,5 +1,11 @@
 # Consulta e gestão privada de relatos
 
+O detalhe privado inclui o [histórico de moderação](occurrence-moderation.md),
+com identificação funcional do responsável e justificativa de rejeição.
+Os estados suportados são PENDING, IN_ANALYSIS, RESOLVED e REJECTED; somente
+PENDING permite edição/exclusão. Rejeitados ficam fora das três superfícies
+públicas (lista, detalhe e foto), mantendo acesso privado do autor.
+
 ## Contrato HTTP
 
 Todas as rotas exigem Bearer com sessão válida. GET /api/occurrences retorna
@@ -8,6 +14,7 @@ GET /api/occurrences/{id} retorna apenas o próprio relato; alheio e inexistente
 retornam o mesmo 404 OCCURRENCE_NOT_FOUND. Parâmetros de autoria são ignorados.
 O DTO contém id, categoryId/categoryName, title, description (null se ausente),
 neighborhood, reference, status, createdAt e version (inteiro não negativo).
+O detalhe acrescenta history, conforme o [contrato de moderação](occurrence-moderation.md).
 Autor, chave de storage, bucket e URL do provedor não são expostos.
 
 GET /api/occurrences/{id}/image usa a mesma autorização antes de ler storage.
@@ -41,12 +48,13 @@ agendamento também são atômicos no banco. Rollback não publica descarte.
 O worker ignora LINKED, verifica referências sob lock do journal e remove apenas
 objetos elegíveis. Chaves exclusivas não são reutilizadas, e link exige PENDING.
 Detalhes no [ADR 0014](adr/0014-gerir-relatos-e-descarte-de-imagens.md).
-Moderação futura deve usar o mesmo lock/versão; nenhum novo estado é criado.
+O futuro comando de moderação deve usar o mesmo lock/versão. A base já reconhece
+os quatro estados, mas não habilita escrita administrativa sem identidade compartilhada.
 
 ## Frontend
 
 Rotas privadas: /meus-relatos, /meus-relatos/:id e /meus-relatos/:id/editar.
-Lista prioriza foto, título, local, categoria, data e Pendente. IntersectionObserver
+Lista prioriza foto, título, local, categoria, data e estado. IntersectionObserver
 inicia fotos apenas quando os cards entram na viewport. Corte 4:3 na lista;
 detalhe mantém proporção reservada 4:3 com object-contain para imagem inteira.
 Falha de foto é independente dos dados e não inventa evidência visual.
@@ -70,11 +78,14 @@ cancelamento e ações concorrentes. Cancelar edição/exclusão não envia muta
 OccurrenceHttpTests usa PostgreSQL descartável, JWT/login/sessões e cadeia real,
 com double apenas do provedor. Cobre descrição opcional/Unicode, isolamento,
 foto, versões, edição/exclusão, corrida e rollback no commit, backoff e restart.
-OccurrenceWritePolicyTests testa estado disallowed na fronteira de domínio:
-null não é estado persistido. O banco só admite PENDING; prova integrada de outro
-estado real fica para a evolução aprovada da moderação.
+OccurrenceWritePolicyTests testa recusa de escrita fora de PENDING.
+OccurrenceHistoryIntegrationTests verifica imutabilidade, outbox, isolamento do
+histórico, rejeitados fora das consultas públicas e upgrade V6→V7 com dados.
+Fixtures SQL não comprovam autorização/transação do comando administrativo,
+que permanece pendente da identidade compartilhada.
 Testes frontend usam páginas reais, Query/AuthProvider e fetch controlado.
 
-R07 ainda não fornece consulta pública: integrar remoção/invalidação nessa camada
-quando existir, sem criar consulta pública fictícia. Ambiente publicado, aparelho
-físico e aceite integral #23 requerem evidências próprias na MR/issue.
+A consulta pública atual usa `/api/public/occurrences`, inclusive detalhe e foto,
+e omite rejeitados. O futuro comando administrativo deve invalidar seus caches.
+Ambiente publicado, aparelho físico e aceite integral #23 requerem evidências
+próprias na MR/issue.

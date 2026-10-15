@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../features/auth/auth'
 import { PrivateRequestError } from '../lib/api'
 import { OccurrencePhoto } from '../features/occurrence/OccurrencePhoto'
+import { OccurrenceHistory } from '../features/occurrence/OccurrenceHistory'
 import { Link, useNavigate, useParams } from 'react-router'
 import { Alert, StatusBadge } from '../components/ui/Feedback'
 import { Card } from '../components/ui/Card'
@@ -62,6 +63,7 @@ export function OccurrenceDetailPage() {
         <div className="mt-8 flex flex-wrap items-start justify-between gap-3"><div><p className="mb-2 text-small font-bold text-brand-default">Relato registrado</p><h1 id="detail-title" className="mb-0">{report.title}</h1></div><StatusBadge tone="info" label={occurrenceStatusLabel(report.status)} /></div>
         <OccurrencePhoto report={report} full />
         <Card className="mt-6"><dl className="grid gap-5"><div><dt className="font-bold">Categoria</dt><dd className="m-0">{report.categoryName}</dd></div>{report.description && <div><dt className="font-bold">Detalhes</dt><dd className="m-0 whitespace-pre-wrap">{report.description}</dd></div>}<div><dt className="font-bold">Localização</dt><dd className="m-0">{report.neighborhood} · {report.reference}</dd></div><div><dt className="font-bold">Data do registro</dt><dd className="m-0">{occurrenceDate(report.createdAt)}</dd></div></dl></Card>
+        <OccurrenceHistory events={report.history ?? []} />
         {notice && <Alert tone="danger" role="alert">{notice} <Button variant="quiet" onClick={() => { void query.refetch() }}>Consultar novamente</Button></Alert>}
         {report.status === 'PENDING' && <div className="mt-5 flex flex-wrap gap-3">
           <Link className={buttonStyles()} to={`/meus-relatos/${report.id}/editar`}>Editar relato</Link>

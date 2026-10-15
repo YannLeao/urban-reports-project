@@ -1,5 +1,9 @@
 # Migrations de banco de dados
 
+V7 prepara os quatro estados, histórico imutável e intenção durável de
+notificações. Não habilita comando administrativo. Proteções, integração
+pendente e coordenação de numeração estão no [contrato de moderação](occurrence-moderation.md).
+
 O Flyway é a única fonte de verdade do schema. O Hibernate valida se o schema é
 compatível com as entidades existentes, mas não cria, atualiza nem remove
 estruturas.

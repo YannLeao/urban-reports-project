@@ -18,6 +18,9 @@ automático.
 Login em `/entrar` e sessão revogável em `/minha-conta` estão implementados.
 A [consulta privada de relatos](docs/occurrence-query.md) oferece listagem e
 fotografia, detalhe, edição e exclusão dos próprios relatos pendentes em `/meus-relatos`.
+A [base de moderação](docs/occurrence-moderation.md) inclui estados, histórico
+privado e intenção de notificação; o fluxo administrativo aguarda identidade
+administrativa compartilhada e a central de notificações.
 O registro autenticado em `/registrar-ocorrencia` integra categorias, fotografia e
 persistência. Consulte o [contrato de ocorrência](docs/occurrence-registration.md):
 a implementação não comprova, por si só, o aceite publicado ou a captura física.

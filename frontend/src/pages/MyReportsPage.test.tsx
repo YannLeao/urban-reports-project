@@ -103,6 +103,19 @@ test('malformed detail id does not issue a private occurrence request', async ()
   expect(fetchMock).toHaveBeenCalledTimes(1)
 })
 
+test.each(['IN_ANALYSIS', 'RESOLVED', 'REJECTED'])('author reads %s history without edit or delete controls', async status => {
+  fetchMock.mockResolvedValueOnce(Response.json({ ...report, status, version: 1, history: [{
+    id: '6e85aa3d-19e3-42a3-8861-c435ff5908af', previousStatus: status === 'RESOLVED' ? 'IN_ANALYSIS' : 'PENDING', newStatus: status,
+    occurredAt: '2026-10-15T12:00:00Z', responsible: 'Moderação', reason: status === 'REJECTED' ? 'Imagem não corresponde ao local.' : null,
+  }] }))
+  renderPage(`/meus-relatos/${report.id}`)
+  expect(await screen.findByRole('heading', { name: 'Histórico do relato' })).toBeVisible()
+  expect(screen.getByText(/Moderação/)).toBeVisible()
+  expect(screen.queryByRole('link', { name: 'Editar relato' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Excluir relato' })).not.toBeInTheDocument()
+  if (status === 'REJECTED') expect(screen.getByText(/Justificativa: Imagem não corresponde ao local/)).toBeVisible()
+})
+
 function mockFlow() {
   let current = { ...report }
   let removed = false

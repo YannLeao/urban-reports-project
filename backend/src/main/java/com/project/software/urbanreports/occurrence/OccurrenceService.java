@@ -19,14 +19,16 @@ public class OccurrenceService {
     private final ImageStorageService images;
     private final Clock clock;
     private final UploadJournal journal;
+    private final OccurrenceHistoryRepository history;
 
     public OccurrenceService(OccurrenceRepository occurrences, OccurrenceCategoryRepository categories,
-            ImageStorageService images, Clock clock, UploadJournal journal) {
+            ImageStorageService images, Clock clock, UploadJournal journal, OccurrenceHistoryRepository history) {
         this.occurrences = occurrences;
         this.categories = categories;
         this.images = images;
         this.clock = clock;
         this.journal = journal;
+        this.history = history;
     }
 
     public OccurrenceResponse create(UUID authorId, OccurrenceRequest request, MultipartFile image) {
@@ -54,7 +56,9 @@ public class OccurrenceService {
     @Transactional(readOnly = true)
     public OccurrenceResponse findById(UUID authorId, UUID occurrenceId) {
         return occurrences.findByIdAndAuthorId(occurrenceId, authorId)
-                .map(OccurrenceResponse::from)
+                .map(occurrence -> OccurrenceResponse.from(occurrence,
+                        history.findByOccurrenceIdOrderByOccurredAtAscVersionAsc(occurrenceId).stream()
+                                .map(OccurrenceHistory::authorEvent).toList()))
                 .orElseThrow(() -> new OccurrenceNotFoundException(occurrenceId));
     }
 

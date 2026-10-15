@@ -29,7 +29,7 @@ public class PublicOccurrenceService {
         if (size < 1 || size > MAX_SIZE) fields.put("size", List.of("Size must be between 1 and " + MAX_SIZE));
         if (!fields.isEmpty()) throw new OccurrenceValidationException(fields);
         var sort = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
-        var result = occurrences.findAllBy(PageRequest.of(page, size, sort));
+        var result = occurrences.findByStatusNot(OccurrenceStatus.REJECTED, PageRequest.of(page, size, sort));
         return new PublicOccurrencePage(
                 result.getContent().stream().map(PublicOccurrenceResponse::from).toList(),
                 result.getNumber(), result.getSize(), result.getTotalElements(), result.getTotalPages());
@@ -37,12 +37,13 @@ public class PublicOccurrenceService {
 
     @Transactional(readOnly = true)
     public PublicOccurrenceResponse find(UUID id) {
-        return occurrences.findById(id).map(PublicOccurrenceResponse::from)
+        return occurrences.findByIdAndStatusNot(id, OccurrenceStatus.REJECTED).map(PublicOccurrenceResponse::from)
                 .orElseThrow(() -> new OccurrenceNotFoundException(id));
     }
 
     public StoredImageContent image(UUID id) {
-        String key = occurrences.findById(id).orElseThrow(() -> new OccurrenceNotFoundException(id)).getImageKey();
+        String key = occurrences.findByIdAndStatusNot(id, OccurrenceStatus.REJECTED)
+                .orElseThrow(() -> new OccurrenceNotFoundException(id)).getImageKey();
         return images.loadOccurrence(key);
     }
 }

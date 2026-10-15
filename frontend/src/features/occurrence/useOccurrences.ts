@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
 import { useAuth } from '../auth/auth'
-import { occurrenceSchema, occurrencesSchema } from './occurrence'
+import { occurrenceDetailSchema, occurrencesSchema } from './occurrence'
 
 export function useOccurrences() {
   const { state, request } = useAuth()
@@ -31,7 +31,7 @@ export function useOccurrence(id: string | undefined) {
       const occurrenceId = z.uuid().parse(id)
       const response = await request(`/api/occurrences/${occurrenceId}`, 'GET', signal)
       const payload: unknown = await response.json()
-      return occurrenceSchema.parse(payload)
+      return occurrenceDetailSchema.parse(payload)
     },
     retry: false,
     staleTime: 0,
