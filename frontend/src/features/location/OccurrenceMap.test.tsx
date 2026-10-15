@@ -8,7 +8,7 @@ import type { Leaflet, MapInitializer } from './MapCanvas'
 const { instance, library, events } = vi.hoisted(() => {
   const events = new Map<string, () => void>()
   const instance = {
-    fitBounds: vi.fn(), setView: vi.fn(), on: vi.fn((event: string, callback: () => void) => events.set(event, callback)),
+    fitBounds: vi.fn(), setView: vi.fn(), off: vi.fn(), on: vi.fn((event: string, callback: () => void) => events.set(event, callback)),
     project: () => ({ x: 100, y: 100 }), getZoom: () => 14,
     getCenter: () => ({ wrap: () => ({ lat: -8, lng: -36 }) }), getContainer: () => document.createElement('div'),
   }
@@ -48,4 +48,16 @@ test('manual exploration reports the new viewport for navigation without changin
   await waitFor(() => expect(events.has('moveend')).toBe(true))
   events.get('moveend')!()
   expect(changed).toHaveBeenCalledWith({ latitude: -8, longitude: -36, zoom: 14 })
+})
+test('a queued movement after disposal never reads the removed map or changes navigation', async () => {
+  const changed = vi.fn()
+  const view = render(<OccurrenceMap items={[point]} selected={null} onView={changed} />)
+  await waitFor(() => expect(events.has('moveend')).toBe(true))
+  const queued = events.get('moveend')!
+  view.unmount()
+  expect(instance.off).toHaveBeenCalledWith('moveend', queued)
+  const read = vi.spyOn(instance, 'getCenter').mockImplementation(() => { throw new Error('Map already removed') })
+  expect(() => queued()).not.toThrow()
+  expect(changed).not.toHaveBeenCalled()
+  read.mockRestore()
 })

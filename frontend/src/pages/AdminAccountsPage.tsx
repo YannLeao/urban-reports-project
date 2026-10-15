@@ -17,6 +17,8 @@ export function AdminAccountsPage() {
   const client = useQueryClient()
   const [page, setPage] = useState(0)
   const query = useAdministrativeQuery('admins', page, `/api/super-admin/admins?page=${page}&size=20`, adminPageSchema)
+  const [creating, setCreating] = useState(false)
+  const createTrigger = useRef<HTMLButtonElement>(null)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [pending, setPending] = useState(false)
@@ -32,6 +34,7 @@ export function AdminAccountsPage() {
   const dialog = useRef<HTMLDialogElement>(null)
   const cancel = useRef<HTMLButtonElement>(null)
   const trigger = useRef<HTMLButtonElement | null>(null)
+  useEffect(() => { if (creating) nameField.current?.focus() }, [creating])
   useEffect(() => () => controller.current?.abort(), [])
   useEffect(() => { if (message) summary.current?.focus() }, [message])
   async function action(kind: 'create' | 'resend' | 'deactivate', admin?: Admin) {
@@ -60,7 +63,7 @@ export function AdminAccountsPage() {
         setFailed(result.mailStatus === 'FAILED')
         setMessage(result.mailStatus === 'ACCEPTED' ? 'Convite aceito pelo servidor de e-mail. Isso não confirma o recebimento.'
           : 'Conta aguardando ativação. O envio do convite falhou. Use Reenviar convite para tentar novamente.')
-        if (kind === 'create') { setName(''); setEmail('') }
+        if (kind === 'create') { setName(''); setEmail(''); setCreating(false) }
       }
       await client.invalidateQueries({ queryKey: ['private', state.user.id, 'admins'] })
     } catch (error) {
@@ -75,20 +78,26 @@ export function AdminAccountsPage() {
   }
   return <section className="py-8" aria-labelledby="admins-title">
     <h1 id="admins-title">Administradores</h1>
-    <p>Crie uma conta com e-mail novo. O destinatário define a própria senha pelo convite.</p>
+    <p>Consulte as contas e gerencie os convites de acesso.</p>
+    <Button ref={createTrigger} disabled={pending} aria-expanded={creating} aria-controls="create-admin" onClick={() => setCreating(true)}>Criar administrador</Button>
+    <section id="create-admin" hidden={!creating} className="my-6 max-w-reading rounded-card border border-border-subtle bg-surface-raised p-4 sm:p-6" aria-labelledby="create-admin-title">
+    <h2 id="create-admin-title" className="text-title">Novo administrador</h2>
+    <p className="text-small">Use um e-mail novo. A pessoa define a senha pelo convite.</p>
     <form onSubmit={event => { event.preventDefault(); void action('create') }} noValidate className="grid gap-4">
       <Input ref={nameField} label="Nome do administrador" autoComplete="name" required disabled={pending} value={name} onChange={event => setName(event.target.value)} error={errors.name} />
       <Input ref={emailField} label="E-mail do administrador" type="email" autoComplete="email" required disabled={pending} value={email} onChange={event => setEmail(event.target.value)} error={errors.email} />
-      <Button type="submit" loading={pending}>Criar administrador</Button>
+      <Button type="submit" loading={pending}>Enviar convite</Button>
+      <Button variant="quiet" disabled={pending} onClick={() => { setCreating(false); createTrigger.current?.focus() }}>Fechar formulário</Button>
     </form>
+    </section>
     {message && <Alert className="mt-5" tone={failed ? 'danger' : 'info'} role={failed ? 'alert' : 'status'} ref={summary} tabIndex={-1}>{message}</Alert>}
     <h2 className="mt-8">Contas administrativas</h2>
     {query.isPending && <p role="status">Carregando administradores…</p>}
     {query.isError && <Alert tone="danger" role="alert">Não conseguimos carregar os administradores. <Button onClick={() => { void query.refetch() }}>Tentar novamente</Button></Alert>}
     {!query.isError && query.data && <>
       {query.data.items.length === 0 && <p>Nenhum administrador nesta página.</p>}
-      <div className="grid gap-5">{query.data.items.map(admin => <Card key={admin.id} aria-label={admin.name}>
-        <h3>{admin.name}</h3><p>{admin.email}</p><p className="font-bold">{accountStatusLabels[admin.status]}</p>
+      <div className="grid gap-4 lg:grid-cols-2">{query.data.items.map(admin => <Card key={admin.id} aria-label={admin.name} density="compact" className="min-w-0 wrap-anywhere">
+        <h3 className="mb-2 text-title">{admin.name}</h3><p>{admin.email}</p><p className="font-bold">{accountStatusLabels[admin.status]}</p>
         <div className="flex flex-wrap gap-3">
           {admin.status === 'PENDING_ACTIVATION' && <Button variant="secondary" aria-label={`Reenviar convite para ${admin.email}`} disabled={pending} onClick={() => { void action('resend', admin) }}>Reenviar convite</Button>}
           {admin.status !== 'DISABLED' && <Button variant="quiet" aria-label={`Desativar ${admin.email}`} disabled={pending} onClick={event => {

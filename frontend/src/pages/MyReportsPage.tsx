@@ -1,3 +1,4 @@
+import { OccurrenceStatus } from '../features/occurrence/OccurrenceStatus'
 import { OwnMapView } from '../features/occurrence/OccurrenceMapView'
 import { QueryViewToggle } from '../features/occurrence/QueryViewToggle'
 import { useEffect } from 'react'
@@ -5,12 +6,11 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../features/auth/auth'
 import { OccurrencePhoto } from '../features/occurrence/OccurrencePhoto'
 import { Link, useLocation, useSearchParams } from 'react-router'
-import { Alert, StatusBadge } from '../components/ui/Feedback'
+import { Alert } from '../components/ui/Feedback'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { buttonStyles } from '../components/ui/button-styles'
 import { useOccurrences } from '../features/occurrence/useOccurrences'
-import { occurrenceDate, occurrenceStatusLabel } from '../features/occurrence/occurrence'
 
 export function MyReportsPage() {
   const [params] = useSearchParams()
@@ -39,13 +39,15 @@ export function MyReportsPage() {
       {error && <Button className="mt-4" variant="secondary" loading={query.isFetching} onClick={() => { void query.refetch() }}>Tentar novamente</Button>}
       {reports?.length === 0 && <Card className="mt-8"><h2 className="mt-0">Você ainda não registrou relatos</h2><p>Quando você enviar um problema, ele aparecerá aqui.</p><Link className={buttonStyles()} to="/registrar-ocorrencia">Registrar problema</Link></Card>}
       {reports && reports.length > 0 && <div className="mt-8 grid gap-4" aria-label="Relatos registrados">
-        {reports.map(report => <Card key={report.id}>
-          <OccurrencePhoto report={report} />
-          <div className="flex flex-wrap items-start justify-between gap-3"><h2 className="m-0 text-xl">{report.title}</h2><StatusBadge tone="info" label={occurrenceStatusLabel(report.status)} /></div>
-          <p className="mb-1">{report.neighborhood} · {report.reference}</p>
-          <p className="text-small text-text-secondary">{report.categoryName} · {occurrenceDate(report.createdAt)}</p>
-          <Link className={`${buttonStyles('secondary')} mt-5`} to={`/meus-relatos/${report.id}`} state={{ from: `${location.pathname}${location.search}` }} aria-label={`Abrir relato: ${report.title}`}>Ver detalhes</Link>
-        </Card>)}
+        {reports.map(report => <article key={report.id} className="min-w-0 rounded-card border border-border-subtle bg-surface-raised shadow-card">
+          <OccurrencePhoto report={report} flush />
+          <div className="grid min-w-0 gap-3 p-4 sm:p-5">
+            <h2 className="m-0 text-title"><Link className="flex min-h-target items-center" to={`/meus-relatos/${report.id}`} state={{ from: `${location.pathname}${location.search}` }}>{report.title}</Link></h2>
+            <div><OccurrenceStatus status={report.status} /></div>
+            <p className="m-0">{report.neighborhood}</p>
+            <p className="m-0 text-small text-text-secondary">{report.categoryName} · <time dateTime={report.createdAt}>{new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(new Date(report.createdAt))}</time></p>
+          </div>
+        </article>)}
       </div>}
       </>}
     </div>

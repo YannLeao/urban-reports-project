@@ -10,7 +10,7 @@ import { OccurrencePhoto } from '../features/occurrence/OccurrencePhoto'
 import { occurrenceSchema as fullOccurrenceSchema, type Occurrence } from '../features/occurrence/occurrence'
 import { Alert } from '../components/ui/Feedback'
 import { Button } from '../components/ui/Button'
-import { Card } from '../components/ui/Card'
+import { OccurrenceStatus } from '../features/occurrence/OccurrenceStatus'
 import { Input, Select, Textarea } from '../components/ui/Field'
 import { ImagePicker } from '../features/image/ImagePicker'
 import { validateImageFile } from '../features/image/image-file'
@@ -56,6 +56,7 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
 
   useEffect(() => {
     if (notice) feedback.current?.focus()
+    else if (errors.image) form.current?.querySelector<HTMLElement>('[aria-label="Selecionar fotografia"] button')?.focus()
     else if (Object.keys(errors).length) form.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
   }, [notice, errors])
 
@@ -76,7 +77,7 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
     if (!validOccurrenceText(description, 0, 1000)) next.description = 'Use no máximo 1000 caracteres.'
     if (!validOccurrenceText(neighborhood, 2, 100)) next.neighborhood = 'Use entre 2 e 100 caracteres.'
     if (!validOccurrenceText(reference, 5, 200)) next.reference = 'Use entre 5 e 200 caracteres.'
-    if (!existing && !location) next.location = 'Confirme o local real da ocorrência.'
+    if (!existing && !location) next.location = 'Confirme o local real do problema.'
     if (!image && !existing) next.image = 'Escolha exatamente uma imagem.'
     else if (image) {
       const reason = validateImageFile(image)
@@ -138,57 +139,63 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
         }
         if (error.status === 412 || error.status === 428) setNotice('Este relato mudou. Atualize a página antes de continuar.')
         else if (error.status === 409) setNotice('Este relato não pode mais ser alterado.')
-        else if (error.status === 401) setNotice('Sua sessão terminou. Entre novamente para registrar a ocorrência.')
+        else if (error.status === 401) setNotice('Sua sessão terminou. Entre novamente para enviar o relato.')
         else if (error.status === 413 || error.code === 'IMAGE_TOO_LARGE') setNotice('A imagem ou o envio excedeu o limite. Escolha uma foto de até 5 MiB.')
         else if (error.code === 'IMAGE_STORAGE_UNAVAILABLE') setNotice('O serviço de fotos está indisponível. Seus dados foram mantidos; tente novamente mais tarde.')
         else if (error.status === 400) setNotice('Não foi possível enviar. Confira os campos e a fotografia antes de tentar novamente.')
-        else setNotice(existing ? 'Não foi possível confirmar a edição. Consulte o relato novamente antes de tentar outra vez.' : 'O serviço não confirmou o registro. Seus dados foram mantidos. Tentar novamente pode criar uma ocorrência duplicada.')
-      } else setNotice(existing ? 'Não foi possível confirmar a edição. Consulte o relato novamente antes de tentar outra vez.' : 'Não foi possível confirmar o registro. Confira sua conexão. Seus dados foram mantidos; reenviar pode criar uma ocorrência duplicada.')
+        else setNotice(existing ? 'Não foi possível confirmar a edição. Consulte o relato novamente antes de tentar outra vez.' : 'O serviço não confirmou o registro. Seus dados foram mantidos. Tentar novamente pode criar um relato duplicado.')
+      } else setNotice(existing ? 'Não foi possível confirmar a edição. Consulte o relato novamente antes de tentar outra vez.' : 'Não foi possível confirmar o registro. Confira sua conexão. Seus dados foram mantidos; reenviar pode criar um relato duplicado.')
       setErrors(mapped)
     } finally { submitting.current = false; setPending(false) }
   }
 
   if (registered) return <section className="max-w-reading py-8">
     <h1 tabIndex={-1} ref={node => node?.focus()}>Relato registrado</h1>
-    <p className="text-lead">{registered.title}</p><p>Pendente</p>
+    <p className="text-lead">{registered.title}</p><OccurrenceStatus status="PENDING" />
     <div className="flex flex-wrap gap-3">
       <Link className={buttonStyles()} to={`/meus-relatos/${registered.id}`}>Ver relato</Link>
       <Link className={buttonStyles('secondary')} to="/meus-relatos">Meus relatos</Link>
-      <Button variant="quiet" onClick={() => setRegistered(null)}>Registrar outro problema</Button>
+      <Button variant="quiet" onClick={() => setRegistered(null)}>Relatar outro problema</Button>
     </div>
   </section>
 
   return <section className="py-8" aria-labelledby="report-title">
     <div className="max-w-reading">
       <p className="mb-2 text-small font-bold text-brand-default">Registro cidadão</p>
-      <h1 id="report-title">{existing ? 'Editar relato' : 'Registrar um problema urbano'}</h1>
-      <p className="text-lead text-text-secondary">Conte o que aconteceu e indique um ponto de referência para a equipe localizar o problema.</p>
+      <h1 id="report-title">{existing ? 'Editar relato' : 'Relatar problema'}</h1>
+      <p className="text-lead text-text-secondary">Mostre o problema, marque o local e conte o essencial.</p>
       {notice && <Alert ref={feedback} tabIndex={-1} className="mt-6" tone={success ? 'success' : 'danger'} role={success ? 'status' : 'alert'}>{notice}</Alert>}
-      <Card className="mt-6">
+      <div className="mt-6">
         <form ref={form} aria-busy={pending} className="grid min-w-0 gap-5" onSubmit={event => { void submit(event) }} noValidate>
+          <section aria-labelledby="photo-title" className={errors.image ? 'rounded-control border border-feedback-danger-foreground p-3' : ''}>
+            <h2 id="photo-title" className="mb-2 text-title">1. Mostre o problema</h2><p className="text-small text-text-secondary">{existing ? 'A foto atual será mantida se você não trocar.' : 'Uma foto é obrigatória.'}</p>
+            {existing && !image && <OccurrencePhoto report={existing} full />}
+            <ImagePicker aria-describedby={errors.image ? 'report-photo-error' : undefined} value={image} onChange={setImage} disabled={pending} onValidationChange={busy => {
+              validatingImage.current = busy
+              setImageBusy(busy)
+            }} />
+            {errors.image && <p id="report-photo-error" className="mt-2 text-small text-feedback-danger-foreground" role="alert">{errors.image}</p>}
+          </section>
+          <section aria-labelledby="location-title" className="grid min-w-0 gap-4 border-t border-border-subtle pt-6">
+            <h2 id="location-title" className="mb-0 text-title">2. Onde fica?</h2>
+          <LocationPicker value={location} onChange={setLocation} disabled={pending} error={errors.location} focusError={!errors.image} />
+          <Input label="Bairro" value={neighborhood} error={errors.neighborhood} disabled={pending} onChange={event => setNeighborhood(event.target.value)} />
+          <Input label="Ponto de referência" description="Informe rua, número, esquina ou outro detalhe que ajude a encontrar o local." value={reference} error={errors.reference} disabled={pending} onChange={event => setReference(event.target.value)} />
+          </section>
+          <section aria-labelledby="information-title" className="grid min-w-0 gap-4 border-t border-border-subtle pt-6">
+            <h2 id="information-title" className="mb-0 text-title">3. Conte o essencial</h2>
           <Select label="Categoria" value={categoryId} error={errors.categoryId} disabled={loadingCategories || pending} onChange={event => setCategoryId(event.target.value)}>
             <option value="">Selecione uma categoria</option>
             {categories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
           </Select>
           <Input label="Título" value={title} error={errors.title} disabled={pending} onChange={event => setTitle(event.target.value)} />
           <Textarea label="Detalhes (opcional)" description={`Se quiser, conte algo que a foto não mostra. ${Array.from(cleanOccurrenceText(description)).length}/1000`} value={description} error={errors.description} disabled={pending} onChange={event => setDescription(event.target.value)} />
-          <Input label="Bairro" value={neighborhood} error={errors.neighborhood} disabled={pending} onChange={event => setNeighborhood(event.target.value)} />
-          <Input label="Ponto de referência" description="Informe rua, número, esquina ou outro detalhe que ajude a encontrar o local." value={reference} error={errors.reference} disabled={pending} onChange={event => setReference(event.target.value)} />
-          <LocationPicker value={location} onChange={setLocation} disabled={pending} error={errors.location} />
-          <div className={errors.image ? 'rounded-control border border-feedback-danger-foreground p-3' : ''}>
-            <p className="mb-2 font-bold">Foto do problema</p>
-            {existing && !image && <OccurrencePhoto report={existing} full />}
-            <ImagePicker value={image} onChange={setImage} disabled={pending} onValidationChange={busy => {
-              validatingImage.current = busy
-              setImageBusy(busy)
-            }} />
-            {errors.image && <p className="mt-2 text-small text-feedback-danger-foreground" role="alert">{errors.image}</p>}
-          </div>
-          <Button type="submit" loading={pending} disabled={loadingCategories || imageBusy || pending}>{pending ? 'Enviando…' : existing ? 'Salvar relato' : 'Enviar ocorrência'}</Button>
+          </section>
+          <Button type="submit" loading={pending} disabled={loadingCategories || imageBusy || pending}>{pending ? 'Enviando…' : existing ? 'Salvar relato' : 'Enviar relato'}</Button>
           {existing && (pending ? <Button variant="quiet" disabled>Cancelar edição</Button> : <Link className={buttonStyles('quiet')} to={`/meus-relatos/${existing.id}`} state={{ from }}>Cancelar edição</Link>)}
           {existing && notice && <Link to={`/meus-relatos/${existing.id}`}>Consultar relato novamente</Link>}
         </form>
-      </Card>
+      </div>
     </div>
   </section>
 }

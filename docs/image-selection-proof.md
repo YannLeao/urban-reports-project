@@ -47,7 +47,7 @@ exibida durante a validação da próxima escolha.
 A prévia usa `object-fit: contain`, preservando enquadramento. Botões/feedback,
 foco, espaçamento e cores reutilizam o design system. Nomes acessíveis e textos
 associados orientam os controles; erro usa alert e validação usa status. Após
-remover, o foco retorna a Escolher imagem.
+remover, o foco retorna a Tirar foto.
 
 ## Câmera e limites
 
@@ -93,3 +93,8 @@ e `onValidationChange?: (validating: boolean) => void` para notificar o consumid
 sincronamente no início/fim da validação e na invalidação de leituras. Os props
 são opcionais e preservam a prova técnica. O formulário usa essa notificação
 para bloquear submit durante troca de foto e disabled durante upload.
+
+A apresentação compartilhada prioriza “Tirar foto”, com alternativa “Escolher da
+galeria”. A prévia inteira e os controles de troca/remoção permanecem; nome do
+arquivo e bytes não aparecem permanentemente. No produto, a seleção inicia o
+[registro em página única](frontend-report-experience.md).

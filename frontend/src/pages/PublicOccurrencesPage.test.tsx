@@ -32,9 +32,9 @@ test('lista pública carrega sem credenciais e liga ao detalhe', async () => {
   fetchMock.mockImplementation(async () => Response.json(pageOf([item])))
   renderPage('/ocorrencias')
   expect(await screen.findByRole('heading', { name: item.title })).toBeVisible()
-  expect(screen.getByText('Centro · Praça central')).toBeVisible()
+  expect(screen.getByText('Centro')).toBeVisible()
   expect(screen.getByText('Pendente')).toBeVisible()
-  expect(screen.getByRole('link', { name: `Abrir ocorrência: ${item.title}` })).toHaveAttribute('href', `/ocorrencias/${item.id}`)
+  expect(screen.getByRole('link', { name: item.title })).toHaveAttribute('href', `/ocorrencias/${item.id}`)
   const [url, options] = publicCalls()[0]
   expect(String(url)).toBe('https://api.example.com/api/public/occurrences?page=0&size=20')
   expect(options).toMatchObject({ credentials: 'omit' })
@@ -44,7 +44,7 @@ test('lista pública carrega sem credenciais e liga ao detalhe', async () => {
 test('lista vazia mostra mensagem amigável', async () => {
   fetchMock.mockImplementation(async () => Response.json(pageOf([])))
   renderPage('/ocorrencias')
-  expect(await screen.findByText('Ainda não há ocorrências públicas')).toBeVisible()
+  expect(await screen.findByText('Ainda não há relatos públicos')).toBeVisible()
 })
 
 test('paginação usa a URL e pede a página seguinte', async () => {
@@ -62,10 +62,10 @@ test('falha mostra mensagem segura e permite tentar de novo', async () => {
   fetchMock.mockImplementation(async () => Response.json(pageOf([])))
   renderPage('/ocorrencias')
   const alert = await screen.findByRole('alert')
-  expect(alert).toHaveTextContent('Não conseguimos carregar as ocorrências')
+  expect(alert).toHaveTextContent('Não conseguimos carregar os relatos')
   expect(alert).not.toHaveTextContent('detalhe interno')
   await userEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }))
-  expect(await screen.findByText('Ainda não há ocorrências públicas')).toBeVisible()
+  expect(await screen.findByText('Ainda não há relatos públicos')).toBeVisible()
 })
 
 test('detalhe público mostra os dados e a foto pública', async () => {
@@ -82,7 +82,7 @@ test('detalhe 404 mostra "não encontrada" sem expor detalhes', async () => {
   fetchMock.mockImplementation(async () => Response.json({ message: 'detalhe interno' }, { status: 404 }))
   renderPage(`/ocorrencias/${item.id}`)
   const alert = await screen.findByRole('alert')
-  expect(alert).toHaveTextContent('Esta ocorrência não foi encontrada')
+  expect(alert).toHaveTextContent('Este relato não foi encontrado')
   expect(alert).not.toHaveTextContent('detalhe interno')
 })
 

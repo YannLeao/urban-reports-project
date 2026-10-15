@@ -45,8 +45,8 @@ vigente. Relatos finais legados não ganham autorização especial.
 ## Interação, acessibilidade e falhas
 
 `features/location/LocationPicker` recebe `value: GeographicPoint | null`,
-`onChange`, `disabled` e `error`. Abrir ou mover o mapa não altera o valor.
-Clique confirma explicitamente o local; campos Latitude/Longitude permitem
+`onChange`, `disabled`, `error` e `focusError` (padrão true). Abrir ou mover o mapa não altera o valor.
+Clique confirma explicitamente o local; a expansão “Informar coordenadas” contém campos Latitude/Longitude para
 ajustar por teclado e o botão “Confirmar coordenadas” valida o par. O resumo
 identifica o local efetivamente confirmado. Rascunhos textuais/GPS permanecem
 separados: sem confirmação, o envio continua usando somente o ponto confirmado
@@ -54,11 +54,13 @@ anterior, quando houver. Cadastro sem ponto foca Latitude e não envia a foto.
 
 GPS só usa `getCurrentPosition` após “Usar minha localização”, em contexto seguro
 (HTTPS ou localhost). Não há solicitação inicial, watchPosition, geocodificação
-ou coleta contínua. Resposta preenche uma sugestão textual e mostra precisão
-estimada em metros; exige confirmação. Negação, timeout, indisponibilidade e
+ou coleta contínua. Resposta válida centraliza o mapa e mostra um círculo tracejado de sugestão,
+com precisão estimada em metros e ações “Confirmar este local”/“Descartar sugestão”.
+Somente confirmação substitui o ponto. Campos numéricos recebem o rascunho,
+sem atualizar o valor confirmado. Negação, timeout, indisponibilidade e
 falta de suporte preservam o ponto anterior e a seleção manual. Resposta tardia
-após desmontagem/bloqueio é ignorada. GPS não centraliza nem envia a sugestão ao
-provedor de tiles antes da confirmação.
+após desmontagem/bloqueio é ignorada. Ao centralizar uma sugestão, o provedor de tiles recebe seu enquadramento antes
+da confirmação; não recebe a credencial da API nem o conteúdo do relato.
 
 `LocationMap` importa Leaflet e seu CSS sob demanda. O marcador usa imagens do
 próprio pacote, empacotadas pelo Vite; não usa CDN nem os SVGs locais de docs.

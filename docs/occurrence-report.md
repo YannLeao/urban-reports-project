@@ -66,7 +66,7 @@ reescreve histórico. Duração zero é válida. Sem amostra válida, média nul
 Rejeitadas entre todos os relatos = `100.0 × R / N`, R sendo a contagem atual
 REJECTED. N positivo e R zero retorna 0; N zero retorna null. A interface arredonda
 somente a apresentação do percentual (uma casa decimal) e da duração legível;
-também exibe segundos com precisão significativa. Null aparece como “Sem dados”,
+mantém segundos com precisão significativa na ajuda expansível. Null aparece como “Sem dados”,
 sem confundir com zero ou falha de rede.
 
 ## Consistência, eficiência e cache

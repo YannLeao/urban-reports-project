@@ -1,3 +1,4 @@
+import { PasswordField } from '../components/ui/PasswordField'
 import { PasswordRecoveryAccess } from '../app/ProductIntegrations'
 import { useRef, useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation } from 'react-router'
@@ -41,11 +42,11 @@ export function LoginPage() {
       {error && <Alert tone="danger" role="alert" ref={summary} tabIndex={-1}>{error}</Alert>}
       <Input label="E-mail" name="email" type="email" autoComplete="username" required maxLength={254}
         value={email} disabled={pending} onChange={(event) => setEmail(event.target.value)} />
-      <Input label="Senha" name="password" type="password" autoComplete="current-password" required maxLength={256}
+      <PasswordField label="Senha" name="password" autoComplete="current-password" required maxLength={256}
         value={password} disabled={pending} onChange={(event) => setPassword(event.target.value)} />
       <PasswordRecoveryAccess />
       <Button type="submit" loading={pending}>{pending ? 'Entrando…' : 'Entrar'}</Button>
     </form>
-    <p className="mt-6">Ainda não tem conta? <Link to="/cadastro">Criar conta</Link></p>
+    <p className="mt-6">Ainda não tem conta? <Link className="inline-flex min-h-target items-center" to="/cadastro" state={{ returnTo }}>Criar conta</Link></p>
   </section>
 }

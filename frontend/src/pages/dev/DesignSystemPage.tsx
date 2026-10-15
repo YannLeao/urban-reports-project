@@ -1,3 +1,5 @@
+import { PasswordField } from '../../components/ui/PasswordField'
+import { OccurrenceStatus } from '../../features/occurrence/OccurrenceStatus'
 import { PasswordRecoveryAccess, NotificationsAccess } from '../../app/ProductIntegrations'
 import { Icon } from '../../components/ui/Icon'
 import { OccurrencePin } from '../../features/location/pins/OccurrencePin'
@@ -72,20 +74,20 @@ export default function DesignSystemPage() {
       </div></Card>
       <Card><h2>Cadastro de cidadão</h2><div className="grid gap-5">
         <Input label="E-mail de exemplo" type="email" autoComplete="off" error="Este e-mail já está cadastrado." />
-        <Input label="Senha de exemplo" type="password" autoComplete="off" description="De 15 a 128 caracteres. Espaços e acentos são permitidos." />
+        <PasswordField label="Senha de exemplo" autoComplete="off" description="De 15 a 128 caracteres. Espaços e acentos são permitidos." />
         <Alert tone="success" role="note">Exemplo: conta criada. O cadastro não inicia uma sessão.</Alert>
         <Alert tone="warning" role="note">Exemplo de falha de rede: não conseguimos confirmar o resultado. A conta pode ter sido criada.</Alert>
       </div></Card>
       <Card><h2>Login e sessão</h2><div className="grid gap-5">
         <Input label="E-mail para entrar (exemplo)" type="email" autoComplete="off" />
-        <Input label="Senha para entrar (exemplo)" type="password" autoComplete="off" />
+        <PasswordField label="Senha para entrar (exemplo)" autoComplete="off" />
         <Button loading>Entrando…</Button>
         <Alert tone="danger" role="note">E-mail ou senha incorretos.</Alert>
         <Alert tone="warning" role="note">Não foi possível validar sua sessão. Confira sua conexão.</Alert>
         <Alert tone="warning" role="note">Não foi possível confirmar o encerramento da sessão. Tente sair novamente.</Alert>
       </div></Card>
       <Card><h2>Relatos pendentes</h2>
-        <StatusBadge tone="info" label="Pendente" />
+        <OccurrenceStatus status="PENDING" />
         <Textarea label="Detalhes (opcional) — exemplo" description="Se quiser, conte algo que a foto não mostra. Até 1000 caracteres." />
         <Button ref={trigger} variant="quiet" className="text-feedback-danger-foreground" onClick={() => { dialog.current?.showModal(); cancel.current?.focus() }}>Exemplo de confirmação de exclusão</Button>
         <Dialog ref={dialog} aria-labelledby="example-delete-title" onClose={() => trigger.current?.focus()} className="m-auto max-w-reading rounded-card border border-border-control bg-surface-raised p-6 text-text-primary backdrop:bg-text-primary/50">
@@ -96,8 +98,8 @@ export default function DesignSystemPage() {
       </Card>
       <Card><h2>Estados e acompanhamento do relato</h2>
         <div className="flex flex-wrap gap-3">
-          <StatusBadge tone="info" label="Pendente" /><StatusBadge tone="info" label="Em análise" />
-          <StatusBadge tone="success" label="Resolvida" /><StatusBadge tone="danger" label="Rejeitada" />
+          <OccurrenceStatus status="PENDING" /><OccurrenceStatus status="IN_ANALYSIS" />
+          <OccurrenceStatus status="RESOLVED" /><OccurrenceStatus status="REJECTED" />
         </div>
         <OccurrenceHistory events={[{ id: '3e85aa3d-19e3-42a3-8861-c435ff5908af', previousStatus: 'PENDING', newStatus: 'REJECTED', occurredAt: '2026-10-15T12:00:00Z', responsible: 'Moderação', reason: 'Exemplo: fotografia não corresponde ao local informado.' }]} />
       </Card>

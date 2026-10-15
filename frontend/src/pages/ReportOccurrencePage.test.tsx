@@ -49,17 +49,19 @@ async function fill() {
   for (const [label, value] of [['Título', '  Poste apagado 💡  '], ['Detalhes (opcional)', 'A iluminação desta rua está apagada.'], ['Bairro', 'Centro'], ['Ponto de referência', 'Ao lado da escola']]) {
     fireEvent.change(screen.getByLabelText(label), { target: { value } })
   }
+  fireEvent.click(screen.getByText('Informar coordenadas'))
   fireEvent.change(screen.getByLabelText('Latitude'), { target: { value: '-23.55052' } })
   fireEvent.change(screen.getByLabelText('Longitude'), { target: { value: '-46.633308' } })
   fireEvent.click(screen.getByRole('button', { name: 'Confirmar coordenadas' }))
   choose(); await finish()
 }
-function submit() { fireEvent.submit(screen.getByRole('button', { name: 'Enviar ocorrência' }).closest('form')!) }
+function submit() { fireEvent.submit(screen.getByRole('button', { name: 'Enviar relato' }).closest('form')!) }
 
 test('validates fields locally without upload and focuses the first error', async () => {
   renderPage(); await screen.findByRole('option', { name: 'Iluminação pública' }); submit()
   expect(fetchMock).toHaveBeenCalledTimes(2)
-  expect(screen.getByLabelText('Categoria')).toHaveFocus()
+  expect(screen.getByRole('button', { name: 'Tirar foto' })).toHaveFocus()
+  expect(screen.getByRole('button', { name: 'Tirar foto' })).toHaveAccessibleDescription(/Escolha exatamente uma imagem/)
   expect(screen.getByText('Escolha exatamente uma imagem.')).toBeVisible()
 })
 
@@ -79,12 +81,12 @@ test('sends one authenticated multipart snapshot, blocks all edits and resets on
   expect(body.get('title')).toBe('Poste apagado 💡')
   expect((body.get('image') as File).name).toBe('photo.png')
   for (const label of ['Categoria', 'Título', 'Detalhes (opcional)', 'Bairro', 'Ponto de referência', 'Arquivo de imagem', 'Fotografia pela câmera']) expect(screen.getByLabelText(label)).toBeDisabled()
-  for (const name of ['Trocar imagem', 'Tirar outra foto', 'Remover imagem']) expect(screen.getByRole('button', { name })).toBeDisabled()
+  for (const name of ['Trocar pela galeria', 'Tirar outra foto', 'Remover imagem']) expect(screen.getByRole('button', { name })).toBeDisabled()
   await act(async () => { resolve(Response.json(result, { status: 201 })) })
   expect(await screen.findByText('Relato registrado')).toHaveFocus()
   expect(screen.queryByText(result.id)).not.toBeInTheDocument()
   expect(screen.getByRole('link', { name: 'Ver relato' })).toHaveAttribute('href', `/meus-relatos/${result.id}`)
-  await userEvent.click(screen.getByRole('button', { name: 'Registrar outro problema' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Relatar outro problema' }))
   expect(screen.getByLabelText('Título')).toHaveValue('')
   expect(screen.queryByRole('img')).not.toBeInTheDocument()
 })
@@ -92,7 +94,7 @@ test('sends one authenticated multipart snapshot, blocks all edits and resets on
 test('blocks submit during replacement validation and sends only the latest accepted photo', async () => {
   await fill(); fetchMock.mockResolvedValueOnce(Response.json(result, { status: 201 }))
   choose('second.png', true)
-  expect(screen.getByRole('button', { name: 'Enviar ocorrência' })).toBeDisabled()
+  expect(screen.getByRole('button', { name: 'Enviar relato' })).toBeDisabled()
   submit(); expect(fetchMock).toHaveBeenCalledTimes(2)
   await finish(); submit()
   await screen.findByText('Relato registrado')
@@ -109,8 +111,8 @@ test('camera cancellation, invalid selection and failed decoding preserve fields
   choose('broken.png', true); await finish(true)
   expect(screen.getByRole('alert')).toHaveTextContent('anterior foi mantida')
   expect(screen.getByLabelText('Título')).toHaveValue('  Poste apagado 💡  ')
-  expect(screen.getByText(/photo.png/)).toBeVisible()
-  expect(screen.getByRole('button', { name: 'Enviar ocorrência' })).toBeEnabled()
+  expect(screen.getByRole('img', { name: 'Prévia da imagem selecionada' })).toBeVisible()
+  expect(screen.getByRole('button', { name: 'Enviar relato' })).toBeEnabled()
 })
 
 test.each([
@@ -127,7 +129,7 @@ test.each([
   await waitFor(() => expect(screen.getByRole('alert')).toHaveFocus())
   expect(screen.queryByText(/English secret|Internal request detail/)).not.toBeInTheDocument()
   expect(screen.getByLabelText('Título')).toHaveValue('  Poste apagado 💡  ')
-  expect(screen.getByText(/photo.png/)).toBeVisible()
+  expect(screen.getByRole('img', { name: 'Prévia da imagem selecionada' })).toBeVisible()
   expect(screen.getByText(/Local confirmado: latitude -23.550520, longitude -46.633308/)).toBeVisible()
   expect(fetchMock).toHaveBeenCalledTimes(3)
   expect(sessionStorage.getItem(STORAGE_KEY)).not.toBeNull()
@@ -139,8 +141,8 @@ test.each(['network', 'malformed', 'wrong-status'])('%s expresses uncertain outc
   else if (failure === 'malformed') fetchMock.mockResolvedValueOnce(new Response('invalid json', { status: 201 }))
   else fetchMock.mockResolvedValueOnce(Response.json(result, { status: 200 }))
   submit()
-  expect(await screen.findByRole('alert')).toHaveTextContent('reenviar pode criar uma ocorrência duplicada')
-  expect(screen.getByText(/photo.png/)).toBeVisible()
+  expect(await screen.findByRole('alert')).toHaveTextContent('reenviar pode criar um relato duplicado')
+  expect(screen.getByRole('img', { name: 'Prévia da imagem selecionada' })).toBeVisible()
   fetchMock.mockResolvedValueOnce(Response.json(result, { status: 201 }))
   submit(); await screen.findByText('Relato registrado')
   expect(fetchMock).toHaveBeenCalledTimes(4)
@@ -181,6 +183,6 @@ test('coordinates typed without confirmation do not authorize a new registration
   choose(); await finish(); submit()
   expect(fetchMock).toHaveBeenCalledTimes(2)
   expect(screen.getByLabelText('Latitude')).toHaveFocus()
-  expect(screen.getByText('Confirme o local real da ocorrência.')).toBeVisible()
-  expect(screen.getByText(/photo.png/)).toBeVisible()
+  expect(screen.getByText('Confirme o local real do problema.')).toBeVisible()
+  expect(screen.getByRole('img', { name: 'Prévia da imagem selecionada' })).toBeVisible()
 })

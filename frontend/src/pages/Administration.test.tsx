@@ -56,9 +56,12 @@ test('account creation distinguishes mail failure, blocks repeat and refreshes s
   })
   const { client } = renderPage('/administracao/contas')
   await screen.findByText('Nenhum administrador nesta página.')
+  expect(screen.getByLabelText('Nome do administrador')).not.toBeVisible()
+  await userEvent.click(screen.getByRole('button', { name: 'Criar administrador' }))
+  expect(screen.getByLabelText('Nome do administrador')).toHaveFocus()
   fireEvent.change(screen.getByLabelText('Nome do administrador'), { target: { value: admin.name } })
   fireEvent.change(screen.getByLabelText('E-mail do administrador'), { target: { value: admin.email } })
-  const form = screen.getByRole('button', { name: 'Criar administrador' }).closest('form')!
+  const form = screen.getByRole('button', { name: 'Enviar convite' }).closest('form')!
   fireEvent.submit(form); fireEvent.submit(form)
   expect(fetchMock.mock.calls.filter(([, options]) => options?.method === 'POST')).toHaveLength(1)
   expect(screen.getByLabelText('Nome do administrador')).toBeDisabled()
@@ -69,14 +72,32 @@ test('account creation distinguishes mail failure, blocks repeat and refreshes s
   expect(client.getQueryData(['private', user.id, 'admins', 0])).toMatchObject({ items: [admin] })
 })
 
+test('moderation page survives detail navigation and return without changing queue order or request size', async () => {
+  fetchMock.mockImplementation(async url => {
+    const path = String(url)
+    if (path.endsWith('/auth/me')) return Response.json({ ...user, role: 'ADMIN' })
+    if (path.includes('/occurrences?')) return Response.json({ ...page([report]), page: 1, totalPages: 2, totalItems: 21 })
+    return Response.json({ report, history: [] })
+  })
+  renderPage('/administracao/relatos?pagina=2')
+  expect(await screen.findByText('Página 2 de 2')).toBeVisible()
+  expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/admin/occurrences?page=1&size=20'))).toBe(true)
+  await userEvent.click(screen.getByRole('link', { name: `Analisar relato: ${report.title}` }))
+  const back = await screen.findByRole('link', { name: '← Voltar para a fila' })
+  expect(back).toHaveAttribute('href', '/administracao/relatos?pagina=2')
+  await userEvent.click(back)
+  expect(await screen.findByText('Página 2 de 2')).toBeVisible()
+})
+
 test('occupied email is explained and does not claim a promotion', async () => {
   fetchMock.mockResolvedValueOnce(Response.json(user)).mockResolvedValueOnce(Response.json(page([])))
     .mockResolvedValueOnce(Response.json({ code: 'EMAIL_ALREADY_REGISTERED' }, { status: 409 })).mockResolvedValueOnce(Response.json(page([])))
   renderPage('/administracao/contas')
   await screen.findByText('Nenhum administrador nesta página.')
+  await userEvent.click(screen.getByRole('button', { name: 'Criar administrador' }))
   fireEvent.change(screen.getByLabelText('Nome do administrador'), { target: { value: admin.name } })
   fireEvent.change(screen.getByLabelText('E-mail do administrador'), { target: { value: admin.email } })
-  await userEvent.click(screen.getByRole('button', { name: 'Criar administrador' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Enviar convite' }))
   expect(await screen.findByRole('alert')).toHaveTextContent('Contas existentes não podem ser promovidas')
 })
 

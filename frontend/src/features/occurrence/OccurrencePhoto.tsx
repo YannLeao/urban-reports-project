@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../auth/auth'
 import type { Occurrence } from './occurrence'
 
-export function OccurrencePhoto({ report, full = false, administrative = false, thumbnail = false }: { report: Occurrence; full?: boolean; administrative?: boolean; thumbnail?: boolean }) {
+export function OccurrencePhoto({ report, full = false, administrative = false, thumbnail = false, flush = false }: { report: Occurrence; full?: boolean; administrative?: boolean; thumbnail?: boolean; flush?: boolean }) {
   const { request, state } = useAuth()
   const owner = state.status === 'authenticated' ? state.user.id : null
   const container = useRef<HTMLDivElement>(null)
@@ -32,7 +32,7 @@ export function OccurrencePhoto({ report, full = false, administrative = false, 
       }).catch(() => { if (!controller.signal.aborted) setFailed(true) })
     return () => { controller.abort(); if (url) URL.revokeObjectURL(url) }
   }, [owner, visible, key, report.id, request, administrative])
-  return <div ref={container} className={`flex items-center justify-center overflow-hidden bg-surface-raised ${thumbnail ? 'size-20 shrink-0 rounded-control' : 'my-4 aspect-[4/3] rounded-card'}`}>
+  return <div ref={container} className={`flex items-center justify-center overflow-hidden bg-surface-raised ${thumbnail ? 'size-20 shrink-0 rounded-control' : flush ? 'aspect-[4/3] rounded-t-card' : 'my-4 aspect-[4/3] rounded-card'}`}>
     {photo?.key === key ? <img className={full ? 'h-full w-full object-contain' : 'h-full w-full object-cover'} src={photo.url} alt={`Foto do problema: ${report.title}`} />
       : <p className={thumbnail ? 'p-1 text-center text-small text-text-secondary' : 'p-4 text-small text-text-secondary'} role="status">{failed ? thumbnail ? 'Foto não abriu' : 'Não foi possível carregar a foto.' : 'Carregando foto…'}</p>}
   </div>

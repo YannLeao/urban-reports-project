@@ -69,7 +69,7 @@ export function MapCanvas({ initialize, disabled = false, selecting = false, fil
   useEffect(() => { if (map.current) setMapDisabled(map.current, disabled) }, [disabled])
   return <div className={`flex min-h-0 min-w-0 flex-col gap-2 ${fill ? 'h-full' : ''}`}>
     <div ref={container} role="region" className={`relative z-0 w-full rounded-control [&_.leaflet-control-zoom_a]:min-h-target [&_.leaflet-control-zoom_a]:min-w-target ${fill ? 'min-h-0 flex-1' : 'h-72'}`} aria-label="Mapa do local; use setas para mover e mais ou menos para zoom" />
-    <p role="status" className={status === 'ready' && !selecting ? 'sr-only' : 'mb-0 text-small'}>{status === 'loading' ? 'Carregando mapa…' : status === 'error'
+    <p role="status" className={status === 'ready' ? 'sr-only' : 'mb-0 text-small'}>{status === 'loading' ? 'Carregando mapa…' : status === 'error'
       ? selecting ? 'Não foi possível carregar o mapa completo. Tente novamente ou informe as coordenadas abaixo.' : 'Não foi possível carregar o mapa completo. Tente novamente ou consulte os relatos em texto.'
       : selecting ? 'Mapa carregado. Clique para confirmar o ponto ou use as coordenadas abaixo.' : 'Mapa carregado.'}</p>
     {codeFailed && !selecting && <p>Recarregue a página para tentar carregar o mapa. O contexto da consulta será mantido na URL.</p>}

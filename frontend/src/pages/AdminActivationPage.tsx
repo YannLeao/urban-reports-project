@@ -1,8 +1,8 @@
+import { PasswordField } from '../components/ui/PasswordField'
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { z } from 'zod'
 import { Button } from '../components/ui/Button'
-import { Input } from '../components/ui/Field'
 import { Alert } from '../components/ui/Feedback'
 import { buttonStyles } from '../components/ui/button-styles'
 import { registrationSchema } from '../features/identity/registration'
@@ -52,8 +52,8 @@ export function AdminActivationPage() {
       : !/^[A-Za-z0-9_-]{43}$/.test(token) ? <Alert tone="danger" role="alert">{invalidLink}</Alert>
         : <form onSubmit={event => { void submit(event) }} noValidate className="grid gap-5">
           <p>Defina sua senha para começar a moderar relatos. O convite vale por 24 horas.</p>
-          <Input ref={passwordField} label="Senha" type="password" autoComplete="new-password" required disabled={pending} value={password} onChange={event => setPassword(event.target.value)} description="De 15 a 128 caracteres. Espaços e acentos são permitidos." error={errors.password} />
-          <Input ref={confirmField} label="Confirme a senha" type="password" autoComplete="new-password" required disabled={pending} value={confirmation} onChange={event => setConfirmation(event.target.value)} error={errors.confirmPassword} />
+          <PasswordField ref={passwordField} label="Senha" autoComplete="new-password" required disabled={pending} value={password} onChange={event => setPassword(event.target.value)} description="De 15 a 128 caracteres. Espaços e acentos são permitidos." error={errors.password} />
+          <PasswordField ref={confirmField} label="Confirme a senha" autoComplete="new-password" required disabled={pending} value={confirmation} onChange={event => setConfirmation(event.target.value)} error={errors.confirmPassword} />
           {message && <Alert tone="danger" role="alert" ref={summary} tabIndex={-1}>{message}</Alert>}
           <Button type="submit" loading={pending}>Ativar conta</Button>
         </form>}
