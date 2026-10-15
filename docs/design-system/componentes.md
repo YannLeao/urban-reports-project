@@ -38,7 +38,9 @@ texto/fundo, com foco comum. Use rótulos de ação, sem botão sem destino.
 Para navegação, use `Link` com `className={buttonStyles()}` ou
 `buttonStyles('secondary')` / `buttonStyles('quiet')`, importado de
 `frontend/src/components/ui/button-styles.ts`. Nunca aninhe button em link.
-Button e links compartilham os mesmos utilitários/variantes. Uma ação principal
+Button e links compartilham os mesmos utilitários/variantes. `size="compact"`
+reduz somente padding horizontal, mantendo o alvo mínimo; links usam o terceiro
+argumento de `buttonStyles(variant, className, 'compact')`. Uma ação principal
 por contexto.
 
 ## Field, Input, Textarea e Select
@@ -78,9 +80,10 @@ exemplos estáticos. Não inclui título, ação ou ícone automaticamente.
 `StatusBadge` exige `label` textual não vazio; não passe só ícone ou código de API.
 O símbolo interno é decorativo, e tone não infere estado de domínio. `Card` é
 section simples com props nativas; nomeie a seção por heading/aria-labelledby.
-Consumidores atuais: status e referência visual. Não empilhar cards sem motivo.
+Consumidores incluem formulários, consultas, ferramentas dev e referência visual. Não empilhar cards sem motivo.
 
-Bottom sheet permanece pendente; o seletor básico de mapa está descrito abaixo. Cartões de relatos
+O mapa de consulta usa resumo não modal no próprio quadro, sem gesto obrigatório;
+o seletor básico de mapa está descrito abaixo. Cartões de relatos
 privados usam foto 4:3 com corte na lista e imagem inteira no detalhe. Exclusão
 usa dialog nativo modal com foco inicial em Cancelar, Escape, retorno de foco
 e bloqueio durante envio. Antes de criá-los, definir comportamento de teclado, entrada e
@@ -113,7 +116,8 @@ Contrato e limpeza de senhas estão em [identidade](../identity.md).
 com foco no erro genérico. Cadastro concluído oferece login sem senha em navegação.
 `/minha-conta` tem nome/e-mail e Sair; sem edição ou painel fictício. Bootstrap
 mostra estado de validação, falha oferece Tentar novamente e logout incerto
-preserva a tela com mensagem e retry. Não apresentar recuperação sem rota real.
+preserva a tela com mensagem e retry. O acesso de recuperação ainda não tem rota: apresenta “Recuperação de senha
+em breve”, sem link ou envio simulado; ver ProductIntegrations.tsx.
 
 O ImagePicker aceita também `disabled?: boolean` para bloquear todos os controles
 e `onValidationChange?: (validating: boolean) => void` para notificar o consumidor

@@ -6,7 +6,7 @@ Português brasileiro cotidiano, direto e acolhedor. Explique o que aconteceu e
 um próximo passo possível. Não exponha URL de ambiente, payload, stack trace,
 versão ou jargão na área principal. Diagnóstico técnico fica nos guias.
 
-A tela de status verifica somente a resposta de health agora. “Conexão
+A ferramenta de status, exclusiva de desenvolvimento, verifica somente a resposta de health agora. “Conexão
 confirmada” não promete que todos os serviços funcionam. “Não foi possível
 verificar a conexão” não confirma indisponibilidade geral. “Verificando a
 conexão…” identifica espera sem inventar prazo. Configuração incorreta orienta
@@ -22,7 +22,8 @@ ocorrência, já implementado com categoria, título, descrição, bairro, refer
 textual, uma fotografia obrigatória e um ponto geográfico confirmado:
 
 - Consulta pública implementada com Lista/Mapa, fotos nos cards/detalhes e
-  alternativa textual integral para os pontos, sem solicitar GPS.
+  alternativa textual integral para os pontos; GPS opcional por ação explícita
+  na consulta, sem dependência de permissão para explorar.
 - Marcadores implementados: categoria legível, seleção por contorno e agrupamento
   visual com seleção textual de cada relato, inclusive pontos idênticos.
   Evitar uma cor por categoria; não depender somente de cor.

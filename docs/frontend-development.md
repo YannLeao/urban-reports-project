@@ -84,7 +84,10 @@ manual de tentar novamente; sair da página cancela a requisição em andamento.
 
 - `src/app/providers.tsx`: QueryClient estável por montagem da aplicação.
 - `src/app/routes.tsx`: configuração declarativa central de rotas.
-- `src/pages/`: HomePage, StatusPage, ImageProofPage e NotFoundPage.
+- `src/pages/`: entrada, acesso, consulta/gestão de relatos e painéis; ferramentas
+  StatusPage/ImageProofPage e catálogo são exclusivas de desenvolvimento.
+- `src/app/ProductNavigation.tsx`, `AppLayout.tsx` e `ProductIntegrations.tsx`:
+  navegação por papel, composições e acessos ainda indisponíveis.
 - `src/features/image/`: seleção controlada, validação e prévia local de imagem.
 - `src/features/identity/`: validação e chamada de cadastro sem cache/retry; `/cadastro` compõe o formulário público.
 - `src/features/health/`: consulta validada e apresentação de health.
@@ -92,12 +95,16 @@ manual de tentar novamente; sair da página cancela a requisição em andamento.
 - `src/main.tsx`: composição de providers e BrowserRouter; `App.tsx`: shell.
 - `src/app/App.test.tsx` e `src/test/setup.ts`: testes de comportamento e setup.
 
-`/prova-imagem` é uma demonstração pública transitória, sem upload ou dependência
-de API; veja [contrato, validações e roteiro](image-selection-proof.md).
+`/prova-imagem` é ferramenta de desenvolvimento por URL direta, sem upload ou
+dependência de API; veja [contrato, validações e roteiro](image-selection-proof.md).
 
-`/` é a entrada, `/status` contém a verificação da API e caminhos desconhecidos
-oferecem retorno ao início. Links usam React Router, em modo declarativo,
-sem SSR, loaders, autenticação ou rotas vazias de negócio.
+`/` é a entrada de produto; `/ocorrencias?visao=mapa` abre consulta pública.
+`/status`, `/prova-imagem` e `/dev/design-system` têm importação condicional DEV:
+no bundle de produção mostram não encontrado e seus módulos não são incluídos.
+Health da API permanece intacto. Links usam React Router declarativo, sem SSR
+ou loaders; rotas privadas usam sessão/guards reais, descritos adiante.
+Consulte [navegação e composições](frontend-navigation.md) para destinos por papel,
+integrações visuais pendentes e layout de mapa/painel/leitura.
 
 A identidade e os componentes seguem o [design system Alô Cidade](design-system/README.md).
 Leia-o antes de criar UI. Tokens canônicos em `docs/design-system/tokens.ts` geram
@@ -139,7 +146,7 @@ docker build --build-arg VITE_API_URL=https://api.example.com \
 docker run --rm --publish 127.0.0.1:5173:80 urban-reports-frontend:local
 ```
 
-Abra `/`, `/status` diretamente e atualize a página; confira os assets no
+Abra `/` e `/ocorrencias?visao=mapa` diretamente e atualize a página; confira os assets no
 navegador. A URL de exemplo não comprova integração: configure uma API acessível
 com CORS adequado para essa prova. O Nginx existente aplica fallback para
 `index.html`. `docker compose config --quiet` apenas valida a configuração;
@@ -197,18 +204,10 @@ Consulte [segurança](security.md) e [ponte de recuperação](password-recovery-
 
 ## Registro de ocorrência
 
-`/registrar-ocorrencia` exige sessão e usa o ImagePicker compartilhado. Carrega
-categorias autenticadas e envia FormData com Bearer, mantendo o boundary gerado
-pelo navegador. O [contrato HTTP](occurrence-registration.md) define campos,
-Unicode e limites. Os limites HTML em unidades UTF-16 foram removidos desses
-campos: a validação explícita conta pontos de código e permite emojis até o
-mesmo limite do PostgreSQL. Trim externo usa U+0009–U+000D/U+0020, como Java.
-
-O formulário coordena validação de foto e submit, bloqueia o seletor durante
-envio e apresenta erros públicos com foco e preservação do rascunho.
-Não tratar a existência da rota como evidência de captura física ou de aceite.
-
-## Registro de ocorrência
+O [contrato HTTP](occurrence-registration.md) define campos, Unicode e limites.
+O envio mantém FormData/Bearer com boundary gerado pelo navegador.
+Validação explícita conta pontos de código e permite emojis até o limite do
+PostgreSQL. Trim externo usa U+0009–U+000D/U+0020, como Java.
 
 `/registrar-ocorrencia` é privada e carrega categorias pelo cliente autenticado.
 O formulário usa o ImagePicker controlado; bloqueia envio durante validação de

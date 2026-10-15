@@ -4,7 +4,9 @@
 
 Fonte de verdade da identidade pública, independente de uma prefeitura específica.
 A direção é cívica, próxima, simples e confiável, com prioridade mobile e uma ação
-principal por contexto. Nome: **Alô Cidade**, com acento e espaço.
+principal por contexto. A referência aprovada permanece **Alô Cidade**; o shell
+e a entrada atuais usam o nome de produto **Tá na Rua**, preservando símbolo,
+paleta, tokens, tipografia e pinos. Ver [navegação](../frontend-navigation.md).
 
 - [Preview autocontido](preview.html) e [feedbacks e fronteiras](revisao-preview.md)
 - [Fundamentos e acessibilidade](fundamentos.md)
@@ -14,18 +16,19 @@ principal por contexto. Nome: **Alô Cidade**, com acento e espaço.
 - [Tokens canônicos](tokens.ts) e [decisão de engenharia](../adr/0008-estabelecer-design-system.md)
 
 Implementado: tema claro, Figtree local, tokens, componentes básicos, shell,
-entrada, não encontrado, apresentação de health em `/status` e referência visual
-em `/dev/design-system` **somente no Vite de desenvolvimento**. O catálogo não
+entrada e não encontrado. Health em `/status`, prova de imagem em `/prova-imagem`
+e referência visual em `/dev/design-system` existem **somente no Vite de desenvolvimento**. O catálogo não
 aparece na navegação pública, não envia dados e seu módulo não integra produção.
 O padrão de seleção de fotografia também está no catálogo; sua
-[prova pública transitória](../image-selection-proof.md) em `/prova-imagem`
+[prova local de desenvolvimento](../image-selection-proof.md) em `/prova-imagem`
 não depende da API nem envia a imagem. O [cadastro público](../identity.md) usa
 Input/Button/Alert e estados ilustrados no catálogo. Login e minha conta usam
 os mesmos componentes, incluindo validação de sessão e falha de logout. Relatos privados priorizam fotografia, edição e exclusão com dialog nativo.
 Gestão de administradores e ativação reutilizam campos/feedback; moderação usa
 os mesmos cartões, fotografia, contador Unicode e histórico. O seletor de
 localização está implementado no formulário de relato. Consultas e detalhes usam
-[mapas e pinos canônicos](../occurrence-maps.md); bottom sheets continuam pendentes.
+[mapas e pinos canônicos](../occurrence-maps.md), com resumo não modal na área
+de exploração. Não há bottom sheet modal nem gesto obrigatório.
 O relatório administrativo usa cartões, distribuições com barras e contagens
 textuais, tabela de localidades e feedback de atualização/média parcial.
 

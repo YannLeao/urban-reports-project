@@ -110,7 +110,7 @@ artefatos. Alterar a URL da API exige novo build e publicação.
 A configuração **dentro da saída prebuilt** consulta o filesystem primeiro.
 Arquivos existentes mantêm seus tipos; `/assets` e arquivos inexistentes com
 extensão recebem 404. Demais caminhos GET/HEAD carregam `index.html`, permitindo
-abrir/atualizar `/status` e exibir a tela React de não encontrado em páginas
+abrir/atualizar `/ocorrencias?visao=mapa` e exibir a tela React de não encontrado em páginas
 inexistentes. Caminhos com extensão são reservados a arquivos, não a páginas.
 Não há política de cache imutável para HTML. Nginx e um `vercel.json` externo
 não determinam essas regras.
@@ -163,14 +163,16 @@ Depois de revisão e merge normal (sem merge automático):
    e link do pipeline; acione `frontend:deploy` e registre link do job e URL/ID
    do deployment retornado. Confirme os metadados na Vercel.
 2. Abra `FRONTEND_PRODUCTION_URL` em janela sem sessão Vercel: deve estar pública
-   por HTTPS. Abra `/status` diretamente e atualize. Confira JS/CSS, seus tipos
+   por HTTPS. Abra `/ocorrencias?visao=mapa` diretamente e atualize. Confira JS/CSS, seus tipos
    e ausência de erros no console/Network.
 3. Abra `/pagina-inexistente` e confira a tela React. Solicite
    `/assets/inexistente.js` e `/inexistente.css`: devem responder 404, sem HTML
    com status de sucesso.
-4. Na página `/status`, comprove a consulta real à API configurada e UI de
-   sucesso, sem mixed content/CORS. Confira no bundle/Network que a URL é a de
-   produção e que não há credenciais. Não registre conteúdos sensíveis.
+4. No mapa/lista públicos, comprove a consulta real à API configurada, sem
+   mixed content/CORS; resposta vazia válida não é erro. Confira no bundle/Network
+   que a URL é a de produção e que não há credenciais. `/status`, `/prova-imagem`
+   e `/dev/design-system` devem mostrar não encontrado em produção, pois são
+   ferramentas de desenvolvimento. Não registre conteúdos sensíveis.
 5. Teste uma origem permitida e uma não autorizada contra `/api/health`, além de
    OPTIONS com `Access-Control-Request-Method: GET`. Registre o preflight como
    teste explícito; GET simples pode não gerar OPTIONS no navegador. HTTP 200

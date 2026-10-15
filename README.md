@@ -11,9 +11,10 @@ os dados, Flyway versiona o schema e Cloudflare R2 armazena imagens privadas.
 Docker Compose executa o ambiente local; GitLab CI valida e coordena os deploys
 manuais do backend no Render e do frontend estático na Vercel.
 
-A base oferece navegação, health validado em `/status`, design system Alô Cidade,
-seleção/captura local de fotografia em `/prova-imagem` e endpoints técnicos de
-storage. Cadastro de cidadão em `/cadastro` persiste contas reais, sem login
+A entrada Tá na Rua oferece mapa e registro com [navegação por perfil](docs/frontend-navigation.md),
+reutilizando o design system aprovado Alô Cidade. `/status`, `/prova-imagem` e
+`/dev/design-system` são ferramentas exclusivas do Vite de desenvolvimento, sem
+links no produto. Health da API e endpoints técnicos de storage mantêm seus contratos. Cadastro de cidadão em `/cadastro` persiste contas reais, sem login
 automático.
 Login em `/entrar` e sessão revogável em `/minha-conta` estão implementados.
 As consultas pública e própria oferecem [Lista/Mapa e pinos](docs/occurrence-maps.md),
@@ -277,10 +278,11 @@ Configure a origem canônica exata em `FRONTEND_ALLOWED_ORIGINS` no Render.
 Variáveis, proteção de jobs antigos e operação estão no
 [`guia de deploy frontend`](docs/frontend-deployment.md).
 
-A entrada é `/`, a consulta validada de health fica em `/status` e há página
-de não encontrado. A saída Vercel inclui fallback SPA e 404 para assets ausentes.
-A rota `/prova-imagem` permite selecionar e capturar uma fotografia em memória,
-sem upload; seu [guia](docs/image-selection-proof.md) descreve contrato e limites.
+A entrada é `/`; o mapa público abre em `/ocorrencias?visao=mapa`. A saída Vercel
+inclui fallback SPA e 404 para assets ausentes. As ferramentas `/status` e
+`/prova-imagem` existem somente em desenvolvimento e mostram não encontrado
+no bundle de produção. O [guia de fotografia](docs/image-selection-proof.md)
+descreve a prova local sem upload; o formulário real permanece no produto.
 Os roteiros de deploy orientam a validação pública de cada nova versão.
 A identidade e os componentes compartilhados seguem o [design system Alô Cidade](docs/design-system/README.md).
 
