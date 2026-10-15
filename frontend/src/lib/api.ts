@@ -99,3 +99,19 @@ export async function privateRequest(path: string, token: string, signal: AbortS
   }
   return response
 }
+
+export class PublicRequestError extends Error {
+  readonly status: number
+  constructor(status: number) {
+    super('Não foi possível concluir a consulta pública.')
+    this.status = status
+  }
+}
+
+// Leituras públicas: sem credenciais e sem seguir redirecionamentos.
+export async function publicRequest(path: string, signal: AbortSignal) {
+  if (!/^\/api\/public\/[a-zA-Z0-9/_-]+(\?[a-zA-Z0-9=&]+)?$/.test(path)) throw new Error('Caminho público inválido.')
+  const response = await fetch(`${getApiUrl()}${path}`, { signal, credentials: 'omit', redirect: 'error' })
+  if (!response.ok) throw new PublicRequestError(response.status)
+  return response
+}

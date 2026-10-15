@@ -11,7 +11,8 @@ export function HomePage() {
         urbanos. Crie sua conta para fazer parte do Alô Cidade.
       </p>
       <div className="mt-6 flex flex-wrap gap-4">
-        <Link className={buttonStyles()} to="/cadastro">Criar conta</Link>
+        <Link className={buttonStyles()} to="/ocorrencias">Ver ocorrências</Link>
+        <Link className={buttonStyles('secondary')} to="/cadastro">Criar conta</Link>
         <Link className={buttonStyles('secondary')} to="/entrar">Entrar</Link>
         <Link className={buttonStyles('secondary')} to="/status">Verificar serviço</Link>
       </div>
