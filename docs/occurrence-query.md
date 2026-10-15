@@ -89,3 +89,10 @@ A consulta pública atual usa `/api/public/occurrences`, inclusive detalhe e fot
 e omite rejeitados. O comando administrativo invalida seus caches no frontend.
 Ambiente publicado, aparelho físico e aceite integral #23 requerem evidências
 próprias na MR/issue.
+
+## Localização no cadastro e na edição
+
+Latitude/longitude WGS84 foram adicionadas aos DTOs, nulas em relatos legados.
+O formulário restaura e reenvia o par confirmado; PUT sem ambos preserva posição,
+campos vazios não removem o ponto. Consulta em mapas e pinos próprios continuam
+na #44. Componente, provedor, confirmação/GPS e publicação: [guia de localização](occurrence-location.md).

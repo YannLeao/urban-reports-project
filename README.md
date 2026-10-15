@@ -24,8 +24,8 @@ permite ao SUPER_ADMIN criar, convidar e desativar ADMINs, com bootstrap explíc
 O [relatório administrativo](docs/occurrence-report.md) em `/administracao/relatorio`
 oferece contagens globais, média de resolução e proporção de rejeitadas para ADMIN ativo.
 Notificações de ocorrências têm intenção durável; a central segue separada.
-O registro autenticado em `/registrar-ocorrencia` integra categorias, fotografia e
-persistência. Consulte o [contrato de ocorrência](docs/occurrence-registration.md):
+O registro autenticado em `/registrar-ocorrencia` integra categorias, fotografia,
+[localização confirmada](docs/occurrence-location.md) e persistência. Consulte o [contrato de ocorrência](docs/occurrence-registration.md):
 a implementação não comprova, por si só, o aceite publicado ou a captura física.
 
 ## Estrutura do repositório

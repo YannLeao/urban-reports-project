@@ -13,6 +13,7 @@ válida e `multipart/form-data`. A rota frontend é `/registrar-ocorrencia`.
 | description (opcional) | Até 1000 pontos de código; omitida/vazia após trim vira null |
 | neighborhood | 2–100 pontos de código |
 | reference | 5–200 pontos de código |
+| latitude / longitude | Par WGS84 obrigatório, confirmado no formulário; faixas [-90,90] / [-180,180] |
 | image | Um arquivo não vazio, segundo as regras abaixo |
 
 Campos textuais recebem trim externo ASCII (U+0009–U+000D e U+0020), sem mudar
@@ -26,8 +27,8 @@ ignorados; autoria/status forjados nunca alteram a persistência.
 O servidor deriva autor da `AuthenticatedIdentity`, gera a key
 `occurrences/{UUID}.{extensão}` e mantém status técnico `PENDING` (Pendente).
 201 retorna id, categoryId/categoryName, title, description, neighborhood,
-reference, status, createdAt e version. Não retorna Location: ainda não há GET público de
-ocorrência. Não expõe bucket, URL do provedor ou nome original do arquivo.
+reference, latitude, longitude, status, createdAt e version. Não retorna Location;
+a consulta pública tem contrato próprio. Não expõe bucket, URL do provedor ou nome original do arquivo.
 
 ## Imagens
 
@@ -173,3 +174,9 @@ version é obrigatória para habilitar escrita segura.
 
 Após 201, a confirmação mostra título/Pendente e oferece Ver relato, Meus relatos
 ou Registrar outro problema. UUID só serve ao contrato e à navegação interna.
+
+## Localização geográfica
+
+O cadastro novo exige ponto confirmado e a edição permite ajustá-lo somente em
+Pendente. Migração V9 preserva legado sem ponto. Contrato completo, publicação
+frontend primeiro/API final depois e roteiro: [localização](occurrence-location.md).

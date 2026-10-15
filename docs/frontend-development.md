@@ -242,3 +242,10 @@ campos existentes, descrição opcional e troca de foto. Foto privada é buscada
 pelo cliente Bearer e usa URL local descartável; cards iniciam leitura na viewport.
 Sucesso humano de cadastro oferece acompanhamento; edição/exclusão renovam caches
 privados sem retries. Contrato, diálogo e limites em [gestão](occurrence-query.md).
+
+## Localização no cadastro e na edição
+
+Latitude/longitude WGS84 foram adicionadas aos DTOs, nulas em relatos legados.
+O formulário restaura e reenvia o par confirmado; PUT sem ambos preserva posição,
+campos vazios não removem o ponto. Consulta em mapas e pinos próprios continuam
+na #44. Componente, provedor, confirmação/GPS e publicação: [guia de localização](occurrence-location.md).
