@@ -31,10 +31,9 @@ textual, uma fotografia obrigatória e um ponto geográfico confirmado:
 - Registro: etapa única com ponto obrigatório confirmado no mapa ou por
   coordenadas e GPS opcional mediante ação, sem geocodificação. Edição de Pendente
   permite ajuste; legado não é preenchido automaticamente. Veja [localização](../occurrence-location.md).
-- “Recebido”, “Em análise”, “Em andamento”, “Resolvido” e “Rejeitado” são sugestões
-  de vocabulário. Não são enum da API. O frontend valida health `UP` e o contrato de cadastro; confirmar o contrato
-  de andamento antes de implementar tokens `report` ou mapeamentos. A ocorrência
-  criada nasce PENDENTE.
+- Estados atuais: PENDING/Pendente, IN_ANALYSIS/Em análise, RESOLVED/Resolvida
+  e REJECTED/Rejeitada. O relato nasce PENDING; transições e histórico seguem
+  [moderação](../occurrence-moderation.md), sem evento inicial fabricado.
 - Meus relatos: reutilizar o guard de autenticação implementado quando necessário; não
   bloquear consulta pública por padrão sem decisão de requisitos. Exemplo vazio:
   “Você ainda não tem relatos.” Só oferecer ação quando tiver destino funcional.
@@ -47,3 +46,18 @@ textual, uma fotografia obrigatória e um ponto geográfico confirmado:
 
 Mapa e foto são conteúdo, não decoração. A interface deve facilitar leitura e
 uma decisão de cada vez, sem dashboard artificial nem botões sem destino.
+
+## Padrões da referência a aplicar na próxima auditoria
+
+Filtros de categoria e estado são independentes, com selects rotulados que cabem
+no mobile. Rejeição oferece motivo sugerido opcional; a explicação humana de
+10–500 caracteres Unicode após trim continua necessária. A sugestão não altera
+a API nem substitui texto digitado.
+
+Aviso de duplicidade é informativo: ação principal “Enviar mesmo assim”,
+secundária “Revisar relato”. Não exigir afirmar que é outro problema, nem prometer
+prioridade maior por repetição. A regra de prioridade depende de alinhamento.
+
+Detalhe administrativo começa com “Voltar para a fila”, antes do identificador.
+Mapa na fila administrativa aguarda priorização; mapas públicos/próprios não
+atendem esse pedido. Vídeo e PDF com filtros de datas permanecem no backlog.

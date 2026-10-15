@@ -6,13 +6,14 @@ Fonte de verdade da identidade pública, independente de uma prefeitura específ
 A direção é cívica, próxima, simples e confiável, com prioridade mobile e uma ação
 principal por contexto. Nome: **Alô Cidade**, com acento e espaço.
 
+- [Preview autocontido](preview.html) e [feedbacks e fronteiras](revisao-preview.md)
 - [Fundamentos e acessibilidade](fundamentos.md)
 - [Componentes e exemplos](componentes.md)
 - [Conteúdo e padrões futuros de produto](produto.md)
 - [Contrastes medidos](contrastes.md)
 - [Tokens canônicos](tokens.ts) e [decisão de engenharia](../adr/0008-estabelecer-design-system.md)
 
-Implementado: tema claro, Manrope local, tokens, componentes básicos, shell,
+Implementado: tema claro, Figtree local, tokens, componentes básicos, shell,
 entrada, não encontrado, apresentação de health em `/status` e referência visual
 em `/dev/design-system` **somente no Vite de desenvolvimento**. O catálogo não
 aparece na navegação pública, não envia dados e seu módulo não integra produção.
@@ -34,9 +35,9 @@ textuais, tabela de localidades e feedback de atualização/média parcial.
 2. Edite `tokens.ts`: primitivas são valores; papéis semânticos expressam o uso.
    Prefira um papel existente. Não importe este arquivo no código do navegador.
 3. Em `frontend/`, execute `pnpm tokens:generate`, revise o CSS gerado e versione
-   ambos os arquivos. Nunca edite `src/styles/tokens.generated.css` manualmente.
+   tokens, CSS e blocos gerados do preview. Nunca edite `src/styles/tokens.generated.css` manualmente.
 4. Execute `pnpm tokens:check`, `pnpm typecheck`, `pnpm lint`, `pnpm test` e
-   `pnpm build`. `tokens:check` é somente leitura e falha por ausência/divergência.
+   `pnpm build`. `tokens:check` é somente leitura e falha por ausência/divergência de CSS, cores, fontes e pinos embutidos do preview.
 5. Se alterar cores, execute `node scripts/contrast.ts` em `frontend/`, atualize
    o relatório e confira os pares efetivamente usados, foco e estados no navegador.
    Atualize documentação, catálogo e testes comportamentais pertinentes juntos.
@@ -77,3 +78,25 @@ registrado junto à implementação; não pressupor ganho de desempenho.
 
 Referências: [tema](https://tailwindcss.com/docs/theme) e
 [estilos globais/camadas](https://tailwindcss.com/docs/adding-custom-styles).
+
+## Preview para apresentação
+
+Abra [preview.html](preview.html) diretamente no navegador (file://), com JavaScript
+ativado, ou sirva a raiz com `python3 -m http.server 8000` e acesse
+`http://localhost:8000/docs/design-system/preview.html`. Não requer API, login,
+CDN ou instalação para apresentação. A fonte está embutida; sua licença está em
+[figtree-LICENSE.txt](../../frontend/public/figtree-LICENSE.txt).
+
+O preview orienta design e interação; o código funcional e os guias de cada
+contrato definem o comportamento disponível. Exemplos de recuperação, avisos,
+duplicidade e etapas de cadastro não comprovam sua entrega na aplicação.
+
+`pnpm tokens:generate` também atualiza os blocos demarcados do HTML com tokens,
+WOFF2 locais e snapshots gerados de `OccurrencePin.tsx` via Vite/React. Não edite
+esses blocos; os pinos React/TypeScript são a fonte executável canônica da #44.
+O gerador não abre servidor HTTP/WebSocket nem exige serviço externo.
+`pnpm tokens:check` verifica esses mesmos blocos antes do build. O Docker copia
+o preview apenas para verificação no estágio de build; ele não entra no bundle.
+
+O CSS manual do preview é uma exceção documental: apresenta várias telas num
+único HTML independente. Layouts da aplicação continuam usando Tailwind.

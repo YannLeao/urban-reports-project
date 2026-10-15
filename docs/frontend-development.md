@@ -105,7 +105,7 @@ CSS versionado com `pnpm tokens:generate`; `pnpm tokens:check` compara sem modif
 Tailwind 4 usa `@theme inline` gerado para os tokens semânticos. Priorize
 utilitários em páginas/componentes; CSS manual fica nos defaults globais e nas
 integrações justificadas conforme o design system. Atualize
-código e documentação juntos. Manrope é local, pesos 400/700, com licença pública.
+código e documentação juntos. Figtree é local, pesos 400/500/600/700/800, com licença pública.
 A referência `/dev/design-system` existe somente em `pnpm dev`, sem navegação
 pública; em produção, mostra não encontrado e seu módulo não é incluído.
 O TypeScript das ferramentas também verifica os tokens externos. O package.json

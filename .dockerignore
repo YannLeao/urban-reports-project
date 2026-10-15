@@ -17,6 +17,7 @@
 !docs/design-system/
 !docs/design-system/tokens.ts
 !docs/design-system/package.json
+!docs/design-system/preview.html
 **/.env
 **/.env.*
 **/*.local

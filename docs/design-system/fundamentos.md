@@ -4,36 +4,41 @@
 
 Os valores finais estão em [tokens.ts](tokens.ts), não nesta documentação.
 `primitives` concentra a paleta; `brand`, `surface`, `text`, `border`, `action`
-e `feedback` definem os papéis. Petróleo sustenta a marca, coral aquece a ação,
-superfícies claras dão espaço ao conteúdo. Coral não significa erro e petróleo
-não representa o andamento de uma ocorrência.
+e `feedback` definem os papéis. Creme é o fundo, branco a superfície, areia o
+apoio, carvão o texto e a ação principal. Pêssego destaca seleção e áreas de
+ênfase; não é texto pequeno sobre creme. Pêssego escuro orienta links. Os quatro
+estados têm pares próprios em `report`, sempre acompanhados de rótulo.
 
-A ação principal usa texto escuro sobre coral e borda escura: branco sobre coral
-não atinge a meta para texto normal, e o preenchimento coral sozinho não basta
-para delimitar um controle. A borda de campo (`border.control`) é mais forte que
-bordas decorativas (`border.subtle`). Estas últimas não comunicam estado.
-Veja o [relatório reproduzível](contrastes.md) para pares, estados e limites.
-O favicon fornecido permanece intacto e é reutilizado no cabeçalho com `alt=""`,
-pois o nome ao lado já identifica a marca. Não redesenhar o símbolo.
+Botão principal usa branco sobre carvão; botão de destaque usa carvão sobre
+pêssego. Links têm sublinhado; foco usa contorno carvão com offset. Campos e
+botões secundários usam `border.control`, mais forte que a borda decorativa.
+O texto secundário e o link foram escurecidos ligeiramente em relação à referência
+para alcançar 4,5:1 também sobre areia; veja [contrastes](contrastes.md).
+
+O símbolo existente de pino foi preservado e recolorido. A fonte canônica é
+[frontend/public/favicon.svg](../../frontend/public/favicon.svg), também usada
+no cabeçalho com `alt=""` pois há nome ao lado, e no preview. Fundo carvão, pino
+branco e ponto pêssego mantêm leitura nas abas claras/escuras. Para atualizar,
+edite somente esse SVG e confira em 16 e 32 px. Não há manifest/PWA ou requisito
+existente de apple-touch-icon/ICO; somente a variante SVG é integrada.
 
 ## Tipografia, espaço e movimento
 
-Manrope é auto-hospedada via `@fontsource/manrope` 5.2.8, pacote fixado no lockfile.
-Usamos latin, pesos 400 e 700, normal, WOFF2 com fallback WOFF e `font-display:
-swap`. Esse subconjunto inclui os acentos PT-BR. Vite empacota os arquivos locais;
-não há requisição a Google Fonts no navegador. Origem indicada no pacote:
-[Google Fonts](https://github.com/google/fonts/tree/main/ofl/manrope), autoria
-[Manrope Project](https://github.com/sharanda/manrope), licença OFL-1.1 preservada
-em [public/manrope-LICENSE.txt](../../frontend/public/manrope-LICENSE.txt) e no
-pacote instalado. Ao atualizar o pacote, confira também a licença distribuída.
-O fallback canônico em `typography.family` usa fontes de sistema sans-serif.
+Figtree é auto-hospedada via `@fontsource/figtree` 5.2.10, fixada no lockfile.
+Pesos reais: 400, 500, 600, 700 e 800, estilo normal, subconjunto latin com
+acentos PT-BR. Imports em `frontend/src/index.css` usam WOFF2/WOFF e
+`font-display: swap`; Vite empacota os arquivos locais, sem Google Fonts no
+navegador. O preview embute os mesmos WOFF2. Autoria: Figtree Project Authors;
+licença OFL-1.1 em [figtree-LICENSE.txt](../../frontend/public/figtree-LICENSE.txt).
+Fallback: system-ui, -apple-system, Segoe UI, sans-serif conforme o token.
 
 `typography.size` define apoio, corpo, introdução, título e título principal
 responsivo; `weight` usa somente os pesos carregados. Corpo tem entrelinha
 confortável (`typography.line.body`). `space` é uma escala curta; `layout.reading`
 limita leitura e `layout.container` contém o shell. Não fixar altura de texto:
 labels, erros e títulos podem crescer. `radius` diferencia controles, cards e
-badges; `elevation.card` é discreta. Sem gradientes ou animações decorativas.
+badges; `elevation.card` é discreta. O preview demonstra uma transição tonal suave nos cartões;
+a aplicação mantém superfícies sólidas. Sem animações decorativas.
 `motion` rege transições curtas, desligadas com `prefers-reduced-motion`.
 
 ## Acessibilidade dos elementos entregues

@@ -12,7 +12,7 @@ export function flatten(tree: Tree, prefix = ''): [string, string][] {
 }
 export function renderTokens() {
   const entries = flatten(tokens)
-  const colors = entries.filter(([name]) => /^(brand|surface|text|border|action|feedback)-/.test(name) && !/-(width|offset)$/.test(name))
+  const colors = entries.filter(([name]) => /^(brand|surface|text|border|action|feedback|report)-/.test(name) && !/-(width|offset)$/.test(name))
   const theme = [
     ...Object.keys(tokens.typography.size).map(name => [`text-${name}`, `typography-size-${name}`]),
     ...Object.keys(tokens.typography.weight).map(name => [`font-weight-${name}`, `typography-weight-${name}`]),
@@ -43,6 +43,11 @@ export async function syncTokens(check: boolean, path = outputPath) {
   }
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  try { await syncTokens(process.argv.includes('--check')) }
+  try {
+    const check = process.argv.includes('--check')
+    await syncTokens(check)
+    const { syncPreview } = await import('./preview.ts')
+    await syncPreview(check, flatten(tokens))
+  }
   catch (error) { console.error(error instanceof Error ? error.message : error); process.exitCode = 1 }
 }

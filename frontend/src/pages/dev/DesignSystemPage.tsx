@@ -26,10 +26,10 @@ export default function DesignSystemPage() {
       <h1>Design system Alô Cidade</h1><p className="mb-0 text-lead text-text-secondary">Exemplos demonstrativos. Nenhum dado é enviado ao serviço.</p></section>
     <div className="grid gap-8 pb-8">
       <Card><h2>Cores e tipografia</h2><div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,15rem),1fr))] gap-6">
-        <div className="border border-border-control rounded-control p-4 bg-brand-default text-surface-raised">Marca · petróleo</div>
-        <div className="border border-border-control rounded-control p-4 bg-brand-accent text-text-primary">Ação · coral</div>
+        <div className="border border-border-control rounded-control p-4 bg-brand-default text-surface-raised">Marca · carvão</div>
+        <div className="border border-border-control rounded-control p-4 bg-brand-accent text-text-primary">Destaque · pêssego</div>
         <div className="border border-border-control rounded-control p-4 bg-surface-canvas text-text-primary">Superfície · clara</div>
-      </div><h3>A cidade é o conteúdo.</h3><p>A interface deve sair do caminho. Manrope: atenção, conexão, localização, ação.</p><small>Texto de apoio e orientações.</small></Card>
+      </div><h3>A cidade é o conteúdo.</h3><p>A interface deve sair do caminho. Figtree: atenção, conexão, localização, ação.</p><small>Texto de apoio e orientações.</small></Card>
       <Card><h2>Seleção de fotografia</h2>
         <Button variant="secondary" onClick={() => setImageDisabled(value => !value)}>{imageDisabled ? 'Habilitar fotografia' : 'Simular envio: bloquear fotografia'}</Button>
         <p>{imageValidating ? 'O formulário aguarda a validação da fotografia.' : 'Sem validação pendente.'}</p>
