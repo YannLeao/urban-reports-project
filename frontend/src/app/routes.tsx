@@ -6,6 +6,7 @@ import { AdminActivationPage } from '../pages/AdminActivationPage'
 import { AdminAccountsPage } from '../pages/AdminAccountsPage'
 import { ModerationQueuePage } from '../pages/ModerationQueuePage'
 import { ModerationDetailPage } from '../pages/ModerationDetailPage'
+import { AdministrativeReportPage } from '../pages/AdministrativeReportPage'
 import { lazy, Suspense } from 'react'
 import { Route, Routes } from 'react-router'
 import { ImageProofPage } from '../pages/ImageProofPage'
@@ -38,6 +39,7 @@ export function AppRoutes() {
           <Route path="/administracao/contas" element={<AdminAccountsPage />} />
         </Route>
         <Route element={<RoleRoute role="ADMIN" />}>
+          <Route path="/administracao/relatorio" element={<AdministrativeReportPage />} />
           <Route path="/administracao/relatos" element={<ModerationQueuePage />} />
           <Route path="/administracao/relatos/:id" element={<ModerationDetailPage />} />
         </Route>

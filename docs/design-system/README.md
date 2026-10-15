@@ -24,6 +24,8 @@ os mesmos componentes, incluindo validação de sessão e falha de logout. Relat
 Gestão de administradores e ativação reutilizam campos/feedback; moderação usa
 os mesmos cartões, fotografia, contador Unicode e histórico. Mapa e bottom
 sheets são orientações futuras.
+O relatório administrativo usa cartões, distribuições com barras e contagens
+textuais, tabela de localidades e feedback de atualização/média parcial.
 
 ## Manutenção
 

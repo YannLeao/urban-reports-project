@@ -6,6 +6,7 @@ import { Input, Select, Textarea } from '../../components/ui/Field'
 import { Alert, StatusBadge } from '../../components/ui/Feedback'
 import { Card } from '../../components/ui/Card'
 import { OccurrenceHistory } from '../../features/occurrence/OccurrenceHistory'
+import { CountDistribution } from '../../components/ui/CountDistribution'
 
 export default function DesignSystemPage() {
   const dialog = useRef<HTMLDialogElement>(null)
@@ -78,6 +79,11 @@ export default function DesignSystemPage() {
         <Alert tone="info" role="note">Convite aceito pelo servidor de e-mail. Isso não confirma o recebimento.</Alert>
         <Alert tone="danger" role="note" className="mt-4">Conta aguardando ativação. O envio do convite falhou. Reenvie quando o serviço estiver disponível.</Alert>
         <Textarea className="mt-4" label="Justificativa de rejeição — exemplo" description="De 10 a 500 caracteres após remover espaços externos. 9/500 caracteres." defaultValue="Inválido!" error="Informe uma justificativa de 10 a 500 caracteres." />
+      </Card>
+      <Card><h2>Distribuição de relatos — exemplo</h2>
+        <CountDistribution total={6} items={[{ key: 'pending', label: 'Pendente', count: 1 }, { key: 'resolved', label: 'Resolvida', count: 5 }, { key: 'rejected', label: 'Rejeitada', count: 0 }]} />
+        <Alert tone="warning" role="note" className="mt-4">Exemplo: média parcial. 1 resolvida considerada; 1 sem duração válida.</Alert>
+        <p>Sem amostra: Sem dados. Duração zero válida: 0 segundos.</p>
       </Card>
       <Card><h2>Feedback textual</h2><div className="grid gap-8 pb-8">
         {(['success', 'warning', 'danger', 'info'] as const).map(tone => <div key={tone}><StatusBadge tone={tone} label={`Exemplo ${tone}`} /><Alert tone={tone} role="note" className="mt-4">Mensagem demonstrativa: o texto explica a situação e orienta o próximo passo.</Alert></div>)}

@@ -222,6 +222,12 @@ reenvio manual pode duplicá-lo. Não há retry automático nem idempotência HT
 fetch controlado e inspeção multipart. Roteiro publicado/físico e limites em
 [contrato de ocorrência](occurrence-registration.md#roteiro-consolidado-de-evidências-r05r06).
 
+## Relatório administrativo
+
+O [relatório administrativo](occurrence-report.md) em `/administracao/relatorio`
+reutiliza o guard exato de ADMIN e o cliente privado, com schema Zod e cache
+por usuário. Transições de moderação invalidam esse cache; atualização é manual.
+
 ## Consulta privada de relatos
 
 `/meus-relatos` e `/meus-relatos/:id` usam PrivateRoute, AuthProvider e Query,

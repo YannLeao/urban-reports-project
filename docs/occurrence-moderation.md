@@ -102,6 +102,7 @@ Queries usam `['private', userId, 'moderation', ...]`, AbortSignal e limpeza no
 encerramento da sessão. Sucesso invalida fila/detalhes afetados e consultas
 públicas; detalhe público antigo do relato é removido para não conservar um
 rejeitado em cache. Guard/navegação por papel complementam a proteção do servidor.
+Também invalida o [relatório administrativo](occurrence-report.md) do mesmo ADMIN.
 
 ## Notificações
 

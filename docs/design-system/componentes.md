@@ -1,5 +1,16 @@
 # Componentes compartilhados
 
+## Distribuições administrativas
+
+`CountDistribution` recebe items `{key,label,count}` e total. Lista nativa exibe
+rótulo e contagem textual, com barras decorativas proporcionais ocultas da árvore
+acessível. Largura percentual é estilo dinâmico de dado; cores/espaçamento usam
+tokens Tailwind existentes. Total zero mantém barras zeradas, sem divisão por
+zero. O catálogo dev demonstra zeros e aviso de média parcial.
+O [relatório](../occurrence-report.md) compõe Card/Button/Alert e tabela nativa
+com caption e cabeçalhos para todas as localidades. Sem biblioteca de gráficos.
+Métricas null mostram “Sem dados”; zero real permanece numérico.
+
 O detalhe privado usa `OccurrenceHistory`: lista cronológica com estado anterior
 e novo, horário em elemento time, responsável funcional “Moderação” e
 justificativa em texto com quebras preservadas. Sem eventos, informa ausência de

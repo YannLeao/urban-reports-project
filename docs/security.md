@@ -24,6 +24,7 @@ paralelismo 1, salt 16 bytes e hash 32 bytes, sem normalizar senhas.
 | GET/HEAD caminhos Swagger já existentes | Disponíveis somente com dev explícito; base/prod retornam 404 |
 | GET/POST `/api/super-admin/admins` e subrotas | SUPER_ADMIN ativo; gestão/convites/desativação |
 | GET/POST `/api/admin/occurrences` e subrotas | ADMIN ativo; fila, detalhe, imagem e transições |
+| GET `/api/admin/reports/occurrences` | ADMIN ativo exato; agregados privados, no-store; [contrato](occurrence-report.md) |
 | POST `/api/auth/admin-activations` | Público, JSON limitado; confirmação de convite, sem sessão automática |
 | Storage técnico, Actuator, demais caminhos e `/error` direto | denyAll; 401 anônimo, 403 autenticado |
 | Dispatch interno ERROR | Preserva processamento/status original |

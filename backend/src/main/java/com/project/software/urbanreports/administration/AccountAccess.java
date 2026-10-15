@@ -36,4 +36,14 @@ public class AccountAccess {
         return accounts.findById(id).filter(account -> account.getRole() == AccountRole.ADMIN)
                 .orElseThrow(() -> new AdministrationException(HttpStatus.NOT_FOUND, "ADMIN_NOT_FOUND"));
     }
+
+    /** Read authorization in the caller's snapshot, without serializing moderation. */
+    @Transactional(propagation = Propagation.MANDATORY, readOnly = true)
+    public void check(AuthenticatedIdentity identity, AccountRole required) {
+        if (identity == null) throw new AccessDeniedException("Access denied");
+        var actor = accounts.findById(identity.userId()).orElseThrow(() -> new AccessDeniedException("Access denied"));
+        var session = sessions.findById(identity.sessionId()).orElseThrow(() -> new AccessDeniedException("Access denied"));
+        if (!actor.isActive() || actor.getRole() != required || !session.getUserId().equals(actor.getId())
+                || !session.active(clock.instant())) throw new AccessDeniedException("Access denied");
+    }
 }

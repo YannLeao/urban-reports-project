@@ -17,6 +17,7 @@ function App() {
           <NavLink className="inline-flex min-h-target items-center aria-[current=page]:font-bold" to="/status">Status</NavLink>
           <NavLink className="inline-flex min-h-target items-center aria-[current=page]:font-bold" to="/minha-conta">Minha conta</NavLink>
           {state.status === 'authenticated' && state.user.role === 'ADMIN' && <NavLink className="inline-flex min-h-target items-center aria-[current=page]:font-bold" to="/administracao/relatos">Moderação</NavLink>}
+          {state.status === 'authenticated' && state.user.role === 'ADMIN' && <NavLink className="inline-flex min-h-target items-center aria-[current=page]:font-bold" to="/administracao/relatorio">Relatório</NavLink>}
           {state.status === 'authenticated' && state.user.role === 'SUPER_ADMIN' && <NavLink className="inline-flex min-h-target items-center aria-[current=page]:font-bold" to="/administracao/contas">Administradores</NavLink>}
         </nav>
       </header>

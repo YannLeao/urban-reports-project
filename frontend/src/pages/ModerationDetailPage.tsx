@@ -47,6 +47,7 @@ export function ModerationDetailPage() {
       if (abort.signal.aborted) return
       setRejecting(false); setReason(''); setFailed(false); setMessage('Estado atualizado.')
       await client.invalidateQueries({ queryKey: ['private', state.user.id, 'moderation'] })
+      await client.invalidateQueries({ queryKey: ['private', state.user.id, 'occurrence-report'] })
       await client.invalidateQueries({ queryKey: ['private', state.user.id, 'occurrences'] })
       await client.cancelQueries({ queryKey: ['public', 'occurrences'] })
       client.removeQueries({ queryKey: ['public', 'occurrences', 'detail', report.id] })
