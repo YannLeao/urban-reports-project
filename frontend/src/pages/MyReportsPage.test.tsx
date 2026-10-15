@@ -35,6 +35,7 @@ test('loading is visible and leaving cancels the private request', async () => {
   fetchMock.mockReturnValueOnce(new Promise<Response>(done => { resolve = done }))
   const view = renderPage()
   expect(await screen.findByText('Carregando seus relatos…')).toBeVisible()
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
   const signal = fetchMock.mock.calls[1][1]?.signal
   view.unmount()
   expect(signal?.aborted).toBe(true)

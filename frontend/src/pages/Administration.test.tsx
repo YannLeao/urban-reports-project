@@ -147,6 +147,7 @@ test('moderation rejects with Unicode count and reloads conflicts without false 
     return Response.json({ report: current, history })
   })
   const { client } = renderPage(`/administracao/relatos/${report.id}`)
+  client.setQueryData(['private', user.id, 'occurrence-report'], { total: 1 })
   await userEvent.click(await screen.findByRole('button', { name: 'Iniciar análise' }))
   expect(await screen.findByRole('alert')).toHaveTextContent('Este relato mudou')
   expect(screen.queryByText('Estado atualizado.')).not.toBeInTheDocument()
@@ -160,6 +161,7 @@ test('moderation rejects with Unicode count and reloads conflicts without false 
   expect(await screen.findByText('Estado atualizado.')).toBeVisible()
   expect(await screen.findByText('Relato finalizado. Não há novas ações disponíveis.')).toBeVisible()
   expect(client.getQueryData(['private', user.id, 'moderation', report.id])).toMatchObject({ report: { status: 'REJECTED', version: 2 } })
+  expect(client.getQueryState(['private', user.id, 'occurrence-report'])?.isInvalidated).toBe(true)
 })
 
 test.each(['/administracao/contas', '/administracao/relatos'])('revoked session at %s removes all private cache', async path => {
