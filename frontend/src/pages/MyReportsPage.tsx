@@ -27,13 +27,12 @@ export function MyReportsPage() {
   const reports = query.data
   const error = query.isError
 
-  return <section className="py-8" aria-labelledby="reports-title">
-    <div className="max-w-reading wrap-anywhere">
+  return <section className={mapMode ? 'py-3' : 'py-8'} aria-labelledby="reports-title">
+    <div className={mapMode ? 'wrap-anywhere' : 'max-w-reading wrap-anywhere'}>
 
-      <h1 id="reports-title">Meus relatos</h1>
-      <Link className={buttonStyles()} to="/registrar-ocorrencia">Relatar problema</Link>
+      <div className="flex flex-wrap items-center justify-between gap-2"><h1 id="reports-title" className={mapMode ? 'mb-0 text-title' : ''}>Meus relatos</h1><QueryViewToggle /></div>
+      {!mapMode && <Link className={buttonStyles()} to="/registrar-ocorrencia">Relatar problema</Link>}
       {location.state?.deleted && <Alert>Relato excluído.</Alert>}
-      <QueryViewToggle />
       {mapMode ? <OwnMapView /> : <>
       {query.isPending && <p role="status" className="mt-8">Carregando seus relatos…</p>}
       {error && <Alert className="mt-6" tone="danger" role="alert">Não conseguimos carregar seus relatos. Tente novamente.</Alert>}

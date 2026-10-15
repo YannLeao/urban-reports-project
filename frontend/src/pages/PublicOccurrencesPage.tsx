@@ -22,11 +22,10 @@ export function PublicOccurrencesPage() {
     const next = new URLSearchParams(params); next.set('pagina', String(value)); return `/ocorrencias?${next}`
   }
 
-  return <section className="py-8" aria-labelledby="public-title">
-    <div className="max-w-reading wrap-anywhere">
-      <h1 id="public-title">Ocorrências</h1>
-      <p className="text-lead text-text-secondary">Problemas urbanos relatados pela comunidade.</p>
-      <QueryViewToggle />
+  return <section className={mapMode ? 'py-3' : 'py-8'} aria-labelledby="public-title">
+    <div className={mapMode ? 'wrap-anywhere' : 'max-w-reading wrap-anywhere'}>
+      <div className="flex flex-wrap items-center justify-between gap-2"><h1 id="public-title" className={mapMode ? 'mb-0 text-title' : ''}>Ocorrências</h1><QueryViewToggle /></div>
+      {!mapMode && <p className="text-lead text-text-secondary">Problemas urbanos relatados pela comunidade.</p>}
       {mapMode ? <PublicMapView /> : <>
       {query.isPending && <p role="status" className="mt-8">Carregando ocorrências…</p>}
       {error && <Alert className="mt-6" tone="danger" role="alert">Não conseguimos carregar as ocorrências. Tente novamente.</Alert>}

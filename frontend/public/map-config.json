@@ -1,6 +1,6 @@
 {
-  "center": { "latitude": -23.55052, "longitude": -46.633308 },
-  "zoom": 12,
+  "center": { "latitude": -8.336, "longitude": -36.424 },
+  "zoom": 14,
   "tileUrl": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
   "attribution": "© OpenStreetMap contributors",
   "attributionUrl": "https://www.openstreetmap.org/copyright"
