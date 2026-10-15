@@ -1,3 +1,4 @@
+import { OccurrenceStatus } from '../features/occurrence/OccurrenceStatus'
 import { OccurrenceLocation } from '../features/occurrence/OccurrenceLocation'
 import { queryReturn } from '../features/occurrence/map-navigation'
 import { Dialog } from '../components/ui/Dialog'
@@ -8,7 +9,7 @@ import { PrivateRequestError } from '../lib/api'
 import { OccurrencePhoto } from '../features/occurrence/OccurrencePhoto'
 import { OccurrenceHistory } from '../features/occurrence/OccurrenceHistory'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
-import { Alert, StatusBadge } from '../components/ui/Feedback'
+import { Alert } from '../components/ui/Feedback'
 import { Card } from '../components/ui/Card'
 import { buttonStyles } from '../components/ui/button-styles'
 import { useOccurrence } from '../features/occurrence/useOccurrences'
@@ -32,6 +33,8 @@ export function OccurrenceDetailPage() {
   const [notice, setNotice] = useState<string | null>(null)
   const query = useOccurrence(id)
   const report = query.data
+  const latestChange = report?.history?.at(-1)
+  const rejection = report?.status === 'REJECTED' ? report.history?.slice().reverse().find(event => event.newStatus === 'REJECTED' && event.reason !== null) : undefined
   const loading = query.isPending
   const error = query.isError
 
@@ -68,17 +71,19 @@ export function OccurrenceDetailPage() {
       {error && <Button className="mt-4" variant="secondary" loading={query.isFetching} onClick={() => { void query.refetch() }}>Tentar novamente</Button>}
       {error && <Link className={`${buttonStyles('secondary')} mt-4`} to="/meus-relatos">Voltar para meus relatos</Link>}
       {report && <>
-        <div className="mt-8 flex flex-wrap items-start justify-between gap-3"><div><p className="mb-2 text-small font-bold text-brand-default">Relato registrado</p><h1 id="detail-title" className="mb-0">{report.title}</h1></div><StatusBadge tone="info" label={occurrenceStatusLabel(report.status)} /></div>
+        <div className="mt-8 flex flex-wrap items-start justify-between gap-3"><div><p className="mb-2 text-small font-bold text-brand-default">Relato registrado</p><h1 id="detail-title" className="mb-0">{report.title}</h1></div><OccurrenceStatus status={report.status} /></div>
         <OccurrencePhoto report={report} full />
+        {latestChange && <p className="text-small text-text-secondary">Último andamento: {occurrenceStatusLabel(latestChange.newStatus)} · <time dateTime={latestChange.occurredAt}>{occurrenceDate(latestChange.occurredAt)}</time></p>}
+        {rejection && <Alert tone="danger" className="my-5"><h2 className="text-title">Por que foi rejeitado?</h2><p className="whitespace-pre-wrap">{rejection.reason}</p></Alert>}
         <Card className="mt-6"><dl className="grid gap-5"><div><dt className="font-bold">Categoria</dt><dd className="m-0">{report.categoryName}</dd></div>{report.description && <div><dt className="font-bold">Detalhes</dt><dd className="m-0 whitespace-pre-wrap">{report.description}</dd></div>}<div><dt className="font-bold">Localização</dt><dd className="m-0">{report.neighborhood} · {report.reference}</dd></div><div><dt className="font-bold">Data do registro</dt><dd className="m-0">{occurrenceDate(report.createdAt)}</dd></div></dl></Card>
-        <OccurrenceLocation report={report} />
-        <Link className={buttonStyles('quiet')} to={from.includes('visao=mapa') ? from : '/meus-relatos?visao=mapa'}>Ver mapa dos meus relatos</Link>
-        <OccurrenceHistory events={report.history ?? []} />
         {notice && <Alert tone="danger" role="alert">{notice} <Button variant="quiet" onClick={() => { void query.refetch() }}>Consultar novamente</Button></Alert>}
         {report.status === 'PENDING' && <div className="mt-5 flex flex-wrap gap-3">
           <Link className={buttonStyles()} to={`/meus-relatos/${report.id}/editar`} state={{ from }}>Editar relato</Link>
           <Button ref={trigger} variant="quiet" className="text-feedback-danger-foreground" onClick={() => { dialog.current?.showModal(); cancel.current?.focus() }}>Excluir relato</Button>
         </div>}
+        <OccurrenceHistory events={report.history ?? []} />
+        <OccurrenceLocation report={report} />
+        <Link className={buttonStyles('quiet')} to={from.includes('visao=mapa') ? from : '/meus-relatos?visao=mapa'}>Ver mapa dos meus relatos</Link>
         <Dialog ref={dialog} aria-labelledby="delete-title" onClose={() => trigger.current?.focus()} onCancel={event => { if (pending) event.preventDefault() }} className="m-auto max-w-reading rounded-card border border-border-control bg-surface-raised p-6 text-text-primary backdrop:bg-text-primary/50">
           <h2 id="delete-title">Excluir relato</h2><p>{report.title}</p><p>Esta ação não pode ser desfeita.</p>
           <div className="flex flex-wrap gap-3">
