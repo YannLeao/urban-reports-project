@@ -7,6 +7,8 @@ import App from '../App'
 import { AuthProvider } from '../features/auth/AuthProvider'
 import { STORAGE_KEY } from '../features/auth/auth'
 
+vi.mock('../features/location/LocationMap', () => ({ LocationMap: () => null }))
+
 const fetchMock = vi.fn<typeof fetch>()
 let images: FakeImage[]
 class FakeImage {
@@ -47,6 +49,9 @@ async function fill() {
   for (const [label, value] of [['Título', '  Poste apagado 💡  '], ['Detalhes (opcional)', 'A iluminação desta rua está apagada.'], ['Bairro', 'Centro'], ['Ponto de referência', 'Ao lado da escola']]) {
     fireEvent.change(screen.getByLabelText(label), { target: { value } })
   }
+  fireEvent.change(screen.getByLabelText('Latitude'), { target: { value: '-23.55052' } })
+  fireEvent.change(screen.getByLabelText('Longitude'), { target: { value: '-46.633308' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Confirmar coordenadas' }))
   choose(); await finish()
 }
 function submit() { fireEvent.submit(screen.getByRole('button', { name: 'Enviar ocorrência' }).closest('form')!) }
@@ -68,7 +73,9 @@ test('sends one authenticated multipart snapshot, blocks all edits and resets on
   expect(options.headers).toEqual({ Authorization: 'Bearer synthetic-token' })
   expect(options.credentials).toBe('omit')
   const body = options.body as FormData
-  expect([...body.keys()]).toEqual(['categoryId', 'title', 'description', 'neighborhood', 'reference', 'image'])
+  expect([...body.keys()]).toEqual(['categoryId', 'title', 'description', 'neighborhood', 'reference', 'latitude', 'longitude', 'image'])
+  expect(body.get('latitude')).toBe('-23.55052')
+  expect(body.get('longitude')).toBe('-46.633308')
   expect(body.get('title')).toBe('Poste apagado 💡')
   expect((body.get('image') as File).name).toBe('photo.png')
   for (const label of ['Categoria', 'Título', 'Detalhes (opcional)', 'Bairro', 'Ponto de referência', 'Arquivo de imagem', 'Fotografia pela câmera']) expect(screen.getByLabelText(label)).toBeDisabled()
@@ -121,6 +128,7 @@ test.each([
   expect(screen.queryByText(/English secret|Internal request detail/)).not.toBeInTheDocument()
   expect(screen.getByLabelText('Título')).toHaveValue('  Poste apagado 💡  ')
   expect(screen.getByText(/photo.png/)).toBeVisible()
+  expect(screen.getByText(/Local confirmado: latitude -23.550520, longitude -46.633308/)).toBeVisible()
   expect(fetchMock).toHaveBeenCalledTimes(3)
   expect(sessionStorage.getItem(STORAGE_KEY)).not.toBeNull()
 })
@@ -162,4 +170,17 @@ test('rejects 1001 Unicode points before sending multipart', async () => {
   submit()
   expect(screen.getByLabelText('Detalhes (opcional)')).toHaveFocus()
   expect(fetchMock).toHaveBeenCalledTimes(2)
+})
+
+
+test('coordinates typed without confirmation do not authorize a new registration', async () => {
+  renderPage()
+  await screen.findByRole('option', { name: 'Iluminação pública' })
+  for (const [label, value] of [['Categoria', '1'], ['Título', 'Poste apagado'], ['Bairro', 'Centro'], ['Ponto de referência', 'Perto da praça'], ['Latitude', '0'], ['Longitude', '0']])
+    fireEvent.change(screen.getByLabelText(label), { target: { value } })
+  choose(); await finish(); submit()
+  expect(fetchMock).toHaveBeenCalledTimes(2)
+  expect(screen.getByLabelText('Latitude')).toHaveFocus()
+  expect(screen.getByText('Confirme o local real da ocorrência.')).toBeVisible()
+  expect(screen.getByText(/photo.png/)).toBeVisible()
 })
