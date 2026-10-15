@@ -17,6 +17,7 @@ import { MyReportsPage } from '../pages/MyReportsPage'
 import { OccurrenceDetailPage } from '../pages/OccurrenceDetailPage'
 import { PublicOccurrencesPage } from '../pages/PublicOccurrencesPage'
 import { PublicOccurrenceDetailPage } from '../pages/PublicOccurrenceDetailPage'
+import { NotificationsPage } from '../pages/NotificationsPage'
 
 const DesignSystemPage = import.meta.env.DEV
   ? lazy(() => import('../pages/dev/DesignSystemPage'))
@@ -36,6 +37,7 @@ export function AppRoutes() {
       <Route path="/ativar-administrador" element={<AdminActivationPage />} />
       <Route element={<PrivateRoute />}>
         <Route path="/minha-conta" element={<AccountPage />} />
+        <Route path="/notificacoes" element={<NotificationsPage />} />
         <Route element={<RoleRoute role="SUPER_ADMIN" />}>
           <Route path="/administracao/contas" element={<AdminAccountsPage />} />
         </Route>

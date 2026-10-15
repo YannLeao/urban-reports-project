@@ -5,8 +5,9 @@
 O fluxo administrativo usa a identidade compartilhada de
 [provisionamento](admin-provisioning.md). ADMIN ativo acessa fila, detalhe,
 foto e transições; SUPER_ADMIN não herda essa permissão. Cadastro público
-permanece USER. A central de notificações continua separada: cada transição
-persiste intenção durável, sem alegar entrega da notificação interna.
+permanece USER. Cada transição válida também cria, na mesma transação, uma
+notificação interna para o autor; a central do cidadão permite consultar e
+marcar como lidas somente as próprias notificações.
 
 ## Estados e justificativa
 
@@ -84,10 +85,21 @@ retroativo. A mesma linha de ocorrência é disputada por edição/exclusão do 
 Moderação não trava journal nem faz I/O de storage, preservando ADR 0014.
 
 Estado, incremento de versão, evento com responsável autenticado/horário do
-Clock e intenção de notificação confirmam na mesma transação. Falha no commit
-reverte tudo. Repetição/conflito não acrescenta evento. Edição antiga em PENDING
+Clock e notificação com `event_id` único confirmam na mesma transação. Falha no
+commit reverte tudo. Repetição/conflito não acrescenta evento. Edição antiga em PENDING
 não confirma após análise; exclusão não remove relato analisado/finalizado.
 Upload que perdeu uma disputa continua recuperável pelo journal existente.
+
+## Notificações do cidadão
+
+- GET `/api/notifications?page=0&size=20`: retorna somente itens cujo
+  `recipient_id` é a conta autenticada, ordenados do mais recente ao mais antigo.
+- POST `/api/notifications/{id}/read`: marca o item próprio como lido; repetir a
+  operação é idempotente e um item de outra conta retorna 404.
+- Transições para `REJECTED` incluem a justificativa administrativa na mensagem.
+  O trigger de banco usa o evento de histórico como chave única, garantindo uma
+  notificação por transição válida mesmo quando o histórico é inserido fora do
+  Hibernate.
 
 ## Interface
 

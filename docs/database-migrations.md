@@ -6,6 +6,11 @@ adiciona tokens de ativação somente como hash e guarda de bootstrap. Não alte
 V1–V7. Índice único parcial impede segundo SUPER_ADMIN. Contratos em
 [moderação](occurrence-moderation.md) e [provisionamento](admin-provisioning.md).
 
+A V10 materializa a central de notificações de ocorrência. O trigger de
+`occurrence_history` cria exatamente uma linha por evento, usando o `event_id`
+como chave única; mensagens de rejeição incluem a justificativa. `read_at` é
+alterado somente pelo serviço de notificações para marcar a mensagem como lida.
+
 O Flyway é a única fonte de verdade do schema. O Hibernate valida se o schema é
 compatível com as entidades existentes, mas não cria, atualiza nem remove
 estruturas.
