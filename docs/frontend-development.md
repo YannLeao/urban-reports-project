@@ -247,5 +247,13 @@ privados sem retries. Contrato, diálogo e limites em [gestão](occurrence-query
 
 Latitude/longitude WGS84 foram adicionadas aos DTOs, nulas em relatos legados.
 O formulário restaura e reenvia o par confirmado; PUT sem ambos preserva posição,
-campos vazios não removem o ponto. Consulta em mapas e pinos próprios continuam
-na #44. Componente, provedor, confirmação/GPS e publicação: [guia de localização](occurrence-location.md).
+campos vazios não removem o ponto. Consulta em mapas e pinos canônicos estão na [entrega #44](occurrence-maps.md). Componente, provedor, confirmação/GPS e publicação: [guia de localização](occurrence-location.md).
+
+## Consulta em mapas
+
+Hooks de marcadores públicos/próprios são independentes dos cards, validam conjunto
+completo e usam os prefixos de cache existentes. MapCanvas compartilha integração
+com o formulário; OccurrenceMap usa pinos canônicos de `features/location/pins/`,
+com adaptador carregado sob demanda e sem arquivos de docs no runtime.
+Configuração/provedor/build continuam os da localização. Contrato e roteiro:
+[mapas de consultas](occurrence-maps.md).

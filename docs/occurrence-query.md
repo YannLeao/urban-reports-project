@@ -94,5 +94,12 @@ próprias na MR/issue.
 
 Latitude/longitude WGS84 foram adicionadas aos DTOs, nulas em relatos legados.
 O formulário restaura e reenvia o par confirmado; PUT sem ambos preserva posição,
-campos vazios não removem o ponto. Consulta em mapas e pinos próprios continuam
-na #44. Componente, provedor, confirmação/GPS e publicação: [guia de localização](occurrence-location.md).
+campos vazios não removem o ponto. Consulta em mapas e pinos canônicos estão na [entrega #44](occurrence-maps.md). Componente, provedor, confirmação/GPS e publicação: [guia de localização](occurrence-location.md).
+
+## Mapa da consulta completa e dos detalhes
+
+`?visao=mapa` alterna com Lista nas consultas pública e própria. Endpoints `/markers`
+retornam projeções de todos os pontos elegíveis, sem depender da paginação de cards,
+com contagens integrais de legado. Detalhes mostram ponto individual/ausência,
+sem editar localização. Contrato, sobreposição, navegação, isolamento de cache e
+roteiro: [mapas nas consultas](occurrence-maps.md).

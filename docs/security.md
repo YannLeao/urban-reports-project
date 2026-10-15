@@ -149,3 +149,15 @@ revalida PENDING/If-Match. Relato alheio é indistinguível de inexistente (404)
 CORS inclui If-Match, PUT/DELETE, mantendo Bearer sem credentials.
 Foto privada usa no-store/nosniff e jamais inclui token ou chave em URL pública.
 Contrato e precondições: [gestão de relatos](occurrence-query.md).
+
+## Marcadores de ocorrências
+
+GET `/api/public/occurrences/markers` é anônimo e usa a mesma elegibilidade
+pública (sem REJECTED), sem campos pessoais/versão/storage/histórico. GET
+`/api/occurrences/markers` exige sessão revogável e deriva autor da identidade;
+parâmetros de userId não autorizam leitura. As rotas literais reutilizam matchers
+GET existentes, com negação por padrão preservada. Cada conjunto/contagem vem de
+uma instrução PostgreSQL, sem revelar totais privados no público. Bearer é usado
+só na API privada; mapa base/ícones/público não recebem a credencial. Não há GPS
+obrigatório nem publicação adicional de imagens. Contrato e isolamento de cache:
+[mapas de consultas](occurrence-maps.md).

@@ -152,6 +152,18 @@ zoom por controles e preserva rolagem por roda; sua altura responde ao layout.
 
 Leaflet fornece CSS próprio carregado sob demanda: exceção de integração de
 biblioteca, necessária aos panes/controles/tiles. Classes Tailwind permanecem no
-layout e estados da aplicação. O marcador básico vem do pacote Leaflet, sem
-mover os SVGs de docs; ícones por categoria são da #44.
+layout e estados da aplicação. O marcador do formulário vem do pacote Leaflet. Nas consultas, os SVGs fornecidos
+foram convertidos para os pinos canônicos descritos abaixo.
 Contrato e acessibilidade: [localização](../occurrence-location.md).
+
+## Pinos de ocorrências e consultas
+
+`features/location/pins/OccurrencePin.tsx` é a fonte canônica dos desenhos 64×76,
+convertidos dos sete SVGs fornecidos, sem redesenho. Recebe categoryId, selected,
+size e label; sem label é decorativo, com label usa título/ID único. Os mesmos
+componentes aparecem no catálogo e no DivIcon Leaflet, sem SVG de docs em runtime.
+Cores são variáveis semânticas do tema; selecionado usa contorno mais espesso e
+resumo/aria-pressed, preservando a categoria. Genérico corresponde aos IDs5/6/8;
+a seleção não representa status nem categoria. Tabela completa, adaptador, tamanho/
+âncora, agrupamento, acessibilidade e política de ausência estão no
+[guia de mapas](../occurrence-maps.md).

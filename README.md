@@ -16,6 +16,8 @@ seleção/captura local de fotografia em `/prova-imagem` e endpoints técnicos d
 storage. Cadastro de cidadão em `/cadastro` persiste contas reais, sem login
 automático.
 Login em `/entrar` e sessão revogável em `/minha-conta` estão implementados.
+As consultas pública e própria oferecem [Lista/Mapa e pinos](docs/occurrence-maps.md),
+com localização nos detalhes e legado sem ponto preservado.
 A [consulta privada de relatos](docs/occurrence-query.md) oferece listagem e
 fotografia, detalhe, edição e exclusão dos próprios relatos pendentes em `/meus-relatos`.
 A [moderação](docs/occurrence-moderation.md) oferece fila, foto, transições e
