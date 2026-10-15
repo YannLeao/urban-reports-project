@@ -1,7 +1,11 @@
 import { EditOccurrencePage } from '../pages/EditOccurrencePage'
 import { LoginPage } from '../pages/LoginPage'
 import { AccountPage } from '../pages/AccountPage'
-import { PrivateRoute } from '../features/auth/PrivateRoute'
+import { PrivateRoute, RoleRoute } from '../features/auth/PrivateRoute'
+import { AdminActivationPage } from '../pages/AdminActivationPage'
+import { AdminAccountsPage } from '../pages/AdminAccountsPage'
+import { ModerationQueuePage } from '../pages/ModerationQueuePage'
+import { ModerationDetailPage } from '../pages/ModerationDetailPage'
 import { lazy, Suspense } from 'react'
 import { Route, Routes } from 'react-router'
 import { ImageProofPage } from '../pages/ImageProofPage'
@@ -27,12 +31,22 @@ export function AppRoutes() {
       <Route path="/ocorrencias/:id" element={<PublicOccurrenceDetailPage />} />
       <Route path="/prova-imagem" element={<ImageProofPage />} />
       <Route path="/entrar" element={<LoginPage />} />
+      <Route path="/ativar-administrador" element={<AdminActivationPage />} />
       <Route element={<PrivateRoute />}>
         <Route path="/minha-conta" element={<AccountPage />} />
+        <Route element={<RoleRoute role="SUPER_ADMIN" />}>
+          <Route path="/administracao/contas" element={<AdminAccountsPage />} />
+        </Route>
+        <Route element={<RoleRoute role="ADMIN" />}>
+          <Route path="/administracao/relatos" element={<ModerationQueuePage />} />
+          <Route path="/administracao/relatos/:id" element={<ModerationDetailPage />} />
+        </Route>
+        <Route element={<RoleRoute role="USER" />}>
         <Route path="/registrar-ocorrencia" element={<ReportOccurrencePage />} />
         <Route path="/meus-relatos" element={<MyReportsPage />} />
         <Route path="/meus-relatos/:id/editar" element={<EditOccurrencePage />} />
         <Route path="/meus-relatos/:id" element={<OccurrenceDetailPage />} />
+        </Route>
       </Route>
       <Route path="/cadastro" element={<RegistrationPage />} />
       <Route path="/status" element={<StatusPage />} />

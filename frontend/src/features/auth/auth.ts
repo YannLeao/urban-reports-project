@@ -1,7 +1,8 @@
 import { createContext, useContext } from 'react'
 import { z } from 'zod'
 
-export const userSchema = z.object({ id: z.uuid(), name: z.string(), email: z.string(), role: z.literal('USER') })
+export const roleSchema = z.enum(['USER', 'ADMIN', 'SUPER_ADMIN'])
+export const userSchema = z.object({ id: z.uuid(), name: z.string(), email: z.string(), role: roleSchema })
 export const credentialSchema = z.object({ accessToken: z.string().min(1), expiresAt: z.iso.datetime() })
 export const loginSchema = credentialSchema.extend({ tokenType: z.literal('Bearer'), user: userSchema })
 export type Credential = z.infer<typeof credentialSchema>

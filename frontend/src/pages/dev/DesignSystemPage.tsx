@@ -73,6 +73,12 @@ export default function DesignSystemPage() {
         </div>
         <OccurrenceHistory events={[{ id: '3e85aa3d-19e3-42a3-8861-c435ff5908af', previousStatus: 'PENDING', newStatus: 'REJECTED', occurredAt: '2026-10-15T12:00:00Z', responsible: 'Moderação', reason: 'Exemplo: fotografia não corresponde ao local informado.' }]} />
       </Card>
+      <Card><h2>Contas administrativas e rejeição</h2>
+        <p>Exemplos de situação: Aguardando ativação · Ativo · Desativado.</p>
+        <Alert tone="info" role="note">Convite aceito pelo servidor de e-mail. Isso não confirma o recebimento.</Alert>
+        <Alert tone="danger" role="note" className="mt-4">Conta aguardando ativação. O envio do convite falhou. Reenvie quando o serviço estiver disponível.</Alert>
+        <Textarea className="mt-4" label="Justificativa de rejeição — exemplo" description="De 10 a 500 caracteres após remover espaços externos. 9/500 caracteres." defaultValue="Inválido!" error="Informe uma justificativa de 10 a 500 caracteres." />
+      </Card>
       <Card><h2>Feedback textual</h2><div className="grid gap-8 pb-8">
         {(['success', 'warning', 'danger', 'info'] as const).map(tone => <div key={tone}><StatusBadge tone={tone} label={`Exemplo ${tone}`} /><Alert tone={tone} role="note" className="mt-4">Mensagem demonstrativa: o texto explica a situação e orienta o próximo passo.</Alert></div>)}
       </div></Card>

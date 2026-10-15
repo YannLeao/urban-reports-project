@@ -4,10 +4,12 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, expect, test, vi } from 'vitest'
 import App from '../App'
+import { AuthProvider } from '../features/auth/AuthProvider'
 
 const fetchMock = vi.fn<typeof fetch>()
 
 beforeEach(() => {
+  sessionStorage.clear()
   fetchMock.mockReset()
   vi.stubGlobal('fetch', fetchMock)
   vi.stubEnv('VITE_API_URL', 'https://api.example.com/base///')
@@ -17,7 +19,7 @@ function renderPage(path = '/') {
   const client = new QueryClient({ defaultOptions: { queries: { gcTime: 0 } } })
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={[path]}><App /></MemoryRouter>
+      <AuthProvider><MemoryRouter initialEntries={[path]}><App /></MemoryRouter></AuthProvider>
     </QueryClientProvider>,
   )
 }

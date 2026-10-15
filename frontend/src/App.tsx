@@ -1,7 +1,9 @@
 import { Link, NavLink } from 'react-router'
 import { AppRoutes } from './app/routes'
+import { useAuth } from './features/auth/auth'
 
 function App() {
+  const { state } = useAuth()
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-app flex-col p-6 md:p-8 wrap-anywhere">
       <a className="absolute left-4 top-4 z-10 -translate-y-[200%] bg-surface-raised p-3 focus:translate-y-0" href="#main-content">Pular para o conteúdo</a>
@@ -14,6 +16,8 @@ function App() {
           <NavLink className="inline-flex min-h-target items-center aria-[current=page]:font-bold" to="/" end>Início</NavLink>
           <NavLink className="inline-flex min-h-target items-center aria-[current=page]:font-bold" to="/status">Status</NavLink>
           <NavLink className="inline-flex min-h-target items-center aria-[current=page]:font-bold" to="/minha-conta">Minha conta</NavLink>
+          {state.status === 'authenticated' && state.user.role === 'ADMIN' && <NavLink className="inline-flex min-h-target items-center aria-[current=page]:font-bold" to="/administracao/relatos">Moderação</NavLink>}
+          {state.status === 'authenticated' && state.user.role === 'SUPER_ADMIN' && <NavLink className="inline-flex min-h-target items-center aria-[current=page]:font-bold" to="/administracao/contas">Administradores</NavLink>}
         </nav>
       </header>
       <main className="mx-auto w-full max-w-reading flex-1" id="main-content" tabIndex={-1}><AppRoutes /></main>
