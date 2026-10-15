@@ -1,7 +1,8 @@
 # Mapas nas consultas e nos detalhes
 
 A #44 complementa a [localização confirmada da #43](occurrence-location.md).
-`/ocorrencias?visao=mapa` funciona anonimamente, sem GPS. Em
+`/ocorrencias?visao=mapa` funciona anonimamente, sem depender de GPS.
+“Minha localização” oferece uma consulta opcional, somente após ação explícita. Em
 `/meus-relatos?visao=mapa`, a sessão determina o universo próprio. Os detalhes
 público e do autor mostram a posição individual após a fotografia/conteúdo,
 ou “Localização no mapa não informada”. As consultas e detalhes não editam pontos;
@@ -54,8 +55,10 @@ e-mail, versão, storage ou auditoria. Não há mudança na precisão pública:
 WGS84 em graus decimais e eixos nomeados, sem arredondamento adicional. A borda
 Leaflet converte explicitamente para `[latitude, longitude]`, sem GeoJSON.
 
-Relatos legados sem ponto permanecem acessíveis pela lista. O mapa informa a
-contagem integral sem localização; não a deduz dos 20 cards atuais. Nenhum ponto
+Relatos legados sem ponto permanecem acessíveis pela lista. Quando existem pontos,
+o mapa mostra aviso contextual com a contagem integral sem localização; não a
+deduz dos 20 cards atuais. Se nenhum relato tiver ponto, informa essa ausência
+com caminho à lista. Nenhum ponto
 usa centro de bairro, centro configurado ou zero como ausência. Zero é válido.
 Zero relatos, nenhum ponto e erro de consulta são estados distintos.
 
@@ -135,9 +138,9 @@ modo, página e seleção. Edição/cancelamento e exclusão conservam o retorno
 retira a seleção do relato removido. Coordenadas de viewport na URL são apenas
 navegação, não alteram relatos, e podem aparecer no histórico local do navegador.
 
-O enquadramento usa os pontos ao montar, ou centro/zoom público configurado se não
-houver pontos. Atualização/seleção não recentralizam a exploração; “Reenquadrar
-relatos” é explícito. Viewport salvo não é filtro de abrangência: todos os pontos
+O enquadramento prioriza viewport válida da URL; sem ela, usa os pontos ao montar
+ou Belo Jardim/PE (centro/zoom do JSON) se não houver pontos. Atualização/seleção
+não recentralizam a exploração; “Reenquadrar relatos” é explícito. Viewport salvo não é filtro de abrangência: todos os pontos
 continuam carregados, e grupos/alternativa textual permitem alcançá-los.
 
 Não há polling. “Atualizar mapa” renova o conjunto; falha mantém dados anteriores
@@ -149,9 +152,24 @@ prefixo privado no logout/401/troca de identidade; não persiste esses dados.
 A navegação a um detalhe selecionado refaz sua leitura. Se já não for público,
 404 esconde o conteúdo, invalida marcadores e remove seleção do caminho de retorno.
 
-Fotografia só é carregada nos cards/detalhes existentes, não por pino ou grupo.
+Na consulta, selecionar um relato abre um cartão não modal no mesmo quadro do
+mapa: estado, título, foto sob demanda e “Ver relato”. O quadro divide espaço
+entre mapa e resumo, preservando atribuição e controles. Fechamento explícito
+retorna ao acionador quando disponível; seleção por lista também revela o quadro.
+Grupo de pontos abre uma lista com rolagem e acesso a todos os relatos, sem foto
+por item. Somente o relato escolhido consulta detalhe e fotografia, com schema e
+endpoint do universo público/próprio. 404 remove seleção, informa indisponibilidade
+e renova marcadores. Falha de foto preserva o link e texto; falha do detalhe tem retry.
+
 Bearer pertence ao cliente privado da API; tiles/configuração/público usam fetch
-sem credencial da sessão. Não é solicitada localização do navegador nas consultas.
+sem credencial da sessão. “Minha localização” usa getCurrentPosition apenas no
+clique, em contexto seguro; nunca watchPosition. A resposta válida centraliza a
+exploração, sem editar relato, confirmar ponto do formulário ou persistir posição
+no backend. Recusa, timeout, falta de suporte e resposta inválida preservam o
+mapa/seleção. Resposta após desmontagem é ignorada. Não há indicador pessoal
+persistente nem rastreamento. O centro explorado continua registrado na URL como
+as outras navegações: pode aparecer no histórico do navegador e o provedor de
+tiles recebe a área consultada. A precisão do aparelho não é garantida.
 
 ## Acessibilidade e falhas
 
@@ -159,7 +177,9 @@ Controles usam Link/Button nativos, foco visível e tamanhos de toque existentes
 Pinos usam teclado Enter; grupos e alternativa textual expõem botões/links nativos,
 sem depender apenas de cor, SVG ou zoom. Não há armadilha de foco no mapa.
 Atribuição permanece visível; roda continua rolando a página em vez de capturar
-zoom. Reutilizam-se altura/layout responsivos e tokens, sem CSS manual novo.
+zoom. Nas consultas a altura usa viewport útil com fallback vh/svh e mínimo que permite
+rolagem em tela baixa/zoom. Detalhes e seletor mantêm mapa compacto. Layout usa
+utilitários/tokens; ResizeObserver acompanha o redimensionamento.
 
 Rede de dados, importação dos pinos, Leaflet/CSS e tiles têm mensagem e retry
 próprio. Falha de importação/configuração oferece recarga explícita da página,
@@ -199,9 +219,11 @@ Em backend/, com JAVA_HOME21 e configuração local:
 Em frontend/: `pnpm install --frozen-lockfile` e `pnpm run dev`.
 URLs locais usuais: http://localhost:5173/ocorrencias?visao=mapa e
 http://localhost:5173/meus-relatos?visao=mapa. Autenticar apenas para o universo
-próprio; a consulta pública não solicita GPS/login.
+próprio; a consulta pública não exige GPS/login. GPS só é solicitado pelo controle
+“Minha localização”; testar aceitar, recusar e indisponibilidade.
 
-1. Abrir público sem login e recarregar direto na URL do mapa. Conferir contagens,
+1. Abrir público sem login e recarregar direto na URL do mapa. Conferir aviso de
+   relatos sem ponto, mapa vazio em Belo Jardim (-8.336, -36.424), zoom 14,
    atribuição, categorias diferentes e seleção com resumo/link seguro ao detalhe.
 2. Abrir detalhe e voltar: preservar modo, página/viewport e seleção. Conferir
    mapa individual e ausência de ação para mover o ponto; foto continua primeiro.

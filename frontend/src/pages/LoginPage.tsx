@@ -1,3 +1,4 @@
+import { PasswordRecoveryAccess } from '../app/ProductIntegrations'
 import { useRef, useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation } from 'react-router'
 import { useAuth, safeReturnPath } from '../features/auth/auth'
@@ -42,6 +43,7 @@ export function LoginPage() {
         value={email} disabled={pending} onChange={(event) => setEmail(event.target.value)} />
       <Input label="Senha" name="password" type="password" autoComplete="current-password" required maxLength={256}
         value={password} disabled={pending} onChange={(event) => setPassword(event.target.value)} />
+      <PasswordRecoveryAccess />
       <Button type="submit" loading={pending}>{pending ? 'Entrando…' : 'Entrar'}</Button>
     </form>
     <p className="mt-6">Ainda não tem conta? <Link to="/cadastro">Criar conta</Link></p>

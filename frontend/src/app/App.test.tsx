@@ -24,23 +24,20 @@ function renderPage(path = '/') {
   )
 }
 
-test('navigates from home to status and back without fetching on home', async () => {
-  fetchMock.mockResolvedValue(Response.json({ status: 'UP' }))
-  const user = userEvent.setup()
+test('home prioritizes product destinations without fetching or exposing technical tools', async () => {
   renderPage()
-  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Tudo começa')
+  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Sua rua merece cuidado')
   expect(fetchMock).not.toHaveBeenCalled()
-  await user.click(screen.getByRole('link', { name: 'Verificar serviço' }))
-  expect(await screen.findByText('Conexão confirmada')).toBeVisible()
-  await user.click(screen.getByRole('link', { name: 'Início' }))
-  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Tudo começa')
+  expect(screen.getByRole('link', { name: 'Ver no mapa' })).toHaveAttribute('href', '/ocorrencias?visao=mapa')
+  expect(screen.getByRole('link', { name: 'Relatar problema' })).toHaveAttribute('href', '/registrar-ocorrencia')
+  expect(screen.queryByRole('link', { name: /Status|Verificar serviço|Demonstração técnica/ })).toBeNull()
 })
 
 test('direct status route shows loading then validates health and preserves the API base path', async () => {
   let resolve!: (response: Response) => void
   fetchMock.mockReturnValue(new Promise<Response>((done) => { resolve = done }))
   renderPage('/status')
-  expect(screen.getByText('Verificando a conexão…')).toBeVisible()
+  expect(await screen.findByText('Verificando a conexão…')).toBeVisible()
   expect(fetchMock).toHaveBeenCalledWith('https://api.example.com/base/api/health', {
     signal: expect.any(AbortSignal),
   })
@@ -55,7 +52,7 @@ test('unknown route offers a return to home', async () => {
   renderPage('/nao-existe')
   expect(screen.getByRole('heading', { name: 'Página não encontrada' })).toBeVisible()
   await user.click(screen.getByRole('link', { name: 'Voltar ao início' }))
-  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Tudo começa')
+  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Sua rua merece cuidado')
   expect(fetchMock).not.toHaveBeenCalled()
 })
 
@@ -98,10 +95,7 @@ test.each([
   ['http://api.example.com', 'configuração de conexão do site precisa ser corrigida'],
 ])('invalid configuration %s fails only on status, without a request', async (url, message) => {
   vi.stubEnv('VITE_API_URL', url)
-  const user = userEvent.setup()
-  renderPage()
-  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Tudo começa')
-  await user.click(screen.getByRole('link', { name: 'Verificar serviço' }))
+  renderPage('/status')
   expect(await screen.findByRole('alert')).toHaveTextContent(message)
   expect(fetchMock).not.toHaveBeenCalled()
 })
@@ -110,9 +104,10 @@ test('leaving status cancels the request through the query signal', async () => 
   fetchMock.mockReturnValue(new Promise(() => {}))
   const user = userEvent.setup()
   renderPage('/status')
+  await screen.findByText('Verificando a conexão…')
   const signal = fetchMock.mock.calls[0][1]?.signal
   expect(signal?.aborted).toBe(false)
-  await user.click(screen.getByRole('link', { name: 'Início' }))
+  await user.click(screen.getByRole('link', { name: 'Tá na Rua, início' }))
   await waitFor(() => expect(signal?.aborted).toBe(true))
 })
 
@@ -132,13 +127,13 @@ test('image proof is public, independent of API configuration, and loses selecti
   })
   const user = userEvent.setup()
   renderPage('/prova-imagem')
-  expect(screen.getByRole('heading', { name: 'Teste de fotografia' })).toBeVisible()
+  expect(await screen.findByRole('heading', { name: 'Teste de fotografia' })).toBeVisible()
   expect(screen.getByText('A imagem fica apenas nesta página e não é enviada.')).toBeVisible()
   await user.upload(screen.getByLabelText('Arquivo de imagem'), new File(['fixture'], 'photo.png', { type: 'image/png' }))
   await act(async () => images[0]?.onload?.())
   expect(screen.getByRole('img', { name: 'Prévia da imagem selecionada' })).toBeVisible()
-  await user.click(screen.getByRole('link', { name: 'Início' }))
-  await user.click(screen.getByRole('link', { name: 'Demonstração técnica: teste de fotografia' }))
+  await user.click(screen.getByRole('link', { name: 'Tá na Rua, início' }))
+  expect(screen.queryByRole('link', { name: /Demonstração técnica/ })).toBeNull()
   expect(screen.queryByRole('img', { name: 'Prévia da imagem selecionada' })).not.toBeInTheDocument()
   expect(fetchMock).not.toHaveBeenCalled()
 })

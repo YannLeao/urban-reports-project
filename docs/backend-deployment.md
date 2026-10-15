@@ -164,7 +164,9 @@ curl --include --request POST "$BACKEND_PRODUCTION_URL/api/storage/images"
 
 Preserve `FRONTEND_ALLOWED_ORIGINS` com a origem canônica exata da Vercel e origens
 locais autorizadas, sem wildcard ou credentials. Nenhuma chave JWT é necessária.
-Confirme em `/status` no navegador o health 200 e ausência de erro CORS; curl
+Confirme no mapa/lista públicos a consulta à API e ausência de erro CORS;
+`/status` é ferramenta exclusiva do frontend em desenvolvimento. O health
+`/api/health` permanece público; curl
 sozinho não comprova a integração no navegador. Registre os resultados junto
 às evidências do SHA/pipeline/deployment. Aferir Argon2id sob os recursos do
 Render antes de habilitar cadastro/login.

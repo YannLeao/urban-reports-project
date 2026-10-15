@@ -90,9 +90,11 @@ representa os polos. Use os campos textuais para extremos fora da projeção.
 - `attribution` e `attributionUrl`: texto e link HTTPS visíveis no mapa.
   Texto é escapado por DOM, nunca inserido como HTML livre.
 
-O exemplo usa São Paulo (-23.55052, -46.633308), zoom 12, **sem definir município
-atendido**. Ajuste o JSON para o enquadramento desejado. Ponto existente prevalece
-sobre o centro. Configuração inválida não fabrica posição e permite confirmação
+O fallback usa Belo Jardim/PE (-8.336, -36.424), zoom 14, **sem definir geofence
+ou restringir o município atendido**. É somente contexto visual, nunca ponto
+salvo automaticamente. Centro conferido na sede do [mapa municipal do IBGE](https://geoftp.ibge.gov.br/cartas_e_mapas/mapas_para_fins_de_levantamentos_estatisticos/contagem_da_populacao_e_censo_agropecuario_2007/mapas_municipais_estatisticos/al/belo_jardim.pdf)
+e no mapa renderizado; o [mapa municipal de 2022](https://geoftp.ibge.gov.br/cartas_e_mapas/mapas_municipais/colecao_de_mapas_municipais/2022/PE/belo_jardim/A0_2601706_MM.pdf)
+também situa a sede nessa área. Ponto existente prevalece sobre o centro. Configuração inválida não fabrica posição e permite confirmação
 textual. Não há chave, nova variável VITE, build arg ou segredo exigido.
 O Vite copia public/ para dist/; Docker e empacotamento Vercel já incluem essa
 saída. A publicação normal versiona o JSON e gera novo artefato; uma hospedagem

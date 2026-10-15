@@ -9,10 +9,8 @@ import { ModerationDetailPage } from '../pages/ModerationDetailPage'
 import { AdministrativeReportPage } from '../pages/AdministrativeReportPage'
 import { lazy, Suspense } from 'react'
 import { Route, Routes } from 'react-router'
-import { ImageProofPage } from '../pages/ImageProofPage'
 import { RegistrationPage } from '../pages/RegistrationPage'
 import { HomePage } from '../pages/HomePage'
-import { StatusPage } from '../pages/StatusPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { ReportOccurrencePage } from '../pages/ReportOccurrencePage'
 import { MyReportsPage } from '../pages/MyReportsPage'
@@ -24,13 +22,16 @@ const DesignSystemPage = import.meta.env.DEV
   ? lazy(() => import('../pages/dev/DesignSystemPage'))
   : null
 
+const StatusPage = import.meta.env.DEV ? lazy(() => import('../pages/StatusPage').then(module => ({ default: module.StatusPage }))) : null
+const ImageProofPage = import.meta.env.DEV ? lazy(() => import('../pages/ImageProofPage').then(module => ({ default: module.ImageProofPage }))) : null
+
 export function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/ocorrencias" element={<PublicOccurrencesPage />} />
       <Route path="/ocorrencias/:id" element={<PublicOccurrenceDetailPage />} />
-      <Route path="/prova-imagem" element={<ImageProofPage />} />
+      <Route path="/prova-imagem" element={ImageProofPage ? <Suspense fallback={<p role="status">Carregando ferramenta…</p>}><ImageProofPage /></Suspense> : <NotFoundPage />} />
       <Route path="/entrar" element={<LoginPage />} />
       <Route path="/ativar-administrador" element={<AdminActivationPage />} />
       <Route element={<PrivateRoute />}>
@@ -51,7 +52,7 @@ export function AppRoutes() {
         </Route>
       </Route>
       <Route path="/cadastro" element={<RegistrationPage />} />
-      <Route path="/status" element={<StatusPage />} />
+      <Route path="/status" element={StatusPage ? <Suspense fallback={<p role="status">Carregando ferramenta…</p>}><StatusPage /></Suspense> : <NotFoundPage />} />
       <Route path="/dev/design-system" element={DesignSystemPage ? <Suspense fallback={<p role="status">Carregando referência…</p>}><DesignSystemPage /></Suspense> : <NotFoundPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

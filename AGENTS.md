@@ -51,6 +51,8 @@
   `tsconfig.scripts.json`, incluído em `tsc -b`. Node 22 executa-os diretamente
   por remoção de tipos; isso não substitui typecheck. Preserve imports `.ts`,
   `erasableSyntaxOnly` e validação de JSON externo antes de uso.
+- Consulte [navegação e composições](docs/frontend-navigation.md) para destinos
+  por papel, ferramentas exclusivas de desenvolvimento e integrações visuais pendentes.
 - `src/app/` compõe providers e rotas; `src/pages/` contém páginas;
   `src/lib/api.ts` concentra fetch/configuração; `src/features/health/` contém
   a consulta validada e sua apresentação. Use Router declarativo, Query para

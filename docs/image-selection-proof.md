@@ -1,10 +1,11 @@
 # Seleção e captura local de imagem
 
-`/prova-imagem` apresenta **Teste de fotografia**, com acesso discreto na entrada.
-A rota integra o build de produção para permitir prova física por HTTPS. É
-transitória: reavaliar sua remoção quando o componente integrar o formulário
-de ocorrência. O catálogo `/dev/design-system` continua
-restrito ao desenvolvimento.
+`/prova-imagem` apresenta **Teste de fotografia** somente no Vite de
+desenvolvimento, por URL direta, sem link na entrada/navegação do produto.
+Seu módulo não integra o bundle de produção; a rota mostra não encontrado.
+A ferramenta permite isolar seleção/decodificação sem API. Para prova física
+publicada, usar o formulário real de ocorrência com conta de teste autorizada.
+O catálogo `/dev/design-system` também é restrito ao desenvolvimento.
 
 ## Contrato e reutilização
 
