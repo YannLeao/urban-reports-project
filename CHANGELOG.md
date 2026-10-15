@@ -25,7 +25,10 @@ quando começar a publicar versões.
 - Design system Alô Cidade com tokens canônicos, Manrope local e componentes.
 - Seleção, prévia e captura nativa de imagem em memória, sem upload.
 - Instruções de trabalho para contribuidores e agentes.
-
+- Consulta pública de ocorrências: endpoints paginados `GET /api/public/occurrences`
+  (lista, detalhe e imagem) e páginas públicas `/ocorrencias` e `/ocorrencias/:id`
+  no frontend, acessíveis sem login.
+  
 ### Alterado
 
 - Hospedagem frontend na Vercel com artefato prebuilt e deploy manual pelo GitLab.
