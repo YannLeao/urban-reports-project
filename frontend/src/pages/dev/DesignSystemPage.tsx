@@ -1,3 +1,5 @@
+import { PasswordRecoveryAccess, NotificationsAccess } from '../../app/ProductIntegrations'
+import { Icon } from '../../components/ui/Icon'
 import { OccurrencePin } from '../../features/location/pins/OccurrencePin'
 import { categoryPins } from '../../features/location/pins/pin-variants'
 import { LocationPicker } from '../../features/location/LocationPicker'
@@ -25,6 +27,12 @@ export default function DesignSystemPage() {
     <section className="pt-12 pb-8 md:pt-16"><p className="mb-3 text-small font-bold text-brand-default">Referência de desenvolvimento</p>
       <h1>Design system Alô Cidade</h1><p className="mb-0 text-lead text-text-secondary">Exemplos demonstrativos. Nenhum dado é enviado ao serviço.</p></section>
     <div className="grid gap-8 pb-8">
+      <Card><h2>Navegação e exploração</h2>
+        <p>Ícone com rótulo visível; o shell adapta destinos ao papel. Controles compactos preservam o alvo de toque.</p>
+        <div className="flex flex-wrap gap-4"><span className="inline-flex items-center gap-2"><Icon name="map" />Mapa</span><span className="inline-flex items-center gap-2"><Icon name="plus" />Relatar</span><Button size="compact" disabled>Atualizar</Button><NotificationsAccess /></div>
+        <div className="mt-4"><PasswordRecoveryAccess /></div>
+        <p className="mt-4 text-small">Acessos pendentes indicam indisponibilidade. O resumo de seleção no mapa é não modal, com fechamento explícito e foto somente do relato escolhido.</p>
+      </Card>
       <Card><h2>Cores e tipografia</h2><div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,15rem),1fr))] gap-6">
         <div className="border border-border-control rounded-control p-4 bg-brand-default text-surface-raised">Marca · carvão</div>
         <div className="border border-border-control rounded-control p-4 bg-brand-accent text-text-primary">Destaque · pêssego</div>

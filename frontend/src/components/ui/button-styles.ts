@@ -1,6 +1,6 @@
 export type ButtonVariant = 'primary' | 'secondary' | 'quiet'
 
-const base = 'inline-flex items-center justify-center gap-2 min-h-target px-6 py-2 border rounded-pill font-bold no-underline cursor-pointer transition-[background-color] duration-(--ds-motion-duration) ease-(--ds-motion-easing) disabled:cursor-not-allowed'
+const base = 'inline-flex items-center justify-center gap-2 min-h-target py-2 border rounded-pill font-bold no-underline cursor-pointer transition-[background-color] duration-(--ds-motion-duration) ease-(--ds-motion-easing) disabled:cursor-not-allowed'
 
 // Complete literal classes let Tailwind detect every state at build time.
 const variants: Record<ButtonVariant, string> = {
@@ -27,6 +27,6 @@ const variants: Record<ButtonVariant, string> = {
   ].join(' '),
 }
 
-export function buttonStyles(variant: ButtonVariant = 'primary', className = '') {
-  return `${base} ${variants[variant]} ${className}`
+export function buttonStyles(variant: ButtonVariant = 'primary', className = '', size: 'default' | 'compact' = 'default') {
+  return `${base} ${size === 'compact' ? 'px-2' : 'px-6'} ${variants[variant]} ${className}`
 }

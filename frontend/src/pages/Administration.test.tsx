@@ -117,7 +117,7 @@ test('activation captures fragment, does not consume on GET and submits only onc
   expect(sessionStorage.getItem(STORAGE_KEY)).toBeNull()
   await act(async () => resolve(Response.json({ activated: true })))
   expect(await screen.findByText(/Conta ativada/)).toBeVisible()
-  expect(screen.getByRole('link', { name: 'Entrar' })).toBeVisible()
+  expect(screen.getAllByRole('link', { name: 'Entrar' }).find(link => link.closest('main'))!).toBeVisible()
   expect(sessionStorage.getItem(STORAGE_KEY)).toBeNull()
 })
 
