@@ -1,3 +1,5 @@
+import { OccurrencePin } from '../../features/location/pins/OccurrencePin'
+import { categoryPins } from '../../features/location/pins/pin-variants'
 import { LocationPicker } from '../../features/location/LocationPicker'
 import type { GeographicPoint } from '../../features/location/point'
 import { Dialog } from '../../components/ui/Dialog'
@@ -32,6 +34,14 @@ export default function DesignSystemPage() {
         <Button variant="secondary" onClick={() => setImageDisabled(value => !value)}>{imageDisabled ? 'Habilitar fotografia' : 'Simular envio: bloquear fotografia'}</Button>
         <p>{imageValidating ? 'O formulário aguarda a validação da fotografia.' : 'Sem validação pendente.'}</p>
         <ImagePicker value={image} onChange={setImage} disabled={imageDisabled} onValidationChange={setImageValidating} />
+      </Card>
+      <Card><h2>Pinos das ocorrências</h2>
+        <div className="flex flex-wrap gap-5">{([1, 2, 3, 4, 5, 6, 7, 8] as const).map(categoryId => <figure key={categoryId} className="m-0 grid gap-2">
+          <OccurrencePin categoryId={categoryId} label={`Categoria ${categoryId}: ${categoryPins[categoryId]}`} />
+          <figcaption>{categoryId} · {categoryPins[categoryId]}</figcaption>
+        </figure>)}</div>
+        <p>Selecionado: contorno mais espesso; categoria e seleção têm significados distintos.</p>
+        <OccurrencePin categoryId={8} selected label="Ocorrência selecionada" />
       </Card>
       <Card><h2>Localização geográfica</h2>
         <p>Exemplo sem API. Abrir o mapa consulta o provedor externo de tiles; o GPS só é solicitado pelo botão próprio.</p>

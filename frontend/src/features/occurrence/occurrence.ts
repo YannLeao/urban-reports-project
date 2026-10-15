@@ -1,11 +1,12 @@
 import { z } from 'zod'
+import { categoryIdSchema } from './category'
 import { completePair, locationFields } from '../location/point'
 
 export const occurrenceStatusSchema = z.enum(['PENDING', 'IN_ANALYSIS', 'RESOLVED', 'REJECTED'])
 export const occurrenceBaseSchema = z.object({
   ...locationFields,
   id: z.uuid(),
-  categoryId: z.number(),
+  categoryId: categoryIdSchema,
   categoryName: z.string(),
   title: z.string(),
   description: z.string().nullable().optional().transform(value => value ?? null),

@@ -5,9 +5,9 @@ import { publicOccurrencePageSchema, publicOccurrenceSchema } from './public-occ
 
 export const PUBLIC_PAGE_SIZE = 20
 
-export function usePublicOccurrences(page: number) {
+export function usePublicOccurrences(page: number, enabled = true) {
   return useQuery({
-    queryKey: ['public', 'occurrences', page],
+    queryKey: ['public', 'occurrences', page], enabled,
     queryFn: async ({ signal }) => {
       const response = await publicRequest(`/api/public/occurrences?page=${page}&size=${PUBLIC_PAGE_SIZE}`, signal)
       const payload: unknown = await response.json()

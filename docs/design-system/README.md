@@ -23,8 +23,8 @@ Input/Button/Alert e estados ilustrados no catálogo. Login e minha conta usam
 os mesmos componentes, incluindo validação de sessão e falha de logout. Relatos privados priorizam fotografia, edição e exclusão com dialog nativo.
 Gestão de administradores e ativação reutilizam campos/feedback; moderação usa
 os mesmos cartões, fotografia, contador Unicode e histórico. O seletor de
-localização está implementado no formulário de relato; mapas de consulta e
-bottom sheets continuam pendentes.
+localização está implementado no formulário de relato. Consultas e detalhes usam
+[mapas e pinos canônicos](../occurrence-maps.md); bottom sheets continuam pendentes.
 O relatório administrativo usa cartões, distribuições com barras e contagens
 textuais, tabela de localidades e feedback de atualização/média parcial.
 

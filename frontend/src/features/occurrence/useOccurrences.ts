@@ -3,12 +3,12 @@ import { z } from 'zod'
 import { useAuth } from '../auth/auth'
 import { occurrenceDetailSchema, occurrencesSchema } from './occurrence'
 
-export function useOccurrences() {
+export function useOccurrences(enabled = true) {
   const { state, request } = useAuth()
   const userId = state.status === 'authenticated' ? state.user.id : null
   return useQuery({
     queryKey: ['private', userId, 'occurrences'],
-    enabled: userId !== null,
+    enabled: userId !== null && enabled,
     queryFn: async ({ signal }) => {
       const response = await request('/api/occurrences', 'GET', signal)
       const payload: unknown = await response.json()

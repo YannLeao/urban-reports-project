@@ -17,13 +17,14 @@ ou detecção automática por imagem. Não apresentar métricas históricas sem 
 
 ## Orientação a validar com produto e contratos
 
-Os padrões abaixo descrevem extensões futuras, exceto o registro autenticado de
+Os padrões abaixo orientam extensões e os fluxos implementados de registro/consulta de
 ocorrência, já implementado com categoria, título, descrição, bairro, referência
 textual, uma fotografia obrigatória e um ponto geográfico confirmado:
 
-- Consulta pública: priorizar mapa e fotos, com alternativa textual e acesso sem
-  geolocalização. A pessoa deve poder escolher um local sem conceder GPS.
-- Marcadores: categoria legível, seleção perceptível e eventual agrupamento.
+- Consulta pública implementada com Lista/Mapa, fotos nos cards/detalhes e
+  alternativa textual integral para os pontos, sem solicitar GPS.
+- Marcadores implementados: categoria legível, seleção por contorno e agrupamento
+  visual com seleção textual de cada relato, inclusive pontos idênticos.
   Evitar uma cor por categoria; não depender somente de cor.
 - Cartão/detalhe: foto, título, categoria, localização resumida e status textual.
   Quando faltar foto, comunicar a ausência, sem imagem que pareça evidência real.

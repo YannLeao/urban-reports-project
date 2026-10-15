@@ -12,7 +12,7 @@ vi.mock('../features/location/LocationMap', () => ({ LocationMap: () => null }))
 
 const person = { id: 'a50062d3-9ac2-4e70-86fa-eac5249f4d0c', name: 'Ana Silva', email: 'ana@example.com', role: 'USER' }
 const report = {
-  id: '3e85aa3d-19e3-42a3-8861-c435ff5908af', categoryId: 1,
+  id: '3e85aa3d-19e3-42a3-8861-c435ff5908af', categoryId: 1 as const,
   categoryName: 'Iluminação pública', title: 'Poste apagado na praça',
   description: 'A iluminação está apagada e dificulta a passagem à noite.',
   neighborhood: 'Centro', reference: 'Praça central', status: 'PENDING',
@@ -156,6 +156,8 @@ test('private photo sends Bearer, remains outside query cache and releases URL o
 test('editing starts with existing fields, keeps photo and invalidates list after confirmed PUT', async () => {
   mockFlow()
   const { client } = renderPage(`/meus-relatos/${report.id}/editar`)
+  client.setQueryData(['public', 'occurrences', 'markers'], { items: [], total: 0, located: 0, unlocated: 0 })
+  client.setQueryData(['private', person.id, 'occurrences', 'markers'], { items: [], total: 0, located: 0, unlocated: 0 })
   await screen.findByRole('button', { name: 'Salvar relato' })
   await screen.findByRole('option', { name: 'Iluminação pública' })
   expect(screen.getByLabelText('Título')).toHaveValue(report.title)
@@ -172,6 +174,8 @@ test('editing starts with existing fields, keeps photo and invalidates list afte
   expect((put[1]?.body as FormData).has('longitude')).toBe(false)
   expect((put[1]?.body as FormData).get('description')).toBe('')
   expect(client.getQueryData(['private', person.id, 'occurrences', report.id])).toMatchObject({ title, version: 1 })
+  expect(client.getQueryData(['private', person.id, 'occurrences', 'markers'])).toBeUndefined()
+  expect(client.getQueryState(['public', 'occurrences', 'markers'])?.isInvalidated).toBe(true)
   expect(screen.queryByText(report.id)).not.toBeInTheDocument()
 })
 

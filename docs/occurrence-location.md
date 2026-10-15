@@ -1,8 +1,8 @@
 # Localização confirmada dos relatos
 
 O cadastro e a edição de Pendente permitem indicar um ponto no mapa. Esta é a
-entrega #43 de #41. Lista/Mapa, mapas nos detalhes, consulta de marcadores,
-paginação espacial, agrupamento e pinos por categoria pertencem à #44.
+entrega #43 de #41. Lista/Mapa, mapas nos detalhes, marcadores completos e pinos
+por categoria são documentados na [entrega #44](occurrence-maps.md).
 
 ## Dados e contrato HTTP
 
@@ -150,16 +150,14 @@ Não remover colunas/reverter dados. Se for necessário interromper cadastro no
 corte, fazê-lo operacionalmente; não há mecanismo remoto de pausa criado aqui.
 Nenhuma etapa deste guia executa deploy ou comprova pipeline/hospedagem remotos.
 
-## Reutilização pela #44
+## Integração com as consultas (#44)
 
-Usar `GeographicPoint`, `pointSchema`, `locationFields`/`completePair`,
-`LocationMap` e configuração/provedor acima. DTOs compartilham eixos/unidades;
-null significa ausência real. Manter relatos sem ponto acessíveis pela lista,
-com indicação de ausência, sem pino no centro de bairro/mapa. A elegibilidade
-pública continua excluindo REJECTED. O mapa básico encapsula apenas exibição e
-seleção de um ponto; marcadores em lote, ícones customizados, viewport de consulta,
-agrupamento e integração Lista/Mapa precisam ser implementados na #44. Os SVGs
-em docs não são dependência de produção e permanecem reservados para essa tarefa.
+`MapCanvas` concentra a integração compartilhada de Leaflet/provedor; `LocationMap`
+continua sendo o seletor do formulário. `OccurrenceMap` acrescenta visualização de
+pontos, grupos e pinos canônicos React/TypeScript. GeographicPoint/pointSchema e
+campos dos DTOs preservam unidades/eixos e ausência null. A #44 não altera a
+escrita ou preenche legado. Fonte dos pinos, contrato completo de marcadores e
+tratamento de ausência: [mapas nas consultas](occurrence-maps.md).
 
 ## Roteiro de teste local
 
