@@ -7,6 +7,11 @@ import org.springframework.data.domain.Sort;
 
 public interface OccurrenceRepository extends JpaRepository<Occurrence, UUID> {
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select o from Occurrence o where o.id = :id")
+    java.util.Optional<Occurrence> lockById(UUID id);
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = "category")
+    org.springframework.data.domain.Page<Occurrence> findByStatusIn(java.util.Collection<OccurrenceStatus> states, org.springframework.data.domain.Pageable page);
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @org.springframework.data.jpa.repository.Query("select o from Occurrence o where o.id = :id and o.authorId = :authorId")
     java.util.Optional<Occurrence> lockOwned(UUID id, UUID authorId);
 	List<Occurrence> findByAuthorId(UUID authorId, Sort sort);

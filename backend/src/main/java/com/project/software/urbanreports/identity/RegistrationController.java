@@ -49,6 +49,9 @@ public class RegistrationController {
         try {
             var json = mapper.reader().with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS).readTree(body);
             if (json == null || !json.isObject()) throw new InvalidRegistrationRequestException();
+            for (String reserved : new String[]{"role", "status", "active", "activity", "enabled"}) {
+                if (json.has(reserved)) throw new InvalidRegistrationRequestException();
+            }
             for (String field : new String[]{"name", "email", "password"}) {
                 var value = json.get(field);
                 if (value != null && !value.isNull() && !value.isString()) {

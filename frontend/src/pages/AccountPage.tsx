@@ -24,8 +24,10 @@ export function AccountPage() {
     <dl className="grid gap-2"><dt className="font-bold">Nome</dt><dd className="m-0">{auth.state.user.name}</dd>
       <dt className="font-bold">E-mail</dt><dd className="m-0">{auth.state.user.email}</dd></dl>
     <div className="mt-6 flex flex-wrap gap-3">
-      <Link className={buttonStyles()} to="/registrar-ocorrencia">Registrar problema</Link>
-      <Link className={buttonStyles('secondary')} to="/meus-relatos">Meus relatos</Link>
+      {auth.state.user.role === 'USER' && <><Link className={buttonStyles()} to="/registrar-ocorrencia">Registrar problema</Link>
+      <Link className={buttonStyles('secondary')} to="/meus-relatos">Meus relatos</Link></>}
+      {auth.state.user.role === 'ADMIN' && <Link className={buttonStyles()} to="/administracao/relatos">Moderar relatos</Link>}
+      {auth.state.user.role === 'SUPER_ADMIN' && <Link className={buttonStyles()} to="/administracao/contas">Gerenciar administradores</Link>}
     </div>
     {error && <Alert tone="danger" role="alert" ref={summary} tabIndex={-1}>{error}</Alert>}
     <Button className="mt-6" loading={pending} onClick={() => { void logout() }}>{pending ? 'Saindo…' : 'Sair'}</Button>

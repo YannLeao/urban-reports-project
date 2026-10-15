@@ -118,3 +118,14 @@ nativo torna o fundo inerte; o componente mantém Tab/Shift+Tab nos controles
 visíveis habilitados. Escape usa comportamento nativo, bloqueado em envio.
 A referência dev demonstra confirmação sem request. A tela real identifica o
 relato pelo título, avisa irreversibilidade e usa ação destrutiva auxiliar.
+
+## Provisionamento e moderação
+
+Gestão administrativa reutiliza Input/Button/Alert/Card e o Dialog nativo:
+confirmar desativação identifica a conta, foca Cancelar e devolve o foco ao
+acionador em Escape/cancelamento. Estados de conta têm texto explícito
+(Aguardando ativação/Ativo/Desativado); aceite SMTP não é rótulo de entrega.
+Ativação usa os campos de senha existentes, erro com foco e sucesso sem login
+automático. Rejeição usa Textarea com contador de pontos de código após trim,
+foco ao abrir e confirmação bloqueada durante envio. Não limitar por maxLength
+HTML, que contaria unidades UTF-16. Foto e conteúdo precedem ações e histórico.

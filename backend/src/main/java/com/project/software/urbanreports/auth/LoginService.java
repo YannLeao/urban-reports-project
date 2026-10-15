@@ -35,14 +35,14 @@ public class LoginService {
     @org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.NEVER)
     public Result login(String email, String password) {
         var candidate = accounts.findByEmail(RegistrationValidation.canonicalEmail(email));
-        String hash = candidate.map(UserAccount::getPasswordHash).orElse(dummyHash);
+        String hash = candidate.filter(UserAccount::isActive).map(UserAccount::getPasswordHash).orElse(dummyHash);
         boolean matches = encoder.matches(password, hash);
-        if (candidate.isEmpty() || !matches) throw invalid();
+        if (candidate.isEmpty() || !candidate.get().isActive() || !matches) throw invalid();
         UUID userId = candidate.get().getId();
         // The expensive hash check is outside the lock. A fresh locked read detects a concurrent reset.
         var issued = transaction.execute(status -> {
             var account = accounts.lockById(userId).orElseThrow(() -> invalid());
-            if (!hash.equals(account.getPasswordHash())) throw invalid();
+            if (!account.isActive() || !hash.equals(account.getPasswordHash())) throw invalid();
             var session = sessions.saveAndFlush(new AuthSession(userId, clock.instant().truncatedTo(ChronoUnit.SECONDS)));
             var claims = JwtClaimsSet.builder().issuer(settings.issuer()).audience(List.of(settings.audience()))
                     .subject(userId.toString()).id(session.getId().toString()).issuedAt(session.getCreatedAt())

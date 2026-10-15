@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.*;
 
 public interface UserAccountRepository extends JpaRepository<UserAccount, UUID> {
     Optional<UserAccount> findByEmail(String email);
+    boolean existsByRole(AccountRole role);
+    org.springframework.data.domain.Page<UserAccount> findByRole(AccountRole role, org.springframework.data.domain.Pageable page);
 
     // Shared protocol: lock account first, then recovery token (future), then sessions.
     @Lock(LockModeType.PESSIMISTIC_WRITE)

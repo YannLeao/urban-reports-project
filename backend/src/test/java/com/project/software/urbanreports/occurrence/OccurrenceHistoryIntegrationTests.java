@@ -127,7 +127,7 @@ class OccurrenceHistoryIntegrationTests {
         UUID author = UUID.randomUUID(), report = UUID.randomUUID();
         jdbc.update("INSERT INTO " + schema + ".user_accounts(id, name, email, password_hash, role, created_at, updated_at) VALUES (?, 'Pessoa teste', 'upgrade@example.com', 'test-hash', 'USER', now(), now())", author);
         jdbc.update("INSERT INTO " + schema + ".occurrences(id, author_id, category_id, title, neighborhood, reference, image_key, created_at, version) VALUES (?, ?, 1, 'Poste apagado', 'Centro', 'Praça central', 'occurrences/upgrade.png', now(), 4)", report, author);
-        var upgraded = org.flywaydb.core.Flyway.configure().dataSource(source).schemas(schema).defaultSchema(schema).load();
+        var upgraded = org.flywaydb.core.Flyway.configure().dataSource(source).schemas(schema).defaultSchema(schema).target("7").load();
         assertThat(upgraded.migrate().migrationsExecuted).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT version FROM " + schema + ".occurrences WHERE id = ?", Long.class, report)).isEqualTo(4);
         assertThat(jdbc.queryForObject("SELECT status FROM " + schema + ".occurrences WHERE id = ?", String.class, report)).isEqualTo("PENDING");

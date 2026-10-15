@@ -48,8 +48,8 @@ agendamento também são atômicos no banco. Rollback não publica descarte.
 O worker ignora LINKED, verifica referências sob lock do journal e remove apenas
 objetos elegíveis. Chaves exclusivas não são reutilizadas, e link exige PENDING.
 Detalhes no [ADR 0014](adr/0014-gerir-relatos-e-descarte-de-imagens.md).
-O futuro comando de moderação deve usar o mesmo lock/versão. A base já reconhece
-os quatro estados, mas não habilita escrita administrativa sem identidade compartilhada.
+O comando de moderação usa o mesmo lock/versão, após revalidar ADMIN ativo
+sob lock da conta; veja [moderação](occurrence-moderation.md).
 
 ## Frontend
 
@@ -81,11 +81,11 @@ foto, versões, edição/exclusão, corrida e rollback no commit, backoff e rest
 OccurrenceWritePolicyTests testa recusa de escrita fora de PENDING.
 OccurrenceHistoryIntegrationTests verifica imutabilidade, outbox, isolamento do
 histórico, rejeitados fora das consultas públicas e upgrade V6→V7 com dados.
-Fixtures SQL não comprovam autorização/transação do comando administrativo,
-que permanece pendente da identidade compartilhada.
+AdminProvisioningIntegrationTests complementa com fluxo legítimo, autorização,
+concorrência, transições e rollback no commit do comando administrativo.
 Testes frontend usam páginas reais, Query/AuthProvider e fetch controlado.
 
 A consulta pública atual usa `/api/public/occurrences`, inclusive detalhe e foto,
-e omite rejeitados. O futuro comando administrativo deve invalidar seus caches.
+e omite rejeitados. O comando administrativo invalida seus caches no frontend.
 Ambiente publicado, aparelho físico e aceite integral #23 requerem evidências
 próprias na MR/issue.

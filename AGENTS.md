@@ -93,7 +93,11 @@
 - Reutilize o PasswordEncoder Argon2id central e o DTO de erro em `api/`.
   Reutilize `identity/UserAccount` e `RegistrationValidation.canonicalEmail`
   em login/recuperação; consulte [identidade](docs/identity.md). Cadastro não
-  autentica, ignora campos extras só em seu DTO e sempre cria USER.
+  autentica, ignora extras só em seu DTO, recusa campos privilegiados e sempre cria USER.
+  Consulte docs/admin-provisioning.md: SUPER_ADMIN provisiona, ADMIN ativo modera,
+  sem herança. Mutações revalidam sessão/papel/status sob lock; múltiplas contas
+  seguem UUID textual ascendente. Conta vem antes de token/sessões/ocorrência.
+  Bootstrap é explícito, sem servidor HTTP e com senha em console protegido.
   Chaves RSA externas são obrigatórias em todos os perfis (docs/security.md).
   Login e recuperação usam lock da conta antes de alterar sessões; revogação
   global exige transação do chamador conforme docs/password-recovery-integration.md.

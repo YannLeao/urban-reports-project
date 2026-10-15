@@ -243,3 +243,12 @@ na MR/issue. Nenhuma chave/credencial vai para VITE_*; VITE_API_URL exige rebuil
    não encerra sessão. Não alterar relógio ou reiniciar produção para testar.
 7. Prova isolada de restart: `SessionRestartTests` mantém PostgreSQL e chaves,
    reinicia aplicação e verifica ativo 200/revogado 401. Registrar separadamente.
+
+## Rotas administrativas
+
+O fallback SPA existente também atende `/ativar-administrador`,
+`/administracao/contas` e `/administracao/relatos/:id`. O convite usa fragmento,
+capturado em memória e removido da URL, sem analytics ou recursos externos.
+O documento define no-referrer. Não enviar token de ativação em variáveis VITE_*.
+Publicar suporte a USER/ADMIN/SUPER_ADMIN antes de emitir novas identidades no
+backend. Contratos e roteiro: [provisionamento](admin-provisioning.md).

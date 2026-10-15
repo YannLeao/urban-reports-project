@@ -23,6 +23,7 @@ public class SecurityConfiguration {
     };
 
     @Bean
+    @org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication
     SecurityFilterChain securityFilterChain(HttpSecurity http,
             UrlBasedCorsConfigurationSource corsConfigurationSource, ObjectMapper mapper, SessionAuthenticationConverter converter) throws Exception {
         var errors = new SecurityErrorHandler(mapper);
@@ -44,12 +45,14 @@ public class SecurityConfiguration {
                         .authenticationEntryPoint(errors).accessDeniedHandler(errors))
                 .authorizeHttpRequests(authorize -> authorize
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/admin-activations").permitAll()
+                        .requestMatchers("/api/super-admin/admins", "/api/super-admin/admins/**").hasRole("SUPER_ADMIN")
+                        .requestMatchers("/api/admin/occurrences", "/api/admin/occurrences/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/auth/logout").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/occurrence-categories").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/occurrences", "/api/occurrences/**").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/occurrences").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/occurrences").hasRole("USER")
                         .requestMatchers(HttpMethod.PUT, "/api/occurrences/*").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/occurrences/*").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/public/occurrences", "/api/public/occurrences/*", "/api/public/occurrences/*/image").permitAll()

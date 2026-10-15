@@ -37,7 +37,6 @@ class RegistrationIntegrationTests {
         String email = email();
         var tree = mapper.readTree(body("  " + email.toUpperCase(java.util.Locale.ROOT) + "  ", PASSWORD));
         var forged = (tools.jackson.databind.node.ObjectNode) tree;
-        forged.put("role", "SUPER_ADMIN");
         forged.put("id", "00000000-0000-0000-0000-000000000000");
         forged.put("password_hash", "client-hash");
         var result = mvc.perform(post(PATH).contentType("application/json").content(mapper.writeValueAsString(tree)))
@@ -64,12 +63,12 @@ class RegistrationIntegrationTests {
                 .andExpect(status().isCreated());
     }
 
-    @Test void allForgedPrivilegedRolesRemainUser() throws Exception {
+    @Test void privilegedFieldsAreRejectedWithoutCreatingAnAccount() throws Exception {
         for (String role : new String[]{"ADMIN", "MODERATOR", "SUPER_ADMIN"}) {
             var payload = (tools.jackson.databind.node.ObjectNode) mapper.readTree(body(email(), PASSWORD));
             payload.put("role", role);
             mvc.perform(post(PATH).contentType("application/json").content(mapper.writeValueAsString(payload)))
-                    .andExpect(status().isCreated()).andExpect(jsonPath("$.role").value("USER"));
+                    .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
         }
     }
 

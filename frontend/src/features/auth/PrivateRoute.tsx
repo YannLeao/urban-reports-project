@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router'
-import { useAuth, safeReturnPath } from './auth'
+import { useAuth, safeReturnPath, type User } from './auth'
 import { Button } from '../../components/ui/Button'
 import { Alert } from '../../components/ui/Feedback'
 
@@ -16,4 +16,10 @@ export function PrivateRoute() {
   if (state.status === 'unavailable') return <AuthUnavailable />
   if (state.status === 'anonymous') return <Navigate to="/entrar" replace state={{ returnTo: safeReturnPath(location.pathname) }} />
   return <Outlet />
+}
+
+export function RoleRoute({ role }: { role: User['role'] }) {
+  const { state } = useAuth()
+  return state.status === 'authenticated' && state.user.role === role ? <Outlet />
+    : <section className="py-8"><h1>Acesso restrito</h1><p>Sua conta não tem permissão para acessar esta área.</p></section>
 }

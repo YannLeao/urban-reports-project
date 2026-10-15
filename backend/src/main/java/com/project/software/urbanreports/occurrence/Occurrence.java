@@ -22,6 +22,10 @@ public class Occurrence {
 
     @Column(nullable = false) private long version;
     public long getVersion() { return version; }
+    void moderate(OccurrenceStatus target) {
+        if (!status.canTransitionTo(target)) throw new IllegalStateException("Invalid transition");
+        status = target; version++;
+    }
     public void update(OccurrenceCategory category, String title, String description, String neighborhood,
             String reference, String imageKey) {
         this.category = category; this.title = title; this.description = description;

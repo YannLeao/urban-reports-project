@@ -32,6 +32,8 @@ Dentro de uma única transação do chamador:
 ```java
 var account = accounts.lockById(userId).orElseThrow();
 // Lock e validação do token próprio; marcar consumido na mesma transação.
+// ADMIN pendente/desativado não é elegível; trocar senha não reativa conta.
+if (!account.isActive()) throw new IllegalStateException("Account not eligible");
 account.changePasswordHash(newHash, instant);
 revocation.revokeAllSessions(userId, instant);
 // Commit do chamador antes de confirmar ao cliente.
@@ -60,3 +62,8 @@ sessões anteriores recusadas, corrida com login e rollback consistente inclusiv
 no consumo do token. Não confirmar envio/commit sem evidência real.
 
 Referência: [OWASP Forgot Password](https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html).
+
+Ativação administrativa usa tabela/token próprios, com 24 horas, conforme
+[provisionamento](admin-provisioning.md). Não aceitar tokens entre fluxos nem
+alterar AccountStatus por recuperação. Desativação mantém a conta e revoga
+sessões/convites; nem nova senha nem novo token podem reativá-la.

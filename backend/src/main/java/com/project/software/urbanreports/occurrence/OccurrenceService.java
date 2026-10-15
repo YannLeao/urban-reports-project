@@ -20,18 +20,24 @@ public class OccurrenceService {
     private final Clock clock;
     private final UploadJournal journal;
     private final OccurrenceHistoryRepository history;
+    private final com.project.software.urbanreports.identity.UserAccountRepository accounts;
 
     public OccurrenceService(OccurrenceRepository occurrences, OccurrenceCategoryRepository categories,
-            ImageStorageService images, Clock clock, UploadJournal journal, OccurrenceHistoryRepository history) {
+            ImageStorageService images, Clock clock, UploadJournal journal, OccurrenceHistoryRepository history,
+            com.project.software.urbanreports.identity.UserAccountRepository accounts) {
         this.occurrences = occurrences;
         this.categories = categories;
         this.images = images;
         this.clock = clock;
         this.journal = journal;
         this.history = history;
+        this.accounts = accounts;
     }
 
     public OccurrenceResponse create(UUID authorId, OccurrenceRequest request, MultipartFile image) {
+        accounts.findById(authorId).filter(account -> account.isActive()
+                && account.getRole() == com.project.software.urbanreports.identity.AccountRole.USER)
+                .orElseThrow(() -> new org.springframework.security.access.AccessDeniedException("Access denied"));
         Map<String, List<String>> fields = validate(request, image);
         if (!fields.isEmpty()) throw new OccurrenceValidationException(fields);
         OccurrenceCategory category = categories.findById(request.categoryId())

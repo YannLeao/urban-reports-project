@@ -25,7 +25,9 @@ public class SessionAuthenticationConverter {
             if (!session.getUserId().equals(userId) || !session.active(clock.instant())
                     || !session.getCreatedAt().equals(jwt.getIssuedAt()) || !session.getExpiresAt().equals(jwt.getExpiresAt()))
                 throw invalid();
-            var user = accounts.findById(userId).orElseThrow(() -> invalid()).response();
+            var account = accounts.findById(userId).orElseThrow(() -> invalid());
+            if (!account.isActive()) throw invalid();
+            var user = account.response();
             var identity = new AuthenticatedIdentity(userId, session.getId(), user);
             return UsernamePasswordAuthenticationToken.authenticated(identity, null,
                     List.of(new SimpleGrantedAuthority("ROLE_" + user.role().name())));

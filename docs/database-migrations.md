@@ -1,8 +1,10 @@
 # Migrations de banco de dados
 
-V7 prepara os quatro estados, histórico imutável e intenção durável de
-notificações. Não habilita comando administrativo. Proteções, integração
-pendente e coordenação de numeração estão no [contrato de moderação](occurrence-moderation.md).
+V7 prepara estados, histórico imutável e intenção durável de notificações.
+V8 amplia a mesma conta com papéis/status administrativos, preserva USERs ACTIVE,
+adiciona tokens de ativação somente como hash e guarda de bootstrap. Não altera
+V1–V7. Índice único parcial impede segundo SUPER_ADMIN. Contratos em
+[moderação](occurrence-moderation.md) e [provisionamento](admin-provisioning.md).
 
 O Flyway é a única fonte de verdade do schema. O Hibernate valida se o schema é
 compatível com as entidades existentes, mas não cria, atualiza nem remove
