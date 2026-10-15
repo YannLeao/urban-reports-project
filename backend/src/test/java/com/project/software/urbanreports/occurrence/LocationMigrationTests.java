@@ -23,7 +23,7 @@ class LocationMigrationTests {
         UUID author = UUID.randomUUID(), report = UUID.randomUUID();
         jdbc.update("INSERT INTO " + schema + ".user_accounts(id, name, email, password_hash, role, status, created_at, updated_at) VALUES (?, 'Pessoa teste', 'location@example.com', 'test-hash', 'USER', 'ACTIVE', now(), now())", author);
         jdbc.update("INSERT INTO " + schema + ".occurrences(id, author_id, category_id, title, neighborhood, reference, image_key, created_at, version) VALUES (?, ?, 1, 'Poste apagado', 'Centro', 'Praça central', 'occurrences/location.png', now(), 4)", report, author);
-        var upgraded = Flyway.configure().dataSource(source).schemas(schema).defaultSchema(schema).load();
+        var upgraded = Flyway.configure().dataSource(source).schemas(schema).defaultSchema(schema).target("9").load();
         assertThat(upgraded.migrate().migrationsExecuted).isEqualTo(1);
         var row = jdbc.queryForMap("SELECT * FROM " + schema + ".occurrences WHERE id = ?", report);
         assertThat(row).containsEntry("latitude", null).containsEntry("longitude", null).containsEntry("version", 4L)
