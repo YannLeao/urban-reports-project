@@ -13,4 +13,7 @@ public interface OccurrenceRepository extends JpaRepository<Occurrence, UUID> {
 	java.util.Optional<Occurrence> findByIdAndAuthorId(UUID id, UUID authorId);
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = "category")
     org.springframework.data.domain.Page<Occurrence> findAllBy(org.springframework.data.domain.Pageable pageable);
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = "category")
+    org.springframework.data.domain.Page<Occurrence> findByStatusNot(OccurrenceStatus status, org.springframework.data.domain.Pageable pageable);
+    java.util.Optional<Occurrence> findByIdAndStatusNot(UUID id, OccurrenceStatus status);
 }

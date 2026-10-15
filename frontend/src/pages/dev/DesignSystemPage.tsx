@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/Button'
 import { Input, Select, Textarea } from '../../components/ui/Field'
 import { Alert, StatusBadge } from '../../components/ui/Feedback'
 import { Card } from '../../components/ui/Card'
+import { OccurrenceHistory } from '../../features/occurrence/OccurrenceHistory'
 
 export default function DesignSystemPage() {
   const dialog = useRef<HTMLDialogElement>(null)
@@ -64,6 +65,13 @@ export default function DesignSystemPage() {
           <Button ref={cancel} variant="secondary" onClick={() => dialog.current?.close()}>Cancelar</Button>
           <Button variant="quiet" className="text-feedback-danger-foreground" onClick={() => dialog.current?.close()}>Excluir exemplo</Button>
         </Dialog>
+      </Card>
+      <Card><h2>Estados e acompanhamento do relato</h2>
+        <div className="flex flex-wrap gap-3">
+          <StatusBadge tone="info" label="Pendente" /><StatusBadge tone="info" label="Em análise" />
+          <StatusBadge tone="success" label="Resolvida" /><StatusBadge tone="danger" label="Rejeitada" />
+        </div>
+        <OccurrenceHistory events={[{ id: '3e85aa3d-19e3-42a3-8861-c435ff5908af', previousStatus: 'PENDING', newStatus: 'REJECTED', occurredAt: '2026-10-15T12:00:00Z', responsible: 'Moderação', reason: 'Exemplo: fotografia não corresponde ao local informado.' }]} />
       </Card>
       <Card><h2>Feedback textual</h2><div className="grid gap-8 pb-8">
         {(['success', 'warning', 'danger', 'info'] as const).map(tone => <div key={tone}><StatusBadge tone={tone} label={`Exemplo ${tone}`} /><Alert tone={tone} role="note" className="mt-4">Mensagem demonstrativa: o texto explica a situação e orienta o próximo passo.</Alert></div>)}

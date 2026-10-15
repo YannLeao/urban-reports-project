@@ -1,5 +1,11 @@
 # Componentes compartilhados
 
+O detalhe privado usa `OccurrenceHistory`: lista cronológica com estado anterior
+e novo, horário em elemento time, responsável funcional “Moderação” e
+justificativa em texto com quebras preservadas. Sem eventos, informa ausência de
+mudanças sem fabricar criação retroativa. Os quatro estados têm rótulos textuais;
+cor não substitui identificação. O catálogo dev inclui uma rejeição demonstrativa.
+
 Implementação em `frontend/src/components/ui/`. Veja estados e combinações em
 `/dev/design-system` com `pnpm dev`. A referência é demonstrativa, sem API.
 

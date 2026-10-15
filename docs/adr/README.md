@@ -28,3 +28,5 @@ um novo ADR que substitui o anterior.
 - [0013 — Recuperação durável de uploads](0013-recuperar-uploads-com-journal-duravel.md)
 
 - [0014 — Gestão de relatos e descarte](0014-gerir-relatos-e-descarte-de-imagens.md)
+
+- [0015 — Base de histórico de moderação](0015-preparar-historico-de-moderacao.md)

@@ -1,5 +1,10 @@
 # Segurança da API e sessões
 
+A [base de histórico de moderação](occurrence-moderation.md) não habilita
+acesso administrativo: identidade continua somente USER, sem atividade ou
+provisionamento administrativo. `/api/admin/**` permanece sob denyAll.
+O contrato pendente exige ADMIN exato e ativo, revalidado no serviço.
+
 Spring Boot 4.1.1 / Spring Security 7.1.1 implementam autenticação pelo Resource
 Server/Jose com JWT RS256 e sessões PostgreSQL. O [ADR 0011](adr/0011-adotar-sessoes-jwt-revogaveis.md)
 evolui a base dos ADRs 0009/0010. Argon2id central mantém 19 MiB, 2 iterações,

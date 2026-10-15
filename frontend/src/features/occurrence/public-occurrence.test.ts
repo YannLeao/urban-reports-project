@@ -22,11 +22,12 @@ describe('publicOccurrencePageSchema', () => {
   })
 
   it('drops private fields if the API ever sends them', () => {
-    const leaked = { ...page, items: [{ ...item, authorId: 'x', version: 3, imageKey: 'occurrences/a.png' }] }
+    const leaked = { ...page, items: [{ ...item, authorId: 'x', version: 3, imageKey: 'occurrences/a.png', history: [{ reason: 'private' }] }] }
     const parsed = publicOccurrencePageSchema.parse(leaked)
     expect(Object.keys(parsed.items[0])).not.toEqual(expect.arrayContaining(['authorId']))
     expect(Object.keys(parsed.items[0])).not.toContain('version')
     expect(Object.keys(parsed.items[0])).not.toContain('imageKey')
+    expect(Object.keys(parsed.items[0])).not.toContain('history')
   })
 
   it('rejects malformed pages', () => {
