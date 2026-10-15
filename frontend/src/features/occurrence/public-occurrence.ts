@@ -1,7 +1,8 @@
 import { z } from 'zod'
-import { occurrenceSchema } from './occurrence'
+import { completePair } from '../location/point'
+import { occurrenceBaseSchema } from './occurrence'
 
-export const publicOccurrenceSchema = occurrenceSchema.omit({ version: true })
+export const publicOccurrenceSchema = occurrenceBaseSchema.omit({ version: true }).refine(completePair, { message: 'Incomplete location pair' })
 
 export const publicOccurrencePageSchema = z.object({
   items: z.array(publicOccurrenceSchema),

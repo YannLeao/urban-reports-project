@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { LocationPicker } from '../features/location/LocationPicker'
+import type { GeographicPoint } from '../features/location/point'
 import { z } from 'zod'
 import { Link, useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
@@ -17,7 +19,7 @@ import { cleanOccurrenceText, validOccurrenceText } from '../features/occurrence
 
 const categoriesSchema = z.array(z.object({ id: z.number(), name: z.string() }))
 const occurrenceSchema = z.object({ id: z.uuid(), status: z.literal('PENDING') })
-type FieldName = 'categoryId' | 'title' | 'description' | 'neighborhood' | 'reference' | 'image'
+type FieldName = 'categoryId' | 'title' | 'description' | 'neighborhood' | 'reference' | 'image' | 'location'
 type Errors = Partial<Record<FieldName, string>>
 
 export function ReportOccurrencePage({ existing: initialExisting }: { existing?: Occurrence }) {
@@ -36,6 +38,7 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
   const [description, setDescription] = useState(existing?.description ?? '')
   const [neighborhood, setNeighborhood] = useState(existing?.neighborhood ?? '')
   const [reference, setReference] = useState(existing?.reference ?? '')
+  const [location, setLocation] = useState<GeographicPoint | null>(existing?.latitude != null && existing.longitude != null ? { latitude: existing.latitude, longitude: existing.longitude } : null)
   const [image, setImage] = useState<File | null>(null)
   const [errors, setErrors] = useState<Errors>({})
   const [notice, setNotice] = useState<string | null>(null)
@@ -70,6 +73,7 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
     if (!validOccurrenceText(description, 0, 1000)) next.description = 'Use no máximo 1000 caracteres.'
     if (!validOccurrenceText(neighborhood, 2, 100)) next.neighborhood = 'Use entre 2 e 100 caracteres.'
     if (!validOccurrenceText(reference, 5, 200)) next.reference = 'Use entre 5 e 200 caracteres.'
+    if (!existing && !location) next.location = 'Confirme o local real da ocorrência.'
     if (!image && !existing) next.image = 'Escolha exatamente uma imagem.'
     else if (image) {
       const reason = validateImageFile(image)
@@ -94,6 +98,7 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
     body.append('description', cleanOccurrenceText(description))
     body.append('neighborhood', cleanOccurrenceText(neighborhood))
     body.append('reference', cleanOccurrenceText(reference))
+    if (location) { body.append('latitude', location.latitude.toString()); body.append('longitude', location.longitude.toString()) }
     if (image) body.append('image', image, image.name)
     try {
       const response = await request(existing ? `/api/occurrences/${existing.id}` : '/api/occurrences', existing ? 'PUT' : 'POST', undefined, body, existing ? { 'If-Match': `"${existing.version}"` } : undefined)
@@ -114,12 +119,13 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
       setRegistered({ id: result.id, title })
       setSuccess(true)
       setNotice(null)
-      setCategoryId(''); setTitle(''); setDescription(''); setNeighborhood(''); setReference(''); setImage(null); setErrors({})
+      setCategoryId(''); setTitle(''); setDescription(''); setNeighborhood(''); setReference(''); setImage(null); setLocation(null); setErrors({})
     } catch (error) {
       const mapped: Errors = {}
       if (error instanceof PrivateRequestError) {
         for (const key of Object.keys(error.fieldErrors ?? {})) {
-          if (key === 'categoryId') mapped.categoryId = 'Escolha uma categoria válida.'
+          if (key === 'location' || key === 'latitude' || key === 'longitude') mapped.location = 'Confirme um par válido de latitude e longitude.'
+          else if (key === 'categoryId') mapped.categoryId = 'Escolha uma categoria válida.'
           else if (key === 'title') mapped.title = 'Use entre 5 e 100 caracteres.'
           else if (key === 'description') mapped.description = 'Use no máximo 1000 caracteres.'
           else if (key === 'neighborhood') mapped.neighborhood = 'Use entre 2 e 100 caracteres.'
@@ -164,6 +170,7 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
           <Textarea label="Detalhes (opcional)" description={`Se quiser, conte algo que a foto não mostra. ${Array.from(cleanOccurrenceText(description)).length}/1000`} value={description} error={errors.description} disabled={pending} onChange={event => setDescription(event.target.value)} />
           <Input label="Bairro" value={neighborhood} error={errors.neighborhood} disabled={pending} onChange={event => setNeighborhood(event.target.value)} />
           <Input label="Ponto de referência" description="Informe rua, número, esquina ou outro detalhe que ajude a encontrar o local." value={reference} error={errors.reference} disabled={pending} onChange={event => setReference(event.target.value)} />
+          <LocationPicker value={location} onChange={setLocation} disabled={pending} error={errors.location} />
           <div className={errors.image ? 'rounded-control border border-feedback-danger-foreground p-3' : ''}>
             <p className="mb-2 font-bold">Foto do problema</p>
             {existing && !image && <OccurrencePhoto report={existing} full />}

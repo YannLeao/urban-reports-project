@@ -80,7 +80,7 @@ O símbolo interno é decorativo, e tone não infere estado de domínio. `Card` 
 section simples com props nativas; nomeie a seção por heading/aria-labelledby.
 Consumidores atuais: status e referência visual. Não empilhar cards sem motivo.
 
-Bottom sheet e controles de mapa não estão implementados. Cartões de relatos
+Bottom sheet permanece pendente; o seletor básico de mapa está descrito abaixo. Cartões de relatos
 privados usam foto 4:3 com corte na lista e imagem inteira no detalhe. Exclusão
 usa dialog nativo modal com foco inicial em Cancelar, Escape, retorno de foco
 e bloqueio durante envio. Antes de criá-los, definir comportamento de teclado, entrada e
@@ -140,3 +140,18 @@ Ativação usa os campos de senha existentes, erro com foco e sucesso sem login
 automático. Rejeição usa Textarea com contador de pontos de código após trim,
 foco ao abrir e confirmação bloqueada durante envio. Não limitar por maxLength
 HTML, que contaria unidades UTF-16. Foto e conteúdo precedem ações e histórico.
+
+## Localização confirmada
+
+`features/location/LocationPicker` compõe mapa, resumo textual, Input/Button e
+GPS opt-in. Clique confirma; coordenadas digitadas ou sugeridas exigem botão de
+confirmação. O catálogo oferece abertura explícita para não consultar terceiros
+antes da ação. Texto de erro associa Latitude e recebe foco pelo formulário.
+Sem tiles, a alternativa textual continua disponível. O mapa permite teclado,
+zoom por controles e preserva rolagem por roda; sua altura responde ao layout.
+
+Leaflet fornece CSS próprio carregado sob demanda: exceção de integração de
+biblioteca, necessária aos panes/controles/tiles. Classes Tailwind permanecem no
+layout e estados da aplicação. O marcador básico vem do pacote Leaflet, sem
+mover os SVGs de docs; ícones por categoria são da #44.
+Contrato e acessibilidade: [localização](../occurrence-location.md).

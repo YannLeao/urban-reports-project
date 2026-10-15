@@ -39,6 +39,7 @@ public class OccurrenceService {
                 && account.getRole() == com.project.software.urbanreports.identity.AccountRole.USER)
                 .orElseThrow(() -> new org.springframework.security.access.AccessDeniedException("Access denied"));
         Map<String, List<String>> fields = validate(request, image);
+        var point = GeographicPoint.parse(request.latitude(), request.longitude(), true);
         if (!fields.isEmpty()) throw new OccurrenceValidationException(fields);
         OccurrenceCategory category = categories.findById(request.categoryId())
                 .orElseThrow(() -> new OccurrenceValidationException(Map.of("categoryId", List.of("Choose a valid category"))));
@@ -49,6 +50,7 @@ public class OccurrenceService {
             images.upload(prepared);
             Occurrence occurrence = new Occurrence(authorId, category, clean(request.title()), description(request.description()),
                     clean(request.neighborhood()), clean(request.reference()), prepared.key(), clock.instant());
+            occurrence.locate(point);
             return OccurrenceResponse.from(occurrences.saveAndFlush(occurrence));
         });
     }
@@ -106,6 +108,7 @@ public class OccurrenceService {
         var snapshot = journal.write(() -> findById(authorId, id));
         checkWritable(snapshot.status(), snapshot.version(), match);
         var fields = validate(request, image);
+        var point = GeographicPoint.parse(request.latitude(), request.longitude(), false);
         if (image == null) fields.remove("image");
         if (!fields.isEmpty()) throw new OccurrenceValidationException(fields);
         var category = categories.findById(request.categoryId()).orElseThrow(() ->
@@ -115,6 +118,7 @@ public class OccurrenceService {
         java.util.function.Supplier<OccurrenceResponse> write = () -> {
             var occurrence = occurrences.lockOwned(id, authorId).orElseThrow(() -> new OccurrenceNotFoundException(id));
             checkWritable(occurrence.getStatus(), occurrence.getVersion(), match);
+            occurrence.locate(point);
             String key = occurrence.getImageKey();
             if (prepared != null) { journal.retire(key); key = prepared.key(); }
             occurrence.update(category, clean(request.title()), description(request.description()),

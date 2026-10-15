@@ -34,3 +34,5 @@ um novo ADR que substitui o anterior.
 - [0016 — Identidade administrativa e moderação](0016-provisionar-identidade-administrativa.md)
 
 - [0017 — Relatório administrativo em snapshot](0017-consultar-relatorio-em-snapshot.md)
+
+- [0018 — Localização confirmada com Leaflet](0018-localizar-relatos-com-leaflet.md)

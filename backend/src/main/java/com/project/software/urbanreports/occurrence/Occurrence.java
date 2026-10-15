@@ -16,6 +16,8 @@ public class Occurrence {
     @Column(length = 1000) private String description;
     @Column(nullable = false, length = 100) private String neighborhood;
     @Column(name = "reference", nullable = false, length = 200) private String locationReference;
+    @Column private Double latitude;
+    @Column private Double longitude;
     @Column(name = "image_key", nullable = false, unique = true, length = 255) private String imageKey;
     @Enumerated(EnumType.STRING) @Column(nullable = false, length = 32) private OccurrenceStatus status;
     @Column(name = "created_at", nullable = false) private Instant createdAt;
@@ -46,6 +48,12 @@ public class Occurrence {
         this.imageKey = imageKey;
         this.status = OccurrenceStatus.PENDING;
         this.createdAt = createdAt;
+    }
+
+    public Double getLatitude() { return latitude; }
+    public Double getLongitude() { return longitude; }
+    public void locate(GeographicPoint point) {
+        if (point != null) { latitude = point.latitude(); longitude = point.longitude(); }
     }
 
     public UUID getId() { return id; }

@@ -19,7 +19,7 @@ ou detecção automática por imagem. Não apresentar métricas históricas sem 
 
 Os padrões abaixo descrevem extensões futuras, exceto o registro autenticado de
 ocorrência, já implementado com categoria, título, descrição, bairro, referência
-textual e uma fotografia obrigatória:
+textual, uma fotografia obrigatória e um ponto geográfico confirmado:
 
 - Consulta pública: priorizar mapa e fotos, com alternativa textual e acesso sem
   geolocalização. A pessoa deve poder escolher um local sem conceder GPS.
@@ -27,8 +27,9 @@ textual e uma fotografia obrigatória:
   Evitar uma cor por categoria; não depender somente de cor.
 - Cartão/detalhe: foto, título, categoria, localização resumida e status textual.
   Quando faltar foto, comunicar a ausência, sem imagem que pareça evidência real.
-- Registro guiado: o formulário atual é uma etapa única, sem coordenadas
-  obrigatórias, mapa, geocoding ou permissão de GPS; usa referência textual.
+- Registro: etapa única com ponto obrigatório confirmado no mapa ou por
+  coordenadas e GPS opcional mediante ação, sem geocodificação. Edição de Pendente
+  permite ajuste; legado não é preenchido automaticamente. Veja [localização](../occurrence-location.md).
 - “Recebido”, “Em análise”, “Em andamento”, “Resolvido” e “Rejeitado” são sugestões
   de vocabulário. Não são enum da API. O frontend valida health `UP` e o contrato de cadastro; confirmar o contrato
   de andamento antes de implementar tokens `report` ou mapeamentos. A ocorrência

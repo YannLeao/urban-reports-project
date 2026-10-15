@@ -5,7 +5,10 @@ import { MemoryRouter } from 'react-router'
 import { beforeEach, expect, test, vi } from 'vitest'
 import App from '../App'
 import { AuthProvider } from '../features/auth/AuthProvider'
+import type { Occurrence } from '../features/occurrence/occurrence'
 import { STORAGE_KEY } from '../features/auth/auth'
+
+vi.mock('../features/location/LocationMap', () => ({ LocationMap: () => null }))
 
 const person = { id: 'a50062d3-9ac2-4e70-86fa-eac5249f4d0c', name: 'Ana Silva', email: 'ana@example.com', role: 'USER' }
 const report = {
@@ -13,7 +16,7 @@ const report = {
   categoryName: 'Iluminação pública', title: 'Poste apagado na praça',
   description: 'A iluminação está apagada e dificulta a passagem à noite.',
   neighborhood: 'Centro', reference: 'Praça central', status: 'PENDING',
-  version: 0, createdAt: '2026-09-28T12:00:00Z',
+  latitude: null, longitude: null, version: 0, createdAt: '2026-09-28T12:00:00Z',
 }
 const fetchMock = vi.fn<typeof fetch>()
 beforeEach(() => {
@@ -117,8 +120,8 @@ test.each(['IN_ANALYSIS', 'RESOLVED', 'REJECTED'])('author reads %s history with
   if (status === 'REJECTED') expect(screen.getByText(/Justificativa: Imagem não corresponde ao local/)).toBeVisible()
 })
 
-function mockFlow() {
-  let current = { ...report }
+function mockFlow(initial: Occurrence = { ...report, status: 'PENDING' }) {
+  let current = { ...initial }
   let removed = false
   fetchMock.mockReset().mockImplementation(async (url, options) => {
     const path = String(url)
@@ -165,6 +168,8 @@ test('editing starts with existing fields, keeps photo and invalidates list afte
   const put = fetchMock.mock.calls.find(([, options]) => options?.method === 'PUT')!
   expect(put[1]?.headers).toMatchObject({ 'If-Match': '"0"', Authorization: 'Bearer synthetic-token' })
   expect((put[1]?.body as FormData).has('image')).toBe(false)
+  expect((put[1]?.body as FormData).has('latitude')).toBe(false)
+  expect((put[1]?.body as FormData).has('longitude')).toBe(false)
   expect((put[1]?.body as FormData).get('description')).toBe('')
   expect(client.getQueryData(['private', person.id, 'occurrences', report.id])).toMatchObject({ title, version: 1 })
   expect(screen.queryByText(report.id)).not.toBeInTheDocument()
@@ -288,8 +293,9 @@ test('empty list to registration to private detail refreshes cache in the same s
   await screen.findByText('Você ainda não registrou relatos')
   await userEvent.click(screen.getByRole('link', { name: 'Registrar problema' }))
   await screen.findByRole('option', { name: 'Iluminação pública' })
-  for (const [label, value] of [['Categoria', '1'], ['Título', report.title], ['Bairro', report.neighborhood], ['Ponto de referência', report.reference]])
+  for (const [label, value] of [['Categoria', '1'], ['Título', report.title], ['Bairro', report.neighborhood], ['Ponto de referência', report.reference], ['Latitude', '0'], ['Longitude', '0']])
     fireEvent.change(screen.getByLabelText(label), { target: { value } })
+  fireEvent.click(screen.getByRole('button', { name: 'Confirmar coordenadas' }))
   fireEvent.change(screen.getByLabelText('Arquivo de imagem'), { target: { files: [new File(['photo'], 'photo.png', { type: 'image/png' })] } })
   await waitFor(() => expect(decode).not.toBeNull())
   await act(async () => decode?.())
@@ -316,4 +322,30 @@ test('a background detail read cannot upgrade the version of an existing draft',
   const put = fetchMock.mock.calls.find(([, options]) => options?.method === 'PUT')!
   expect(put[1]?.headers).toMatchObject({ 'If-Match': '"0"' })
   expect(screen.getByLabelText('Título')).toHaveValue('Rascunho da versão antiga')
+})
+
+
+test('editing restores and resends a confirmed zero-axis point; changing drafts needs confirmation', async () => {
+  mockFlow({ ...report, status: 'PENDING', latitude: 0, longitude: 123.123456789 })
+  renderPage(`/meus-relatos/${report.id}/editar`)
+  await screen.findByRole('option', { name: 'Iluminação pública' })
+  expect(screen.getByLabelText('Latitude')).toHaveValue('0')
+  expect(screen.getByLabelText('Longitude')).toHaveValue('123.123456789')
+  fireEvent.change(screen.getByLabelText('Longitude'), { target: { value: '50' } })
+  await userEvent.click(screen.getByRole('button', { name: 'Salvar relato' }))
+  const put = fetchMock.mock.calls.find(([, options]) => options?.method === 'PUT')!
+  expect((put[1]?.body as FormData).get('latitude')).toBe('0')
+  expect((put[1]?.body as FormData).get('longitude')).toBe('123.123456789')
+})
+test('pending legacy can voluntarily confirm its first point', async () => {
+  mockFlow(); renderPage(`/meus-relatos/${report.id}/editar`)
+  await screen.findByRole('option', { name: 'Iluminação pública' })
+  expect(screen.getByText('Nenhum local confirmado.')).toBeVisible()
+  fireEvent.change(screen.getByLabelText('Latitude'), { target: { value: '-12.34' } })
+  fireEvent.change(screen.getByLabelText('Longitude'), { target: { value: '45.67' } })
+  await userEvent.click(screen.getByRole('button', { name: 'Confirmar coordenadas' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Salvar relato' }))
+  const put = fetchMock.mock.calls.find(([, options]) => options?.method === 'PUT')!
+  expect((put[1]?.body as FormData).get('latitude')).toBe('-12.34')
+  expect((put[1]?.body as FormData).get('longitude')).toBe('45.67')
 })

@@ -52,10 +52,11 @@ public class OccurrenceController {
     public ResponseEntity<OccurrenceResponse> create(@AuthenticationPrincipal AuthenticatedIdentity identity,
             @RequestParam Integer categoryId, @RequestParam String title, @RequestParam(required = false) String description,
             @RequestParam String neighborhood, @RequestParam String reference,
+            @RequestParam(required = false) String latitude, @RequestParam(required = false) String longitude,
             @RequestPart("image") MultipartFile image, HttpServletRequest request) throws Exception {
         validateParts(request, true);
         OccurrenceResponse response = service.create(identity.userId(),
-                new OccurrenceRequest(categoryId, title, description, neighborhood, reference), image);
+                new OccurrenceRequest(categoryId, title, description, neighborhood, reference, latitude, longitude), image);
         return ResponseEntity.status(201).cacheControl(CacheControl.noStore()).body(response);
     }
 
@@ -67,7 +68,7 @@ public class OccurrenceController {
                 throw new OccurrenceValidationException(java.util.Map.of(name, List.of("Envie exatamente uma parte por campo obrigatório.")));
             }
         }
-        for (String name : java.util.List.of("description", "image")) {
+        for (String name : java.util.List.of("description", "image", "latitude", "longitude")) {
             long count = parts.stream().filter(part -> name.equals(part.getName())).count();
             if (count > 1 || (creating && name.equals("image") && count != 1))
                 throw new OccurrenceValidationException(java.util.Map.of(name, List.of("Envie uma única parte por campo.")));
@@ -92,10 +93,11 @@ public class OccurrenceController {
             @PathVariable UUID id, @org.springframework.web.bind.annotation.RequestHeader(value = "If-Match", required = false) String match,
             @RequestParam Integer categoryId, @RequestParam String title, @RequestParam(required = false) String description,
             @RequestParam String neighborhood, @RequestParam String reference,
+            @RequestParam(required = false) String latitude, @RequestParam(required = false) String longitude,
             @RequestPart(value = "image", required = false) MultipartFile image, HttpServletRequest request) throws Exception {
         validateParts(request, false);
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.update(identity.userId(), id, match,
-                new OccurrenceRequest(categoryId, title, description, neighborhood, reference), image));
+                new OccurrenceRequest(categoryId, title, description, neighborhood, reference, latitude, longitude), image));
     }
 
     @org.springframework.web.bind.annotation.DeleteMapping("/occurrences/{id}")

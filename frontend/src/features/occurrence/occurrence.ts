@@ -1,7 +1,9 @@
 import { z } from 'zod'
+import { completePair, locationFields } from '../location/point'
 
 export const occurrenceStatusSchema = z.enum(['PENDING', 'IN_ANALYSIS', 'RESOLVED', 'REJECTED'])
-export const occurrenceSchema = z.object({
+export const occurrenceBaseSchema = z.object({
+  ...locationFields,
   id: z.uuid(),
   categoryId: z.number(),
   categoryName: z.string(),
@@ -13,6 +15,7 @@ export const occurrenceSchema = z.object({
   status: occurrenceStatusSchema,
   createdAt: z.iso.datetime(),
 })
+export const occurrenceSchema = occurrenceBaseSchema.refine(completePair, { message: 'Incomplete location pair' })
 export const occurrencesSchema = z.array(occurrenceSchema)
 export type Occurrence = z.infer<typeof occurrenceSchema>
 
@@ -24,10 +27,10 @@ export const occurrenceHistoryEventSchema = z.object({
   reason: z.string().nullable(),
   responsible: z.literal('Moderação'),
 })
-export const occurrenceDetailSchema = occurrenceSchema.extend({
+export const occurrenceDetailSchema = occurrenceBaseSchema.extend({
   // Optional while the compatible frontend is published before the backend.
   history: z.array(occurrenceHistoryEventSchema).optional(),
-})
+}).refine(completePair, { message: 'Incomplete location pair' })
 export type OccurrenceHistoryEvent = z.infer<typeof occurrenceHistoryEventSchema>
 
 const statusLabels: Record<Occurrence['status'], string> = {

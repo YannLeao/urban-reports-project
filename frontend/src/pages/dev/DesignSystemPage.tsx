@@ -1,3 +1,5 @@
+import { LocationPicker } from '../../features/location/LocationPicker'
+import type { GeographicPoint } from '../../features/location/point'
 import { Dialog } from '../../components/ui/Dialog'
 import { useRef, useState } from 'react'
 import { ImagePicker } from '../../features/image/ImagePicker'
@@ -9,6 +11,8 @@ import { OccurrenceHistory } from '../../features/occurrence/OccurrenceHistory'
 import { CountDistribution } from '../../components/ui/CountDistribution'
 
 export default function DesignSystemPage() {
+  const [point, setPoint] = useState<GeographicPoint | null>(null)
+  const [showMap, setShowMap] = useState(false)
   const dialog = useRef<HTMLDialogElement>(null)
   const trigger = useRef<HTMLButtonElement>(null)
   const cancel = useRef<HTMLButtonElement>(null)
@@ -28,6 +32,11 @@ export default function DesignSystemPage() {
         <Button variant="secondary" onClick={() => setImageDisabled(value => !value)}>{imageDisabled ? 'Habilitar fotografia' : 'Simular envio: bloquear fotografia'}</Button>
         <p>{imageValidating ? 'O formulário aguarda a validação da fotografia.' : 'Sem validação pendente.'}</p>
         <ImagePicker value={image} onChange={setImage} disabled={imageDisabled} onValidationChange={setImageValidating} />
+      </Card>
+      <Card><h2>Localização geográfica</h2>
+        <p>Exemplo sem API. Abrir o mapa consulta o provedor externo de tiles; o GPS só é solicitado pelo botão próprio.</p>
+        <Button variant="secondary" onClick={() => setShowMap(value => !value)}>{showMap ? 'Ocultar seletor' : 'Abrir seletor de localização'}</Button>
+        {showMap && <LocationPicker value={point} onChange={setPoint} />}
       </Card>
       <Card><h2>Botões</h2><div className="grid gap-8 pb-8">
         {(['primary', 'secondary', 'quiet'] as const).map(variant => <div key={variant} className="flex flex-wrap items-start gap-4">

@@ -21,7 +21,7 @@ class AdministrativeMigrationTests {
         Flyway.configure().dataSource(source).schemas(schema).defaultSchema(schema).target("7").load().migrate();
         UUID id = UUID.randomUUID();
         jdbc.update("INSERT INTO " + schema + ".user_accounts VALUES (?, 'Pessoa teste', 'existing@example.com', 'existing-hash', 'USER', now(), now())", id);
-        var latest = Flyway.configure().dataSource(source).schemas(schema).defaultSchema(schema).load();
+        var latest = Flyway.configure().dataSource(source).schemas(schema).defaultSchema(schema).target("8").load();
         assertThat(latest.migrate().migrationsExecuted).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT status FROM " + schema + ".user_accounts WHERE id = ?", String.class, id)).isEqualTo("ACTIVE");
         assertThat(jdbc.queryForObject("SELECT password_hash FROM " + schema + ".user_accounts WHERE id = ?", String.class, id)).isEqualTo("existing-hash");
