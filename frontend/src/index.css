@@ -1,7 +1,10 @@
 @import "tailwindcss";
 @import "./styles/tokens.generated.css";
-@import "@fontsource/manrope/latin-400.css";
-@import "@fontsource/manrope/latin-700.css";
+@import "@fontsource/figtree/latin-400.css";
+@import "@fontsource/figtree/latin-500.css";
+@import "@fontsource/figtree/latin-600.css";
+@import "@fontsource/figtree/latin-700.css";
+@import "@fontsource/figtree/latin-800.css";
 
 /* Global defaults live below utilities so component classes can override them. */
 @layer base {

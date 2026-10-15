@@ -5,7 +5,7 @@ COPY frontend/package.json frontend/pnpm-lock.yaml ./
 RUN npm install --global "$(node -p 'require("./package.json").packageManager')" \
     && pnpm install --frozen-lockfile
 
-COPY docs/design-system/tokens.ts docs/design-system/package.json /app/docs/design-system/
+COPY docs/design-system/tokens.ts docs/design-system/package.json docs/design-system/preview.html /app/docs/design-system/
 COPY frontend/index.html frontend/tsconfig*.json frontend/vite.config.ts ./
 COPY frontend/scripts ./scripts
 COPY frontend/src ./src

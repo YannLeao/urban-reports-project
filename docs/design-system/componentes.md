@@ -167,3 +167,21 @@ resumo/aria-pressed, preservando a categoria. Genérico corresponde aos IDs5/6/8
 a seleção não representa status nem categoria. Tabela completa, adaptador, tamanho/
 âncora, agrupamento, acessibilidade e política de ausência estão no
 [guia de mapas](../occurrence-maps.md).
+
+## Campo de senha na referência
+
+O preview representa botão `type="button"` associado por `aria-controls` ao campo,
+com nome e texto “Mostrar senha”/“Ocultar senha”. Alternar `password`/`text`
+preserva valor e foco no acionador, inclusive na confirmação, sem submit.
+Orientação: 15–128 pontos de código Unicode, espaços aceitos, sem mistura
+obrigatória de maiúsculas/números/símbolos; sem trim/normalização. Confirmação
+não pertence à API. Veja [identidade](../identity.md). A revisão geral dos
+formulários reais fica para a auditoria de UI/UX.
+
+As janelas do preview são exemplos abertos (`dialog open`, não modais): ficam
+após o contexto em todas as larguras. Não simulam fluxo de API.
+O componente Dialog da aplicação mantém seu contrato modal próprio.
+
+Na rejeição demonstrativa, o contador usa pontos de código após o mesmo trim
+ASCII do contrato; confirmar fica disponível entre 10 e 500. Trocar motivo não
+modifica a explicação. A confirmação anuncia somente a validação do exemplo.

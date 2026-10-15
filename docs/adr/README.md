@@ -38,3 +38,5 @@ um novo ADR que substitui o anterior.
 - [0018 — Localização confirmada com Leaflet](0018-localizar-relatos-com-leaflet.md)
 
 - [0019 — Marcadores completos e pinos canônicos](0019-consultar-marcadores-completos.md)
+
+- [0020 — Consolidação da identidade visual](0020-consolidar-identidade-visual.md)

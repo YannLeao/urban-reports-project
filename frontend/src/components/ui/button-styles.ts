@@ -1,6 +1,6 @@
 export type ButtonVariant = 'primary' | 'secondary' | 'quiet'
 
-const base = 'inline-flex items-center justify-center gap-2 min-h-target px-6 py-2 border rounded-control font-bold no-underline cursor-pointer transition-[background-color] duration-(--ds-motion-duration) ease-(--ds-motion-easing) disabled:cursor-not-allowed'
+const base = 'inline-flex items-center justify-center gap-2 min-h-target px-6 py-2 border rounded-pill font-bold no-underline cursor-pointer transition-[background-color] duration-(--ds-motion-duration) ease-(--ds-motion-easing) disabled:cursor-not-allowed'
 
 // Complete literal classes let Tailwind detect every state at build time.
 const variants: Record<ButtonVariant, string> = {

@@ -25,8 +25,10 @@ for (const [tone, pair] of Object.entries(tokens.feedback)) {
   rows.push([`feedback.${tone}`, pair.foreground, pair.background, 4.5])
   rows.push([`feedback.${tone} / raised (ícone/borda/erro)`, pair.foreground, tokens.surface.raised, 4.5])
 }
+for (const [state, pair] of Object.entries(tokens.report)) rows.push([`report.${state}`, pair.foreground, pair.background, 4.5])
+rows.push(['destaque pêssego', tokens.text.primary, tokens.brand.accent, 4.5])
 rows.push(['marca / raised', tokens.brand.default, tokens.surface.raised, 4.5])
-// Primary coral uses a dark boundary: the fill alone is not a 3:1 control boundary.
+// The peach highlight needs charcoal text and an explicit control boundary.
 rows.push(['borda ação principal / raised', tokens.text.primary, tokens.surface.raised, 3])
 console.log('| Par de tokens | Contraste | Meta |\n| --- | ---: | ---: |')
 for (const [name, foreground, background, minimum] of rows) {
@@ -34,4 +36,4 @@ for (const [name, foreground, background, minimum] of rows) {
   assert.ok(ratio >= minimum, `${name}: ${ratio.toFixed(2)} < ${minimum}`)
   console.log(`| ${name} | ${ratio.toFixed(2)}:1 | ${minimum}:1 |`)
 }
-console.log(`\nBranco sobre coral: ${contrast(tokens.primitives.white, tokens.brand.accent).toFixed(2)}:1; não usar para texto.`)
+console.log(`\nBranco sobre pêssego: ${contrast(tokens.primitives.white, tokens.brand.accent).toFixed(2)}:1; não usar para texto.`)
