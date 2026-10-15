@@ -1,3 +1,5 @@
+import { OccurrenceLocation } from '../features/occurrence/OccurrenceLocation'
+import { queryReturn } from '../features/occurrence/map-navigation'
 import { Dialog } from '../components/ui/Dialog'
 import { useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -5,7 +7,7 @@ import { useAuth } from '../features/auth/auth'
 import { PrivateRequestError } from '../lib/api'
 import { OccurrencePhoto } from '../features/occurrence/OccurrencePhoto'
 import { OccurrenceHistory } from '../features/occurrence/OccurrenceHistory'
-import { Link, useNavigate, useParams } from 'react-router'
+import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { Alert, StatusBadge } from '../components/ui/Feedback'
 import { Card } from '../components/ui/Card'
 import { buttonStyles } from '../components/ui/button-styles'
@@ -14,6 +16,8 @@ import { Button } from '../components/ui/Button'
 import { occurrenceDate, occurrenceStatusLabel } from '../features/occurrence/occurrence'
 
 export function OccurrenceDetailPage() {
+  const location = useLocation()
+  const from = queryReturn(location.state?.from, true)
   const { id } = useParams()
   const { request, state } = useAuth()
   const client = useQueryClient()
@@ -40,9 +44,13 @@ export function OccurrenceDetailPage() {
       const prefix = ['private', state.user.id, 'occurrences']
       await client.cancelQueries({ queryKey: prefix })
       if (!mounted.current) return
-      navigate('/meus-relatos', { replace: true, state: { deleted: true, deletedId: report.id } })
+      const returnParams = new URLSearchParams(from.split('?')[1]); returnParams.delete('selecionado')
+      const returnPath = `/meus-relatos${returnParams.size ? `?${returnParams}` : ''}`
+      navigate(returnPath, { replace: true, state: { deleted: true, deletedId: report.id } })
       client.removeQueries({ queryKey: [...prefix, report.id], exact: true })
       void client.invalidateQueries({ queryKey: prefix, exact: true })
+      void client.invalidateQueries({ queryKey: [...prefix, 'markers'] })
+      void client.invalidateQueries({ queryKey: ['public', 'occurrences'] })
     } catch (error) {
       setNotice(error instanceof PrivateRequestError && [412, 428].includes(error.status)
         ? 'Este relato mudou. Atualize a página antes de continuar.'
@@ -54,7 +62,7 @@ export function OccurrenceDetailPage() {
 
   return <section className="py-8" aria-label="Detalhe do relato">
     <div className="max-w-reading wrap-anywhere">
-      <Link className={buttonStyles('quiet')} to="/meus-relatos">← Meus relatos</Link>
+      <Link className={buttonStyles('quiet')} to={from}>← Meus relatos</Link>
       {loading && <p className="mt-8" role="status">Carregando relato…</p>}
       {error && <Alert className="mt-6" tone="danger" role="alert">Não conseguimos carregar este relato. Ele pode não existir ou não pertencer à sua conta.</Alert>}
       {error && <Button className="mt-4" variant="secondary" loading={query.isFetching} onClick={() => { void query.refetch() }}>Tentar novamente</Button>}
@@ -63,10 +71,12 @@ export function OccurrenceDetailPage() {
         <div className="mt-8 flex flex-wrap items-start justify-between gap-3"><div><p className="mb-2 text-small font-bold text-brand-default">Relato registrado</p><h1 id="detail-title" className="mb-0">{report.title}</h1></div><StatusBadge tone="info" label={occurrenceStatusLabel(report.status)} /></div>
         <OccurrencePhoto report={report} full />
         <Card className="mt-6"><dl className="grid gap-5"><div><dt className="font-bold">Categoria</dt><dd className="m-0">{report.categoryName}</dd></div>{report.description && <div><dt className="font-bold">Detalhes</dt><dd className="m-0 whitespace-pre-wrap">{report.description}</dd></div>}<div><dt className="font-bold">Localização</dt><dd className="m-0">{report.neighborhood} · {report.reference}</dd></div><div><dt className="font-bold">Data do registro</dt><dd className="m-0">{occurrenceDate(report.createdAt)}</dd></div></dl></Card>
+        <OccurrenceLocation report={report} />
+        <Link className={buttonStyles('quiet')} to={from.includes('visao=mapa') ? from : '/meus-relatos?visao=mapa'}>Ver mapa dos meus relatos</Link>
         <OccurrenceHistory events={report.history ?? []} />
         {notice && <Alert tone="danger" role="alert">{notice} <Button variant="quiet" onClick={() => { void query.refetch() }}>Consultar novamente</Button></Alert>}
         {report.status === 'PENDING' && <div className="mt-5 flex flex-wrap gap-3">
-          <Link className={buttonStyles()} to={`/meus-relatos/${report.id}/editar`}>Editar relato</Link>
+          <Link className={buttonStyles()} to={`/meus-relatos/${report.id}/editar`} state={{ from }}>Editar relato</Link>
           <Button ref={trigger} variant="quiet" className="text-feedback-danger-foreground" onClick={() => { dialog.current?.showModal(); cancel.current?.focus() }}>Excluir relato</Button>
         </div>}
         <Dialog ref={dialog} aria-labelledby="delete-title" onClose={() => trigger.current?.focus()} onCancel={event => { if (pending) event.preventDefault() }} className="m-auto max-w-reading rounded-card border border-border-control bg-surface-raised p-6 text-text-primary backdrop:bg-text-primary/50">

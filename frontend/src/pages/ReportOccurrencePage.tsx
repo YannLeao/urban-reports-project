@@ -1,8 +1,9 @@
+import { queryReturn } from '../features/occurrence/map-navigation'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { LocationPicker } from '../features/location/LocationPicker'
 import type { GeographicPoint } from '../features/location/point'
 import { z } from 'zod'
-import { Link, useNavigate } from 'react-router'
+import { Link, useLocation, useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { buttonStyles } from '../components/ui/button-styles'
 import { OccurrencePhoto } from '../features/occurrence/OccurrencePhoto'
@@ -30,6 +31,8 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
   const mounted = useRef(true)
   useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
   const navigate = useNavigate()
+  const navigation = useLocation()
+  const from = queryReturn(navigation.state?.from, true)
   const { request, state } = useAuth()
   const [categories, setCategories] = useState<z.infer<typeof categoriesSchema>>([])
   const [loadingCategories, setLoadingCategories] = useState(true)
@@ -110,10 +113,11 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
       await client.cancelQueries({ queryKey: prefix })
       if (!mounted.current) return
       client.removeQueries({ queryKey: prefix })
+      void client.invalidateQueries({ queryKey: ['public', 'occurrences'] })
       if (existing) {
         const updated = fullOccurrenceSchema.parse(payload)
         client.setQueryData([...prefix, existing.id], updated)
-        navigate(`/meus-relatos/${existing.id}`)
+        navigate(`/meus-relatos/${existing.id}`, { state: { from } })
         return
       }
       setRegistered({ id: result.id, title })
@@ -181,7 +185,7 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
             {errors.image && <p className="mt-2 text-small text-feedback-danger-foreground" role="alert">{errors.image}</p>}
           </div>
           <Button type="submit" loading={pending} disabled={loadingCategories || imageBusy || pending}>{pending ? 'Enviando…' : existing ? 'Salvar relato' : 'Enviar ocorrência'}</Button>
-          {existing && (pending ? <Button variant="quiet" disabled>Cancelar edição</Button> : <Link className={buttonStyles('quiet')} to={`/meus-relatos/${existing.id}`}>Cancelar edição</Link>)}
+          {existing && (pending ? <Button variant="quiet" disabled>Cancelar edição</Button> : <Link className={buttonStyles('quiet')} to={`/meus-relatos/${existing.id}`} state={{ from }}>Cancelar edição</Link>)}
           {existing && notice && <Link to={`/meus-relatos/${existing.id}`}>Consultar relato novamente</Link>}
         </form>
       </Card>

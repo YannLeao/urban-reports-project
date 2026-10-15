@@ -1,4 +1,8 @@
-import { Link, useParams } from 'react-router'
+import { useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { OccurrenceLocation } from '../features/occurrence/OccurrenceLocation'
+import { queryReturn } from '../features/occurrence/map-navigation'
+import { Link, useLocation, useParams } from 'react-router'
 import { Alert, StatusBadge } from '../components/ui/Feedback'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
@@ -9,20 +13,28 @@ import { usePublicOccurrence } from '../features/occurrence/usePublicOccurrences
 import { occurrenceDate, occurrenceStatusLabel } from '../features/occurrence/occurrence'
 
 export function PublicOccurrenceDetailPage() {
+  const location = useLocation()
+  const from = queryReturn(location.state?.from, false)
   const { id } = useParams()
   const query = usePublicOccurrence(id)
-  const report = query.data
   const notFound = query.error instanceof PublicRequestError && query.error.status === 404
+
+  const client = useQueryClient()
+  const report = notFound ? undefined : query.data
+  useEffect(() => { if (notFound) void client.invalidateQueries({ queryKey: ['public', 'occurrences', 'markers'] }) }, [client, notFound])
+  const returnParams = new URLSearchParams(from.split('?')[1])
+  if (notFound) returnParams.delete('selecionado')
+  const back = notFound ? `/ocorrencias?${returnParams}` : from
 
   return <section className="py-8" aria-label="Detalhe da ocorrência">
     <div className="max-w-reading wrap-anywhere">
-      <Link className={buttonStyles('quiet')} to="/ocorrencias">← Ocorrências</Link>
+      <Link className={buttonStyles('quiet')} to={back}>← Ocorrências</Link>
       {query.isPending && <p className="mt-8" role="status">Carregando ocorrência…</p>}
       {query.isError && <Alert className="mt-6" tone="danger" role="alert">
         {notFound ? 'Esta ocorrência não foi encontrada.' : 'Não conseguimos carregar esta ocorrência. Tente novamente.'}
       </Alert>}
       {query.isError && !notFound && <Button className="mt-4" variant="secondary" loading={query.isFetching} onClick={() => { void query.refetch() }}>Tentar novamente</Button>}
-      {query.isError && <Link className={`${buttonStyles('secondary')} mt-4`} to="/ocorrencias">Voltar para as ocorrências</Link>}
+      {query.isError && <Link className={`${buttonStyles('secondary')} mt-4`} to={back}>Voltar para as ocorrências</Link>}
       {report && <>
         <div className="mt-8 flex flex-wrap items-start justify-between gap-3"><div><p className="mb-2 text-small font-bold text-brand-default">Ocorrência registrada</p><h1 className="mb-0">{report.title}</h1></div><StatusBadge tone="info" label={occurrenceStatusLabel(report.status)} /></div>
         <PublicOccurrencePhoto key={report.id} report={report} full />
@@ -32,6 +44,8 @@ export function PublicOccurrenceDetailPage() {
           <div><dt className="font-bold">Localização</dt><dd className="m-0">{report.neighborhood} · {report.reference}</dd></div>
           <div><dt className="font-bold">Data do registro</dt><dd className="m-0">{occurrenceDate(report.createdAt)}</dd></div>
         </dl></Card>
+        <OccurrenceLocation report={report} />
+        <Link className={buttonStyles('quiet')} to={from.includes('visao=mapa') ? from : '/ocorrencias?visao=mapa'}>Ver mapa das ocorrências</Link>
       </>}
     </div>
   </section>

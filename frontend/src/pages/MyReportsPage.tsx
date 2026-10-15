@@ -1,8 +1,10 @@
+import { OwnMapView } from '../features/occurrence/OccurrenceMapView'
+import { QueryViewToggle } from '../features/occurrence/QueryViewToggle'
 import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../features/auth/auth'
 import { OccurrencePhoto } from '../features/occurrence/OccurrencePhoto'
-import { Link, useLocation } from 'react-router'
+import { Link, useLocation, useSearchParams } from 'react-router'
 import { Alert, StatusBadge } from '../components/ui/Feedback'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
@@ -11,7 +13,9 @@ import { useOccurrences } from '../features/occurrence/useOccurrences'
 import { occurrenceDate, occurrenceStatusLabel } from '../features/occurrence/occurrence'
 
 export function MyReportsPage() {
-  const query = useOccurrences()
+  const [params] = useSearchParams()
+  const mapMode = params.get('visao') === 'mapa'
+  const query = useOccurrences(!mapMode)
   const location = useLocation()
   const client = useQueryClient()
   const { state } = useAuth()
@@ -29,6 +33,8 @@ export function MyReportsPage() {
       <h1 id="reports-title">Meus relatos</h1>
       <Link className={buttonStyles()} to="/registrar-ocorrencia">Relatar problema</Link>
       {location.state?.deleted && <Alert>Relato excluído.</Alert>}
+      <QueryViewToggle />
+      {mapMode ? <OwnMapView /> : <>
       {query.isPending && <p role="status" className="mt-8">Carregando seus relatos…</p>}
       {error && <Alert className="mt-6" tone="danger" role="alert">Não conseguimos carregar seus relatos. Tente novamente.</Alert>}
       {error && <Button className="mt-4" variant="secondary" loading={query.isFetching} onClick={() => { void query.refetch() }}>Tentar novamente</Button>}
@@ -39,9 +45,10 @@ export function MyReportsPage() {
           <div className="flex flex-wrap items-start justify-between gap-3"><h2 className="m-0 text-xl">{report.title}</h2><StatusBadge tone="info" label={occurrenceStatusLabel(report.status)} /></div>
           <p className="mb-1">{report.neighborhood} · {report.reference}</p>
           <p className="text-small text-text-secondary">{report.categoryName} · {occurrenceDate(report.createdAt)}</p>
-          <Link className={`${buttonStyles('secondary')} mt-5`} to={`/meus-relatos/${report.id}`} aria-label={`Abrir relato: ${report.title}`}>Ver detalhes</Link>
+          <Link className={`${buttonStyles('secondary')} mt-5`} to={`/meus-relatos/${report.id}`} state={{ from: `${location.pathname}${location.search}` }} aria-label={`Abrir relato: ${report.title}`}>Ver detalhes</Link>
         </Card>)}
       </div>}
+      </>}
     </div>
   </section>
 }
