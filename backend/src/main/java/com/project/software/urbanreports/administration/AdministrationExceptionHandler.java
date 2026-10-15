@@ -9,7 +9,7 @@ import java.util.*;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
-@RestControllerAdvice(assignableTypes = {AdminAccountsController.class, AdminActivationController.class, ModerationController.class})
+@RestControllerAdvice(assignableTypes = {AdminAccountsController.class, AdminActivationController.class, ModerationController.class, OccurrenceReportController.class})
 public class AdministrationExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> error(Exception error, HttpServletRequest request) {
