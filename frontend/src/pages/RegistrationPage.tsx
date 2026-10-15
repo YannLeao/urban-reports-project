@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link } from 'react-router'
+import { Link, useLocation } from 'react-router'
+import { safeReturnPath } from '../features/auth/auth'
+import { PasswordField } from '../components/ui/PasswordField'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Field'
 import { Alert } from '../components/ui/Feedback'
@@ -18,6 +20,8 @@ const serverMessages: Record<string, string> = {
 }
 
 export function RegistrationPage() {
+  const location = useLocation()
+  const destination = safeReturnPath(location.state?.returnTo)
   const [values, setValues] = useState(initial)
   const [errors, setErrors] = useState<Partial<Record<Fields, string>>>({})
   const [message, setMessage] = useState('')
@@ -89,21 +93,23 @@ export function RegistrationPage() {
   return <section className="mx-auto max-w-reading py-8" aria-labelledby="registration-title">
     {created ? <>
       <h1 id="registration-title" ref={success} tabIndex={-1}>Conta criada</h1>
-      <Alert tone="success">Seu cadastro foi salvo. Você ainda não está conectado.</Alert>
-      <Link className={`${buttonStyles()} mt-6`} to="/entrar">Entrar na minha conta</Link>
+      <Alert tone="success">Conta criada. Agora entre para continuar.</Alert>
+      <Link className={`${buttonStyles()} mt-6`} to="/entrar" state={{ returnTo: destination }}>Entrar na minha conta</Link>
     </> : <>
       <h1 id="registration-title">Crie sua conta</h1>
-      <p className="text-text-secondary">Cadastre-se no Tá na Rua com seu nome e e-mail. O cadastro não inicia uma sessão.</p>
+      <p className="text-text-secondary">Cadastre-se no Tá na Rua com seu nome e e-mail. Depois, entre para relatar e acompanhar problemas.</p>
       <form ref={form} noValidate onSubmit={(event) => { void submit(event) }} className="grid min-w-0 gap-5" aria-busy={pending}>
         {message && <Alert ref={summary} tabIndex={-1} role="alert" tone="danger">{message}</Alert>}
-        {(Object.keys(labels) as Fields[]).map((key) => <Input key={key}
+        {(Object.keys(labels) as Fields[]).map((key) => {
+          const Control = key === 'password' || key === 'confirmPassword' ? PasswordField : Input
+          return <Control key={key}
           name={key} label={labels[key]} required disabled={pending}
-          type={key === 'password' || key === 'confirmPassword' ? 'password' : key === 'email' ? 'email' : 'text'}
+          {...(key === 'email' ? { type: 'email' as const } : {})}
           autoComplete={key === 'name' ? 'name' : key === 'email' ? 'email' : 'new-password'}
           description={key === 'password' ? 'De 15 a 128 caracteres. Você pode usar espaços e acentos.' : undefined}
           value={values[key]} error={errors[key]}
           onChange={(event) => { setValues((current) => ({ ...current, [key]: event.target.value })) }}
-        />)}
+        />})}
         <Button type="submit" loading={pending}>{pending ? 'Criando conta…' : 'Criar conta'}</Button>
       </form>
       <Link className={`${buttonStyles('quiet')} mt-4`} to="/">Voltar ao início</Link>

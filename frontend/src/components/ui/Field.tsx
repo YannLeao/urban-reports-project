@@ -1,7 +1,7 @@
 import { useId } from 'react'
 import type { ComponentProps, ReactNode } from 'react'
 
-const controlStyles = 'w-full min-w-0 p-3 border border-border-control rounded-control bg-surface-raised text-text-primary placeholder:text-text-secondary placeholder:opacity-100 aria-invalid:border-feedback-danger-foreground disabled:bg-action-primary-disabled-background disabled:text-action-primary-disabled-foreground disabled:cursor-not-allowed'
+export const controlStyles = 'w-full min-w-0 p-3 border border-border-control rounded-control bg-surface-raised text-text-primary placeholder:text-text-secondary placeholder:opacity-100 aria-invalid:border-feedback-danger-foreground disabled:bg-action-primary-disabled-background disabled:text-action-primary-disabled-foreground disabled:cursor-not-allowed'
 
 type FieldProps = {
   id?: string

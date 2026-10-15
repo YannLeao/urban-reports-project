@@ -40,7 +40,7 @@ test('serializes only canonical API fields, omits credentials and blocks repeate
   const heading = await screen.findByRole('heading', { name: 'Conta criada' })
   await waitFor(() => expect(heading).toHaveFocus())
   expect(screen.queryByLabelText('Senha')).not.toBeInTheDocument()
-  expect(screen.getByText(/Você ainda não está conectado/)).toBeVisible()
+  expect(screen.getByText(/Agora entre para continuar/)).toBeVisible()
   expect(screen.getByRole('link', { name: 'Entrar na minha conta' })).toHaveAttribute('href', '/entrar')
 })
 
