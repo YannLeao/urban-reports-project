@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type ChangeEvent } from 'react'
+import { Icon } from '../../components/ui/Icon'
 import { Button } from '../../components/ui/Button'
 import { Alert } from '../../components/ui/Feedback'
 import { checkImageDecoding, IMAGE_ACCEPT, validateImageFile } from './image-file'
@@ -7,6 +8,7 @@ export type ImagePickerProps = {
   value: File | null
   onChange: (file: File | null) => void
   disabled?: boolean
+  'aria-describedby'?: string
   onValidationChange?: (validating: boolean) => void
 }
 
@@ -20,7 +22,7 @@ function Preview({ file }: { file: File }) {
   return url ? <img className="w-full max-h-[60vh] object-contain bg-surface-raised border border-border-subtle rounded-control" src={url} alt="Prévia da imagem selecionada" /> : null
 }
 
-export function ImagePicker({ value, onChange, disabled = false, onValidationChange }: ImagePickerProps) {
+export function ImagePicker({ value, onChange, disabled = false, onValidationChange, 'aria-describedby': externalDescription }: ImagePickerProps) {
   const id = useId()
   const fileInput = useRef<HTMLInputElement>(null)
   const cameraInput = useRef<HTMLInputElement>(null)
@@ -85,22 +87,22 @@ export function ImagePicker({ value, onChange, disabled = false, onValidationCha
     onChange(null)
   }
 
-  const describedBy = `${id}-help ${id}-camera${error ? ` ${id}-error` : ''}`
+  const describedBy = `${id}-help ${id}-camera${error ? ` ${id}-error` : ''}${externalDescription ? ` ${externalDescription}` : ''}`
   return <section className="grid min-w-0 gap-4 [&_p]:m-0" aria-label="Selecionar fotografia">
-    <p id={`${id}-help`}>JPEG, PNG ou WebP, até 5 MiB. Selecione uma imagem por vez.</p>
+    <p id={`${id}-help`} className="text-small text-text-secondary">Uma foto JPEG, PNG ou WebP, até 5 MiB.</p>
     {value && <figure className="m-0 min-w-0">
       <Preview file={value} />
-      <figcaption className="mt-2 wrap-anywhere text-small text-text-secondary">{value.name} · {value.size.toLocaleString('pt-BR')} bytes</figcaption>
+
     </figure>}
     <input hidden ref={fileInput} type="file" accept={IMAGE_ACCEPT} aria-label="Arquivo de imagem" aria-describedby={describedBy} disabled={disabled || busy} onChange={event => { void select(event) }} />
     <input hidden ref={cameraInput} type="file" accept={IMAGE_ACCEPT} capture="environment" aria-label="Fotografia pela câmera" aria-describedby={describedBy} disabled={disabled || busy} onChange={event => { void select(event) }} />
-    <div className="flex flex-wrap gap-3">
-      <Button ref={chooseButton} disabled={disabled || busy} aria-describedby={describedBy} onClick={() => fileInput.current?.click()}>{value ? 'Trocar imagem' : 'Escolher imagem'}</Button>
-      <Button variant="secondary" disabled={disabled || busy} aria-describedby={describedBy} onClick={() => cameraInput.current?.click()}>{value ? 'Tirar outra foto' : 'Tirar foto'}</Button>
+    <div className={value ? 'flex flex-wrap gap-3' : 'grid gap-2 rounded-card border border-dashed border-border-control bg-surface-soft p-4 sm:grid-cols-2'}>
+      <Button ref={chooseButton} variant={value ? 'secondary' : 'primary'} disabled={disabled || busy} aria-describedby={describedBy} onClick={() => cameraInput.current?.click()}><Icon name="camera" />{value ? 'Tirar outra foto' : 'Tirar foto'}</Button>
+      <Button variant="quiet" disabled={disabled || busy} aria-describedby={describedBy} onClick={() => fileInput.current?.click()}>{value ? 'Trocar pela galeria' : 'Escolher da galeria'}</Button>
       {(value || busy) && <Button variant="quiet" disabled={disabled} onClick={remove}>Remover imagem</Button>}
     </div>
-    <p id={`${id}-camera`} className="text-small text-text-secondary">A câmera depende do aparelho e do navegador. Se ela não abrir, use a escolha de arquivo.</p>
-    <div role="status">{busy ? 'Verificando imagem…' : ''}</div>
+    <p id={`${id}-camera`} className="text-small text-text-secondary">Se a câmera não abrir, escolha da galeria.</p>
+    {busy && <div role="status">Verificando imagem…</div>}
     {error && <Alert id={`${id}-error`} tone="danger" role="alert">A nova imagem não foi aceita. {error}{value ? ' A imagem anterior foi mantida.' : ''}</Alert>}
   </section>
 }

@@ -43,7 +43,7 @@ test('visitor reporting intent survives login and uses the guarded registration 
   await userEvent.type(screen.getByLabelText('E-mail'), user.email)
   await userEvent.type(screen.getByLabelText('Senha'), 'uma senha longa para testar')
   await userEvent.click(screen.getByRole('button', { name: 'Entrar' }))
-  expect(await screen.findByRole('heading', { name: 'Registrar um problema urbano' })).toBeVisible()
+  expect(await screen.findByRole('heading', { name: 'Relatar problema' })).toBeVisible()
   const nav = within(screen.getByRole('navigation', { name: 'Navegação principal' }))
   expect(nav.getByRole('link', { name: 'Relatar' })).toHaveAttribute('aria-current', 'page')
 })
