@@ -36,7 +36,7 @@ public class RegistrationExceptionHandler {
                         "Registration could not be completed", request.getRequestURI(), code, fields));
     }
 
-    static boolean isDuplicateEmail(Throwable exception) {
+    public static boolean isDuplicateEmail(Throwable exception) {
         for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
             if (cause instanceof ConstraintViolationException violation
                     && "23505".equals(violation.getSQLState())

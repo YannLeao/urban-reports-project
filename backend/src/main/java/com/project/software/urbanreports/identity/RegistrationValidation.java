@@ -17,6 +17,12 @@ public final class RegistrationValidation {
         return value == null ? "" : value.replaceAll("^[\\x09-\\x0D\\x20]+|[\\x09-\\x0D\\x20]+$", "");
     }
     public static String canonicalEmail(String value) { return trim(value).toLowerCase(Locale.ROOT); }
+    public static boolean validName(String raw) {
+        String name = trim(raw);
+        int length = name.codePointCount(0, name.length());
+        return length >= 2 && length <= 100 && name.codePoints().noneMatch(c ->
+                Character.isISOControl(c) || c == 0x2028 || c == 0x2029 || c >= 0xD800 && c <= 0xDFFF);
+    }
 
     public static boolean validEmail(String value) {
         String raw = trim(value), email = canonicalEmail(value);
@@ -29,17 +35,13 @@ public final class RegistrationValidation {
         String email = canonicalEmail(request.email());
         String password = request.password();
         Map<String, List<String>> errors = new LinkedHashMap<>();
-        int nameLength = name.codePointCount(0, name.length());
-        if (nameLength < 2 || nameLength > 100 || name.codePoints().anyMatch(c ->
-                Character.isISOControl(c) || c == 0x2028 || c == 0x2029 || c >= 0xD800 && c <= 0xDFFF)) {
+        if (!validName(name)) {
             errors.put("name", List.of("INVALID_NAME"));
         }
         if (!validEmail(request.email())) {
             errors.put("email", List.of("INVALID_EMAIL"));
         }
-        if (password == null || password.length() > 256 || password.codePointCount(0, password.length()) < 15
-                || password.codePointCount(0, password.length()) > 128
-                || password.codePoints().anyMatch(c -> c >= 0xD800 && c <= 0xDFFF)) {
+        if (!PasswordPolicy.valid(password)) {
             errors.put("password", List.of("INVALID_PASSWORD"));
         }
         if (!errors.isEmpty()) throw new RegistrationValidationException(errors);
