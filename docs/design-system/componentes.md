@@ -228,3 +228,11 @@ externa em cards/linhas. `full` continua preservando a imagem inteira e
 `Card density="compact"` usa padding menor em linhas de painéis. O padrão
 continua com o espaçamento anterior; não tente sobrescrevê-lo com classes de
 padding conflitantes. Veja [composição dos percursos](../frontend-report-experience.md).
+
+## Notificações
+
+O sino é Link com Icon bell, alvo mínimo e badge em brand-accent/text-primary;
+o nome acessível inclui a contagem completa, mesmo quando o badge mostra 99+.
+A central usa Card e estado textual Lida/Não lida, Button para leitura e paginação,
+Alert para falhas e Link para o relato. Não interpretar HTML das mensagens.
+A composição é coberta por NotificationsPage.test.tsx; não há novo componente base.

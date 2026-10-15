@@ -259,3 +259,11 @@ Configuração/provedor/build continuam os da localização. Contrato e roteiro:
 
 As composições de [registro, acompanhamento e painéis](frontend-report-experience.md)
 descrevem o uso de PasswordField, OccurrenceStatus, fotografia e sugestão de GPS.
+
+## Central de notificações
+
+`/notificacoes` exige USER e usa `features/notification/notifications.ts`, com
+Zod, AbortSignal e cache `['private', userId, 'notifications', page]`. O sino
+compartilha a primeira página e lê `unreadCount` global do servidor. Marcar como
+lida invalida todas as páginas do usuário, incluindo o sino, sem retry de POST.
+Contrato e limitações: [notificações](notifications.md).

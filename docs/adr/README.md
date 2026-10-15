@@ -40,3 +40,5 @@ um novo ADR que substitui o anterior.
 - [0019 — Marcadores completos e pinos canônicos](0019-consultar-marcadores-completos.md)
 
 - [0020 — Consolidação da identidade visual](0020-consolidar-identidade-visual.md)
+
+- [0021 — Notificações internas transacionais](0021-materializar-notificacoes-internas.md)

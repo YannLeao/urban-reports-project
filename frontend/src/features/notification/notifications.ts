@@ -16,20 +16,22 @@ const pageSchema = z.object({
   size: z.number().int().positive(),
   totalItems: z.number().int().nonnegative(),
   totalPages: z.number().int().nonnegative(),
+  unreadCount: z.number().int().nonnegative(),
 })
 export type Notification = z.infer<typeof notificationSchema>
 
-export function useNotifications() {
+export function useNotifications(page = 0) {
   const { state, request } = useAuth()
   const client = useQueryClient()
   const userId = state.status === 'authenticated' ? state.user.id : null
   const query = useQuery({
-    queryKey: ['private', userId, 'notifications'],
-    enabled: userId !== null,
-    queryFn: async ({ signal }) => pageSchema.parse(await (await request('/api/notifications', 'GET', signal)).json()),
+    queryKey: ['private', userId, 'notifications', page],
+    enabled: userId !== null && state.status === 'authenticated' && state.user.role === 'USER',
+    queryFn: async ({ signal }) => pageSchema.parse(await (await request(`/api/notifications?page=${page}&size=20`, 'GET', signal)).json()),
     retry: false,
     staleTime: 0,
     refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   })
   async function markRead(id: string) {
     z.uuid().parse(id)

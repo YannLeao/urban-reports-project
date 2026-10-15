@@ -1,3 +1,4 @@
+import { withEmptyNotifications } from '../test/notification-fixture'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -20,7 +21,7 @@ const reference = {
 }
 const empty = { ...reference, total: 0, categories: reference.categories.map(item => ({ ...item, count: 0 })), statuses: reference.statuses.map(item => ({ ...item, count: 0 })), localities: [], averageResolutionSeconds: null, resolvedSampleSize: 0, rejectedPercentage: null }
 beforeEach(() => {
-  sessionStorage.clear(); fetchMock.mockReset(); vi.stubGlobal('fetch', fetchMock); vi.stubEnv('VITE_API_URL', 'https://api.example.com')
+  sessionStorage.clear(); fetchMock.mockReset(); vi.stubGlobal('fetch', withEmptyNotifications(fetchMock)); vi.stubEnv('VITE_API_URL', 'https://api.example.com')
 })
 function mount(authenticated = true) {
   if (authenticated) sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ accessToken: 'synthetic-session', expiresAt: new Date(Date.now() + 1800000).toISOString() }))

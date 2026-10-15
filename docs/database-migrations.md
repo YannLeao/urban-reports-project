@@ -103,3 +103,11 @@ V6 remove NOT NULL/mínimo antigo de description, mantém máximo de 1000 pontos
 de código e preserva textos existentes. Acrescenta version BIGINT não negativo,
 inicial 0. V4/V5 não são alteradas. Tombstones reutilizam o schema V5, sem nova
 fila; retirada de referência e intenção de descarte entram na mesma transação.
+
+## Notificações internas
+
+V10 materializa notificações futuras por trigger de histórico, com event_id único,
+autoria, mensagem e leitura. V11 recupera as intenções duráveis anteriores sem
+duplicar notificações criadas pela V10 e indexa as não lidas. Nenhuma migration
+anterior é reescrita. Contrato: [central](notifications.md), decisão no
+[ADR 0021](adr/0021-materializar-notificacoes-internas.md).

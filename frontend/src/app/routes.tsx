@@ -37,7 +37,6 @@ export function AppRoutes() {
       <Route path="/ativar-administrador" element={<AdminActivationPage />} />
       <Route element={<PrivateRoute />}>
         <Route path="/minha-conta" element={<AccountPage />} />
-        <Route path="/notificacoes" element={<NotificationsPage />} />
         <Route element={<RoleRoute role="SUPER_ADMIN" />}>
           <Route path="/administracao/contas" element={<AdminAccountsPage />} />
         </Route>
@@ -47,6 +46,7 @@ export function AppRoutes() {
           <Route path="/administracao/relatos/:id" element={<ModerationDetailPage />} />
         </Route>
         <Route element={<RoleRoute role="USER" />}>
+        <Route path="/notificacoes" element={<NotificationsPage />} />
         <Route path="/registrar-ocorrencia" element={<ReportOccurrencePage />} />
         <Route path="/meus-relatos" element={<MyReportsPage />} />
         <Route path="/meus-relatos/:id/editar" element={<EditOccurrencePage />} />

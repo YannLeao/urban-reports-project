@@ -26,7 +26,8 @@ histórico para ADMIN ativo. O [provisionamento administrativo](docs/admin-provi
 permite ao SUPER_ADMIN criar, convidar e desativar ADMINs, com bootstrap explícito.
 O [relatório administrativo](docs/occurrence-report.md) em `/administracao/relatorio`
 oferece contagens globais, média de resolução e proporção de rejeitadas para ADMIN ativo.
-Notificações de ocorrências têm intenção durável; a central segue separada.
+A [central de notificações](docs/notifications.md) em `/notificacoes` permite ao
+cidadão acompanhar transições e marcar avisos como lidos, com contador no sino.
 O registro autenticado em `/registrar-ocorrencia` integra categorias, fotografia,
 [localização confirmada](docs/occurrence-location.md) e persistência. Consulte o [contrato de ocorrência](docs/occurrence-registration.md):
 a implementação não comprova, por si só, o aceite publicado ou a captura física.

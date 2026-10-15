@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.*;
 public interface OccurrenceNotificationRepository extends JpaRepository<OccurrenceNotification, UUID> {
     Page<OccurrenceNotification> findByRecipientId(UUID recipientId, Pageable pageable);
 
+    long countByRecipientIdAndReadAtIsNull(UUID recipientId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select n from OccurrenceNotification n where n.id = :id and n.recipientId = :recipientId")
     Optional<OccurrenceNotification> lockOwned(UUID id, UUID recipientId);

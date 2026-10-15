@@ -124,12 +124,11 @@ event_id é PK/FK do evento; recipient_id vem do autor da ocorrência; created_a
 replica o instante do evento. Rollback remove evento e intenção. Evento/versão
 duplicado não cria outra intenção.
 
-Esta é uma intenção de entrega, não a notificação visível. A central deve ler
-o evento por JOIN com histórico, inserir notificação com UNIQUE(event_id) e
-confirmar progresso na mesma transação, ou usar inbox deduplicada no consumidor
-externo. Não apagar histórico para reconhecer consumo. Estratégia de consumo,
-worker e prova de exatamente uma notificação ainda dependem dessa entrega.
-Não há callback em memória nem stub declarado como integração concluída.
+A central materializa `occurrence_notifications` com `UNIQUE(event_id)` na mesma
+transação por trigger V10, sem callback em memória ou worker. V11 recupera
+intenções anteriores sem duplicar eventos já materializados. O outbox permanece
+preservado como registro durável; não há fila externa nem rotina de exclusão.
+Contrato, autorização e operação: [notificações](notifications.md).
 
 ## Compatibilidade e demonstração
 
@@ -140,5 +139,5 @@ novos valores. Esta ordem não implica autorização de deploy.
 
 O [roteiro de provisionamento](admin-provisioning.md#roteiro-de-revisão) cobre
 criar/ativar/moderar/desativar com contas legítimas, consulta como autor e matriz
-de negativas. Notificações internas permanecem pendentes da central; não fechar
-a issue #24 como aceite integrado completo por existir apenas a intenção durável.
+de negativas. A central possui testes de integração locais; aceite publicado e validação
+manual devem ser registrados na MR/issue, sem inferir deploy pelo código.

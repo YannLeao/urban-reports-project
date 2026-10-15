@@ -24,7 +24,7 @@ export function AccountPage() {
     <dl className="grid gap-2"><dt className="font-bold">Nome</dt><dd className="m-0">{auth.state.user.name}</dd>
       <dt className="font-bold">E-mail</dt><dd className="m-0">{auth.state.user.email}</dd></dl>
     <div className="mt-6 flex flex-wrap gap-3">
-      <Link className={buttonStyles('secondary')} to="/notificacoes">Notificações</Link>
+      {auth.state.user.role === 'USER' && <Link className={buttonStyles('secondary')} to="/notificacoes">Notificações</Link>}
       {auth.state.user.role === 'USER' && <><Link className={buttonStyles()} to="/registrar-ocorrencia">Registrar problema</Link>
       <Link className={buttonStyles('secondary')} to="/meus-relatos">Meus relatos</Link></>}
       {auth.state.user.role === 'ADMIN' && <Link className={buttonStyles()} to="/administracao/relatos">Moderar relatos</Link>}

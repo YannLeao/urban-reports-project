@@ -1,20 +1,20 @@
-import { useId, useState } from 'react'
+import { Link } from 'react-router'
 import { Icon } from '../components/ui/Icon'
+import { useNotifications } from '../features/notification/notifications'
 
-// Replace these preparations with real route links when their flows are integrated.
-// No recovery or notifications route exists in this checkout.
 export function PasswordRecoveryAccess() {
   return <p className="mb-0 text-small text-text-secondary">Recuperação de senha em breve</p>
 }
 
 export function NotificationsAccess() {
-  const id = useId()
-  const [helpVisible, setHelpVisible] = useState(false)
-  return <div className="relative" onMouseEnter={() => setHelpVisible(true)} onMouseLeave={() => setHelpVisible(false)}>
-    <button type="button" onFocus={() => setHelpVisible(true)} onBlur={() => setHelpVisible(false)} onClick={() => setHelpVisible(true)} onKeyDown={event => { if (event.key === 'Escape') setHelpVisible(false) }} aria-label="Notificações" aria-disabled="true" aria-describedby={id}
-      className="inline-flex min-h-target min-w-target items-center justify-center rounded-pill border border-border-subtle text-text-secondary">
-      <Icon name="bell" />
-    </button>
-    <p id={id} role="tooltip" hidden={!helpVisible} className="absolute right-0 top-full z-30 mt-2 w-48 rounded-control border border-border-control bg-surface-raised p-3 text-small shadow-card">Notificações em breve</p>
-  </div>
+  const query = useNotifications()
+  return <NotificationBell unreadCount={query.data?.unreadCount} />
+}
+
+export function NotificationBell({ unreadCount: count }: { unreadCount?: number }) {
+  return <Link to="/notificacoes" aria-label={count === undefined ? 'Notificações' : `Notificações: ${count} não lidas`}
+    className="relative inline-flex min-h-target min-w-target items-center justify-center rounded-pill border border-border-subtle text-text-secondary no-underline">
+    <Icon name="bell" />
+    {count !== undefined && count > 0 && <span aria-hidden="true" className="absolute -right-2 -top-1 rounded-pill bg-brand-accent px-2 text-small font-bold text-text-primary">{count > 99 ? '99+' : count}</span>}
+  </Link>
 }
