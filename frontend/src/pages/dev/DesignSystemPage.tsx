@@ -1,6 +1,6 @@
 import { PasswordField } from '../../components/ui/PasswordField'
 import { OccurrenceStatus } from '../../features/occurrence/OccurrenceStatus'
-import { PasswordRecoveryAccess, NotificationsAccess } from '../../app/ProductIntegrations'
+import { PasswordRecoveryAccess, NotificationBell } from '../../app/ProductIntegrations'
 import { Icon } from '../../components/ui/Icon'
 import { OccurrencePin } from '../../features/location/pins/OccurrencePin'
 import { categoryPins } from '../../features/location/pins/pin-variants'
@@ -31,9 +31,15 @@ export default function DesignSystemPage() {
     <div className="grid gap-8 pb-8">
       <Card><h2>Navegação e exploração</h2>
         <p>Ícone com rótulo visível; o shell adapta destinos ao papel. Controles compactos preservam o alvo de toque.</p>
-        <div className="flex flex-wrap gap-4"><span className="inline-flex items-center gap-2"><Icon name="map" />Mapa</span><span className="inline-flex items-center gap-2"><Icon name="plus" />Relatar</span><Button size="compact" disabled>Atualizar</Button><NotificationsAccess /></div>
+        <div className="flex flex-wrap gap-4"><span className="inline-flex items-center gap-2"><Icon name="map" />Mapa</span><span className="inline-flex items-center gap-2"><Icon name="plus" />Relatar</span><Button size="compact" disabled>Atualizar</Button><NotificationBell unreadCount={3} /></div>
         <div className="mt-4"><PasswordRecoveryAccess /></div>
-        <p className="mt-4 text-small">Acessos pendentes indicam indisponibilidade. O resumo de seleção no mapa é não modal, com fechamento explícito e foto somente do relato escolhido.</p>
+        <p className="mt-4 text-small">O sino ilustrativo mostra três notificações não lidas e aponta para a central privada. A recuperação de senha permanece indisponível. O resumo de seleção no mapa é não modal, com fechamento explícito e foto somente do relato escolhido.</p>
+      </Card>
+      <Card><h2>Notificação interna — exemplo</h2>
+        <p>Seu relato “Poste apagado” foi rejeitado: a fotografia não corresponde ao local informado.</p>
+        <p className="font-bold">Não lida</p>
+        <Button variant="secondary" disabled>Marcar como lida — exemplo estático</Button>
+        <p className="text-small text-text-secondary">Na central, a leitura atualiza a contagem do sino e preserva a mensagem.</p>
       </Card>
       <Card><h2>Cores e tipografia</h2><div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,15rem),1fr))] gap-6">
         <div className="border border-border-control rounded-control p-4 bg-brand-default text-surface-raised">Marca · carvão</div>

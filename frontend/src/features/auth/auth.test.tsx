@@ -1,3 +1,4 @@
+import { withEmptyNotifications } from '../../test/notification-fixture'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -12,7 +13,7 @@ const credential = () => ({ accessToken: 'synthetic-token', expiresAt: new Date(
 const fetchMock = vi.fn<typeof fetch>()
 beforeEach(() => {
   sessionStorage.clear(); fetchMock.mockReset()
-  vi.stubGlobal('fetch', fetchMock); vi.stubEnv('VITE_API_URL', 'https://api.example.com')
+  vi.stubGlobal('fetch', withEmptyNotifications(fetchMock)); vi.stubEnv('VITE_API_URL', 'https://api.example.com')
 })
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks() })
 function renderPage(path = '/minha-conta', probe = false) {

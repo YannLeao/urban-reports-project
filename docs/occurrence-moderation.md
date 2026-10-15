@@ -5,8 +5,9 @@
 O fluxo administrativo usa a identidade compartilhada de
 [provisionamento](admin-provisioning.md). ADMIN ativo acessa fila, detalhe,
 foto e transições; SUPER_ADMIN não herda essa permissão. Cadastro público
-permanece USER. A central de notificações continua separada: cada transição
-persiste intenção durável, sem alegar entrega da notificação interna.
+permanece USER. Cada transição válida também cria, na mesma transação, uma
+notificação interna para o autor; a central do cidadão permite consultar e
+marcar como lidas somente as próprias notificações.
 
 ## Estados e justificativa
 
@@ -84,10 +85,21 @@ retroativo. A mesma linha de ocorrência é disputada por edição/exclusão do 
 Moderação não trava journal nem faz I/O de storage, preservando ADR 0014.
 
 Estado, incremento de versão, evento com responsável autenticado/horário do
-Clock e intenção de notificação confirmam na mesma transação. Falha no commit
-reverte tudo. Repetição/conflito não acrescenta evento. Edição antiga em PENDING
+Clock e notificação com `event_id` único confirmam na mesma transação. Falha no
+commit reverte tudo. Repetição/conflito não acrescenta evento. Edição antiga em PENDING
 não confirma após análise; exclusão não remove relato analisado/finalizado.
 Upload que perdeu uma disputa continua recuperável pelo journal existente.
+
+## Notificações do cidadão
+
+- GET `/api/notifications?page=0&size=20`: retorna somente itens cujo
+  `recipient_id` é a conta autenticada, ordenados do mais recente ao mais antigo.
+- POST `/api/notifications/{id}/read`: marca o item próprio como lido; repetir a
+  operação é idempotente e um item de outra conta retorna 404.
+- Transições para `REJECTED` incluem a justificativa administrativa na mensagem.
+  O trigger de banco usa o evento de histórico como chave única, garantindo uma
+  notificação por transição válida mesmo quando o histórico é inserido fora do
+  Hibernate.
 
 ## Interface
 
@@ -112,12 +124,11 @@ event_id é PK/FK do evento; recipient_id vem do autor da ocorrência; created_a
 replica o instante do evento. Rollback remove evento e intenção. Evento/versão
 duplicado não cria outra intenção.
 
-Esta é uma intenção de entrega, não a notificação visível. A central deve ler
-o evento por JOIN com histórico, inserir notificação com UNIQUE(event_id) e
-confirmar progresso na mesma transação, ou usar inbox deduplicada no consumidor
-externo. Não apagar histórico para reconhecer consumo. Estratégia de consumo,
-worker e prova de exatamente uma notificação ainda dependem dessa entrega.
-Não há callback em memória nem stub declarado como integração concluída.
+A central materializa `occurrence_notifications` com `UNIQUE(event_id)` na mesma
+transação por trigger V10, sem callback em memória ou worker. V11 recupera
+intenções anteriores sem duplicar eventos já materializados. O outbox permanece
+preservado como registro durável; não há fila externa nem rotina de exclusão.
+Contrato, autorização e operação: [notificações](notifications.md).
 
 ## Compatibilidade e demonstração
 
@@ -128,5 +139,5 @@ novos valores. Esta ordem não implica autorização de deploy.
 
 O [roteiro de provisionamento](admin-provisioning.md#roteiro-de-revisão) cobre
 criar/ativar/moderar/desativar com contas legítimas, consulta como autor e matriz
-de negativas. Notificações internas permanecem pendentes da central; não fechar
-a issue #24 como aceite integrado completo por existir apenas a intenção durável.
+de negativas. A central possui testes de integração locais; aceite publicado e validação
+manual devem ser registrados na MR/issue, sem inferir deploy pelo código.

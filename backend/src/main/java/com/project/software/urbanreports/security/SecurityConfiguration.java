@@ -51,6 +51,8 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.GET, "/api/admin/reports/occurrences").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/auth/logout").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/notifications").hasRole("USER")
+                        .requestMatchers(HttpMethod.POST, "/api/notifications/*/read").hasRole("USER")
                         .requestMatchers(HttpMethod.GET, "/api/occurrence-categories").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/occurrences", "/api/occurrences/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/occurrences").hasRole("USER")

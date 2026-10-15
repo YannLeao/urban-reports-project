@@ -43,10 +43,10 @@ Cada campo tem controle independente. A política de criação continua de 15 a
 validar política de criação. O cadastro não autentica: após sucesso convida a
 entrar e preserva o destino seguro recebido do login.
 
-Recuperação e notificações ainda não possuem fluxo funcional neste checkout.
-Os acessos de preparação da #48 são preservados; a entrega correspondente deve
-usar PasswordField para novas senhas e substituir os acessos somente quando
-houver destino real. Nenhum serviço ou contador fictício é acrescentado.
+A [central de notificações](notifications.md) substitui o acesso de preparação
+pelo sino funcional para USER, com contagem global de não lidas e lista paginada.
+A recuperação de senha continua como acesso indisponível; sua integração deve
+usar PasswordField para novas senhas quando houver destino real.
 
 ## Consulta e acompanhamento
 

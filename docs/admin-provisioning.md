@@ -209,8 +209,8 @@ execução remota e esta tarefa não provisiona conta real de produção.
 
 Publicar frontend que aceita os três papéis antes de emitir novas identidades;
 coordenar V8 após V7 e integrar backend. Não executar bootstrap ou deploy como
-rotina de testes. A central de notificações de ocorrências segue fora do escopo:
-a moderação grava intenção durável deduplicável, sem alegar entrega interna.
+rotina de testes. A moderação grava uma notificação interna por transição válida;
+a central do cidadão expõe somente as notificações da própria conta.
 Enviar convites SMTP é independente dessa central. Testes usam PostgreSQL real,
 JWTs reais, Clock controlável e captura/falha de e-mail; a sonda SMTP local
 verifica o adaptador. Não equivalem a prova de entrega externa ou deploy.

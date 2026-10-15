@@ -107,3 +107,7 @@ O CSS manual do preview é uma exceção documental: apresenta várias telas num
 Registro, câmera, confirmação visual de GPS, acompanhamento e painéis seguem as
 [composições de produto](../frontend-report-experience.md); estados de relato usam
 OccurrenceStatus com os tokens report.*, distintos do feedback genérico.
+
+A central de [notificações](../notifications.md) reutiliza Card, Button, Alert e
+Icon (bell), com badge semântico e estado textual Lida/Não lida. O sino funcional
+substitui o acesso desabilitado e mantém alvo mínimo e nome acessível com contagem.

@@ -1,3 +1,4 @@
+import { withEmptyNotifications } from '../test/notification-fixture'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -26,7 +27,7 @@ beforeEach(() => {
   sessionStorage.clear()
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ accessToken: 'synthetic-token', expiresAt: new Date(Date.now() + 1800000).toISOString() }))
   fetchMock.mockReset().mockResolvedValueOnce(Response.json(person)).mockResolvedValueOnce(Response.json([{ id: 1, name: 'Iluminação pública' }]))
-  vi.stubGlobal('fetch', fetchMock)
+  vi.stubGlobal('fetch', withEmptyNotifications(fetchMock))
   vi.stubGlobal('Image', FakeImage)
   vi.stubGlobal('URL', Object.assign(class extends URL {}, { createObjectURL: vi.fn(() => 'blob:photo'), revokeObjectURL: vi.fn() }))
   vi.stubEnv('VITE_API_URL', 'https://api.example.com')

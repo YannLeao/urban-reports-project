@@ -70,22 +70,19 @@ A prova de imagem isola seleção/decodificação em desenvolvimento; para valid
 câmera no produto usar o formulário real autorizado. Não reabrir a prova em
 produção apenas para facilitar apresentação.
 
-## Integrações visuais pendentes
+## Notificações e recuperação de senha
 
-Não há rota funcional de recuperação de senha ou central de notificações neste
-checkout. Os contratos de integração existentes não definem rotas frontend
-operacionais. `src/app/ProductIntegrations.tsx` concentra os dois acessos:
+`NotificationsAccess`, no shell de USER autenticado, abre `/notificacoes` com
+nome acessível e contagem total de não lidas, independente da página aberta.
+O badge mostra até 99+; o nome acessível preserva a contagem completa. Falha de
+consulta não inventa contagem zero. A central e o acesso em Minha conta exigem
+USER, com a mesma restrição no servidor; ADMIN/SUPER_ADMIN não herdam esse fluxo.
 
-- `PasswordRecoveryAccess`, inserido após o campo de senha do login: texto
-  auxiliar “Recuperação de senha em breve”, sem href, submit ou e-mail simulado.
-- `NotificationsAccess`, somente no shell de USER autenticado: sino com nome
-  “Notificações”, `aria-disabled`, sem badge/contador. É focável para expor a
-  explicação “Notificações em breve” por foco/hover e toque que dá foco ao botão.
-  `aria-describedby` fornece a explicação a tecnologia assistiva.
+A central usa sessão e cache privado por usuário/página, paginação de 20 itens,
+atualização manual, retry e marcação idempotente de leitura. Cada item mostra
+mensagem, horário, estado textual e link para o relato privado. Não há polling,
+push ou atualização em tempo real; entrar na central ou atualizar consulta o
+servidor novamente. Contrato: [notificações](notifications.md).
 
-Quando os fluxos reais chegarem, substituir esses acessos por Links para as
-rotas efetivamente entregues e atualizar testes/guia. Não criar aliases presumidos
-nem ligar direto a endpoints da API. Reutilizar sessão e prefixo de cache privado;
-notificações não são habilitadas a outros papéis sem seu contrato. O login mantém
-seu formulário e regras; mostrar/ocultar senha e organização do registro são
-trabalhos separados.
+`PasswordRecoveryAccess`, após a senha do login, continua como texto auxiliar
+“Recuperação de senha em breve”, sem href, submit ou e-mail simulado.

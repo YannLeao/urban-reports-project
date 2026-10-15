@@ -28,9 +28,7 @@ test.each([
   expect(screen.queryByRole('link', { name: 'Criar conta' })).toBeNull()
   if (role !== 'USER') expect(screen.queryByRole('link', { name: 'Relatar problema' })).toBeNull()
   else {
-    await userEvent.click(screen.getByRole('button', { name: 'Notificações' }))
-    expect(screen.getByRole('button', { name: 'Notificações' })).toHaveAttribute('aria-disabled', 'true')
-    expect(screen.getByRole('button', { name: 'Notificações' })).toHaveAccessibleDescription('Notificações em breve')
+    expect(screen.getByRole('link', { name: /^Notificações/ })).toHaveAttribute('href', '/notificacoes')
   }
 })
 test('visitor reporting intent survives login and uses the guarded registration route', async () => {

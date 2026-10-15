@@ -6,6 +6,11 @@ adiciona tokens de ativação somente como hash e guarda de bootstrap. Não alte
 V1–V7. Índice único parcial impede segundo SUPER_ADMIN. Contratos em
 [moderação](occurrence-moderation.md) e [provisionamento](admin-provisioning.md).
 
+A V10 materializa a central de notificações de ocorrência. O trigger de
+`occurrence_history` cria exatamente uma linha por evento, usando o `event_id`
+como chave única; mensagens de rejeição incluem a justificativa. `read_at` é
+alterado somente pelo serviço de notificações para marcar a mensagem como lida.
+
 O Flyway é a única fonte de verdade do schema. O Hibernate valida se o schema é
 compatível com as entidades existentes, mas não cria, atualiza nem remove
 estruturas.
@@ -98,3 +103,11 @@ V6 remove NOT NULL/mínimo antigo de description, mantém máximo de 1000 pontos
 de código e preserva textos existentes. Acrescenta version BIGINT não negativo,
 inicial 0. V4/V5 não são alteradas. Tombstones reutilizam o schema V5, sem nova
 fila; retirada de referência e intenção de descarte entram na mesma transação.
+
+## Notificações internas
+
+V10 materializa notificações futuras por trigger de histórico, com event_id único,
+autoria, mensagem e leitura. V11 recupera as intenções duráveis anteriores sem
+duplicar notificações criadas pela V10 e indexa as não lidas. Nenhuma migration
+anterior é reescrita. Contrato: [central](notifications.md), decisão no
+[ADR 0021](adr/0021-materializar-notificacoes-internas.md).

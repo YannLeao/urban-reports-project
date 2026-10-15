@@ -1,3 +1,4 @@
+import { withEmptyNotifications } from '../test/notification-fixture'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -24,7 +25,7 @@ beforeEach(() => {
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ accessToken: 'synthetic-token', expiresAt: new Date(Date.now() + 1800000).toISOString() }))
   fetchMock.mockReset().mockResolvedValueOnce(Response.json(person))
   vi.stubGlobal('IntersectionObserver', class { observe() {} disconnect() {} })
-  vi.stubGlobal('fetch', fetchMock)
+  vi.stubGlobal('fetch', withEmptyNotifications(fetchMock))
   vi.stubEnv('VITE_API_URL', 'https://api.example.com')
 })
 function renderPage(path = '/meus-relatos') {
@@ -151,7 +152,8 @@ test('private photo sends Bearer, remains outside query cache and releases URL o
   expect(await screen.findByRole('img', { name: `Foto do problema: ${report.title}` })).toHaveAttribute('src', 'blob:private-photo')
   const photo = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/image'))!
   expect(photo[1]).toMatchObject({ credentials: 'omit', headers: { Authorization: 'Bearer synthetic-token' } })
-  expect(view.client.getQueryCache().findAll({ queryKey: ['private'] })).toHaveLength(1)
+  expect(view.client.getQueryCache().findAll({ queryKey: ['private', person.id, 'occurrences'] })).toHaveLength(1)
+  expect(view.client.getQueryCache().getAll().some(query => query.queryKey.includes('image'))).toBe(false)
   view.unmount()
   expect(view.client.getQueryCache().findAll({ queryKey: ['private'] })).toHaveLength(0)
   expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:private-photo')
