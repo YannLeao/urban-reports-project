@@ -52,7 +52,7 @@ class OccurrenceReportIntegrationTests {
         bootstrap.createFirst("Responsável teste", "root@example.com", PASSWORD);
         rootLogin = login.login("root@example.com", PASSWORD); root = identity(rootLogin);
         var link = new java.util.concurrent.atomic.AtomicReference<String>();
-        doAnswer(call -> { link.set(call.getArgument(1)); return null; }).when(mail).send(anyString(), anyString());
+        doAnswer(call -> { link.set(call.getArgument(1)); return null; }).when(mail).send(anyString(), anyString(), any());
         var invitation = administration.create(root, "Pessoa administradora", "admin@example.com");
         administration.activate(link.get().split("#token=")[1], PASSWORD);
         adminLogin = login.login(invitation.admin().email(), PASSWORD); admin = identity(adminLogin);

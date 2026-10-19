@@ -1,6 +1,8 @@
 package com.project.software.urbanreports.administration;
 
 import com.project.software.urbanreports.auth.*;
+import com.project.software.urbanreports.email.EmailObservation;
+import com.project.software.urbanreports.email.EmailSendException;
 import com.project.software.urbanreports.identity.*;
 import java.net.URI;
 import java.time.Clock;
@@ -59,7 +61,7 @@ public class AdminProvisioningService {
             var account = accounts.saveAndFlush(UserAccount.pendingAdmin(RegistrationValidation.trim(name), canonical, now));
             return new Prepared(Admin.from(account), tokens.replace(account.getId(), now));
         });
-        return send(Objects.requireNonNull(prepared));
+        return send(Objects.requireNonNull(prepared), EmailObservation.Operation.ADMIN_INVITATION);
     }
     public Invitation resend(AuthenticatedIdentity actor, UUID id) {
         var prepared = transaction.execute(status -> {
@@ -68,7 +70,7 @@ public class AdminProvisioningService {
             if (account.getStatus() != AccountStatus.PENDING_ACTIVATION) throw conflict("ADMIN_NOT_PENDING");
             return new Prepared(Admin.from(account), tokens.replace(id, clock.instant()));
         });
-        return send(Objects.requireNonNull(prepared));
+        return send(Objects.requireNonNull(prepared), EmailObservation.Operation.ADMIN_RESEND);
     }
     public Admin deactivate(AuthenticatedIdentity actor, UUID id) {
         return transaction.execute(status -> {
@@ -99,17 +101,24 @@ public class AdminProvisioningService {
             account.activateAdmin(hash, now); accounts.flush();
         });
     }
-    private Invitation send(Prepared prepared) {
+    private Invitation send(Prepared prepared, EmailObservation.Operation operation) {
+        var observation = new EmailObservation(operation);
+        boolean linkPrepared = false;
         try {
             URI uri = URI.create(frontendOrigin);
             boolean local = "localhost".equals(uri.getHost()) || "127.0.0.1".equals(uri.getHost());
             if (uri.getHost() == null || uri.getUserInfo() != null || uri.getQuery() != null || uri.getFragment() != null
                     || uri.getRawPath() != null && !uri.getRawPath().isEmpty()
                     || !("https".equals(uri.getScheme()) || local && "http".equals(uri.getScheme()))) throw new IllegalArgumentException();
-            mail.send(prepared.admin.email(), uri + "/ativar-administrador#token=" + prepared.token());
+            linkPrepared = true;
+            mail.send(prepared.admin.email(), uri + "/ativar-administrador#token=" + prepared.token(), observation);
+            observation.accepted();
             return new Invitation(prepared.admin(), "ACCEPTED");
         } catch (RuntimeException failure) {
-            // Do not log the exception: a provider may include the message/link.
+            // The transport has already completed its observation; completion is idempotent.
+            observation.failed(failure instanceof EmailSendException email ? email.category() : EmailSendException.Category.CONFIGURATION,
+                    linkPrepared ? EmailObservation.Reason.unknown_failure : EmailObservation.Reason.activation_link_preparation_failed,
+                    0, null);
             return new Invitation(prepared.admin(), "FAILED");
         }
     }
