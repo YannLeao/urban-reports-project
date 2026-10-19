@@ -111,3 +111,10 @@ autoria, mensagem e leitura. V11 recupera as intenções duráveis anteriores se
 duplicar notificações criadas pela V10 e indexa as não lidas. Nenhuma migration
 anterior é reescrita. Contrato: [central](notifications.md), decisão no
 [ADR 0021](adr/0021-materializar-notificacoes-internas.md).
+
+V12 cria `occurrence_notification_email_deliveries`, unicidade/FK da notificação,
+constraints de estado/reserva e índices parciais de pendências/leases, mais
+`notification_email_operator_actions` para auditoria de reconciliação. Um trigger
+AFTER INSERT na central captura somente novas inserções na mesma transação,
+sem backfill ou comparação de timestamp. Histórico/outbox/central anteriores
+não são alterados. [Operação, estados e corte](notification-email.md).

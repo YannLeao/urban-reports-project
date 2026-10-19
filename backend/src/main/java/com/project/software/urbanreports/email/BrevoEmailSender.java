@@ -62,6 +62,19 @@ public final class BrevoEmailSender implements TransactionalEmailSender {
         return send(message, new EmailObservation(EmailObservation.Operation.GENERIC));
     }
 
+    private EmailObservation.Reason configurationProblem() {
+        if (key == null || key.isBlank() || from == null || from.isBlank() || name == null || name.isBlank())
+            return configuration_missing;
+        if (key.chars().anyMatch(c -> c < 33 || c > 126)
+                || !from.matches("[^\\s@<>]+@[^\\s@<>]+\\.[^\\s@<>]+")
+                || name.contains("\r") || name.contains("\n")) return configuration_invalid;
+        return null;
+    }
+
+    @Override public void validateConfiguration() {
+        if (configurationProblem() != null) throw new EmailSendException(CONFIGURATION, 0);
+    }
+
     @Override public EmailSendResult send(EmailMessage message, EmailObservation observation) {
         observation.stage(VALIDATION);
         CompletableFuture<HttpResponse<String>> pending = null;
@@ -69,13 +82,11 @@ public final class BrevoEmailSender implements TransactionalEmailSender {
         int status = 0;
         EmailObservation.ProviderCode code = null;
         try {
-            if (key == null || key.isBlank() || from == null || from.isBlank() || name == null || name.isBlank()) {
-                reason = configuration_missing;
+            var problem = configurationProblem();
+            if (problem != null) {
+                reason = problem;
                 throw new EmailSendException(CONFIGURATION, 0);
             }
-            if (key.chars().anyMatch(c -> c < 33 || c > 126)
-                    || !from.matches("[^\\s@<>]+@[^\\s@<>]+\\.[^\\s@<>]+")
-                    || name.contains("\r") || name.contains("\n")) throw new EmailSendException(CONFIGURATION, 0);
             observation.stage(SERIALIZATION);
             reason = serialization_failed;
             String json = mapper.writeValueAsString(Map.of("sender", Map.of("email", from, "name", name),

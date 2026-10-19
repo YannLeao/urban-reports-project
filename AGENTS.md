@@ -100,6 +100,10 @@
   sem herança. Mutações revalidam sessão/papel/status sob lock; múltiplas contas
   seguem UUID textual ascendente. Conta vem antes de token/sessões/ocorrência.
   Bootstrap é explícito, sem servidor HTTP e com senha em console protegido.
+  Notificações externas capturam inserções novas da central por V12, sem backfill;
+  switch controla só consumo. Não repetir automaticamente falhas/leases expiradas.
+  CLI `--notification-email-ops` é explícita, sem contexto Spring/Flyway/HTTP;
+  credenciais só por ambiente privado. Consulte docs/notification-email.md.
   Chaves RSA externas são obrigatórias em todos os perfis (docs/security.md).
   Login e recuperação usam lock da conta antes de alterar sessões; revogação
   global exige transação do chamador conforme docs/password-recovery-integration.md.
