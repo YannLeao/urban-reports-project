@@ -38,7 +38,7 @@ não são coercidos. Campos extras nos comandos administrativos são recusados.
 | POST `/api/auth/admin-activations` | Público; `{token,password}`; 200 `{activated:true}`; sem sessão automática |
 
 Admin contém id/name/email/status/createdAt. Nenhuma resposta da gestão contém
-token, link, hash ou senha. mailStatus ACCEPTED significa aceite SMTP, sem
+token, link, hash ou senha. mailStatus ACCEPTED significa aceite da API Brevo, sem
 prova de recebimento; FAILED significa conta pendente persistida e falha no
 pedido de envio. A lista não inventa status de entrega. Token inválido, vencido,
 usado ou revogado recebe 400 INVALID_ACTIVATION_LINK. Senha inválida em convite
@@ -65,7 +65,7 @@ A aplicação define Referrer-Policy no-referrer por meta e usa recursos locais.
 Após ativar, limpa token/senha e orienta login normal. Recarregar após remoção
 do fragmento exige abrir novamente o convite original, enquanto válido.
 
-Conta/convite confirmam antes do SMTP. Falha de envio não apaga conta e pode ser
+Conta/convite confirmam antes do envio HTTPS. Falha de envio não apaga conta e pode ser
 recuperada por reenvio. Não há transação distribuída nem fila de e-mail. Uma
 resposta perdida também pode significar envio aceito; a UI orienta consultar a
 lista antes de repetir criação. Reenvio serializa pela conta, invalida convites
@@ -117,93 +117,26 @@ com TTY e acesso ao banco; não publique endpoint nem passe senha por variáveis
 ou argumentos para contornar a falta de console. Esta documentação não comprova
 execução remota e esta tarefa não provisiona conta real de produção.
 
-## Subir para revisão local
+## Revisão local e homologação
 
-1. Na raiz, iniciar o PostgreSQL existente, sem excluir volumes:
+Preparação, variáveis e roteiro local/produção estão no
+[guia de e-mail transacional](transactional-email.md). O transporte SMTP/Mailpit
+foi substituído por Brevo HTTPS; não há fallback. O backend inicia sem chave ou
+remetente, mas a tentativa retorna FAILED mantendo a conta pendente. Para
+executar sem serviços externos, os testes usam HTTP local controlado e
+PostgreSQL descartável; o endpoint de produção não é configurável.
 
-   ```bash
-   docker compose up -d db
-   ```
+Para revisar a UI local, iniciar o banco conforme README, configurar DB_* e
+AUTH_JWT_* conforme [segurança](security.md), criar SUPER_ADMIN com o comando
+interativo acima e iniciar backend/frontend conforme os respectivos guias.
+Sem credenciais Brevo, testar criação, persistência e reenvio FAILED na tela.
+Ativação, uso único, expiração e concorrência são exercitados automaticamente
+com Clock controlável, sem esperar 24h ou encurtar o prazo em produção.
 
-2. Para capturar convites locais sem serviço externo, executar Mailpit separado
-   do Compose de três serviços, somente em loopback:
-
-   ```bash
-   docker run --name piec4-mailpit --rm -d \
-     -p 127.0.0.1:1025:1025 -p 127.0.0.1:8025:8025 axllent/mailpit:v1.31.5
-   ```
-
-   Se o container já existir, reutilize sua instância em vez de criar outra.
-   A imagem e as portas seguem a [documentação oficial do Mailpit](https://mailpit.axllent.org/docs/install/docker/).
-   SMTP local sem autenticação serve apenas à captura de teste. A interface
-   http://localhost:8025 permite ler o convite e clicar no link, sem consultar
-   o banco ou logs. Não exportar mensagens contendo links de ativação para MR.
-
-3. Em `backend/.env` local (não versionar), preencher DB_* compatível com o
-   Compose e as cinco AUTH_JWT_* obrigatórias conforme [segurança](security.md).
-   Acrescentar:
-
-   ```properties
-   ADMIN_FRONTEND_ORIGIN=http://localhost:5173
-   ADMIN_MAIL_FROM=convites@example.com
-   SMTP_HOST=localhost
-   SMTP_PORT=1025
-   SMTP_AUTH=false
-   SMTP_STARTTLS=false
-   FRONTEND_ALLOWED_ORIGINS=http://localhost:5173
-   ```
-
-   SMTP_USERNAME/SMTP_PASSWORD podem ficar vazios no Mailpit. Para produção,
-   usar host/porta/usuário/senha reais como configuração protegida, AUTH=true e
-   STARTTLS=true. Não há credenciais nos exemplos nem envio por console.
-   Boot sem SMTP configurado continua possível; convites retornam FAILED.
-   R2 é necessário para registrar e visualizar fotos reais no fluxo completo;
-   seguir [storage](image-storage.md), sem usar placeholders como credenciais.
-
-4. Criar o primeiro SUPER_ADMIN pelo comando acima, se ainda não houver um.
-   Depois, em terminais separados:
-
-   ```bash
-   cd backend
-   export JAVA_HOME="$HOME/.jdks/ms-21.0.12.1"
-   ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
-   ```
-
-   ```bash
-   cd frontend
-   # Ative Node 22.23.2 e pnpm 10.34.5 conforme frontend-development.md.
-   pnpm install --frozen-lockfile
-   VITE_API_URL=http://localhost:8080 pnpm run dev
-   ```
-
-   Se usar o backend containerizado, SMTP_HOST deve ser um host alcançável por
-   ele; localhost é o próprio container. O Compose transmite as variáveis
-   SMTP_* e ADMIN_*, interpoladas do shell/.env da raiz/--env-file, sem carregar
-   automaticamente backend/.env. Ajustar a origem canônica ao navegador usado.
-
-## Roteiro de revisão
-
-1. Em http://localhost:5173/entrar, autenticar SUPER_ADMIN. Abrir
-   `/administracao/contas`, criar ADMIN com nome/e-mail novo e verificar pendência.
-2. Tentar e-mail de USER previamente cadastrado: conflito, sem promoção.
-   Tentar login de ADMIN pendente: credencial inválida.
-3. Abrir convite no Mailpit. Conferir fragmento removido e nenhuma ativação só
-   por abrir. Definir senha/confirmar, entrar normalmente. Reutilizar link: erro.
-4. Criar outra conta pendente, reenviar, abrir convite antigo: erro; novo: válido.
-   Parar Mailpit em ambiente local, criar outra conta e conferir FAILED e opção
-   de reenvio; retomar o servidor e reenviar sem duplicar conta.
-5. Com USER, cadastrar relatos com foto. Em outro navegador, entrar ADMIN e abrir
-   `/administracao/relatos`. Iniciar análise, resolver outro já em análise e
-   rejeitar com justificativa. Conferir histórico com nome do moderador.
-6. Como autor, consultar `/meus-relatos/{id}`: histórico funcional “Moderação”,
-   justificativa, sem editar/excluir após análise. Rejeitado fica fora da lista;
-   detalhe e imagem públicos retornam 404, permanecendo no acesso privado do autor.
-7. Deixar a sessão ADMIN aberta. Como SUPER_ADMIN, desativar essa conta com
-   confirmação. Nova consulta/ação do ADMIN recebe 401 e encerra a sessão local;
-   novo login falha. Histórico anterior continua íntegro. Repetir desativação
-   por API é idempotente, sem reativação nem novos eventos.
-8. SUPER_ADMIN não acessa moderação; ADMIN e USER não provisionam. Anônimo deve
-   entrar. Verificar recarregamento de rotas, teclado, foco, 360 px e zoom 200%.
+Continuam pertinentes as verificações de moderação: USER registra relato;
+ADMIN ativo analisa, resolve ou rejeita com justificativa; autor vê histórico e
+notificação interna. SUPER_ADMIN desativa ADMIN e a sessão anterior perde acesso;
+histórico permanece. USER/ADMIN não provisionam e SUPER_ADMIN não herda moderação.
 
 ## Compatibilidade e limites
 
@@ -211,6 +144,6 @@ Publicar frontend que aceita os três papéis antes de emitir novas identidades;
 coordenar V8 após V7 e integrar backend. Não executar bootstrap ou deploy como
 rotina de testes. A moderação grava uma notificação interna por transição válida;
 a central do cidadão expõe somente as notificações da própria conta.
-Enviar convites SMTP é independente dessa central. Testes usam PostgreSQL real,
-JWTs reais, Clock controlável e captura/falha de e-mail; a sonda SMTP local
+Enviar convites HTTPS é independente dessa central. Testes usam PostgreSQL real,
+JWTs reais, Clock controlável e captura/falha de e-mail; o servidor HTTP local
 verifica o adaptador. Não equivalem a prova de entrega externa ou deploy.

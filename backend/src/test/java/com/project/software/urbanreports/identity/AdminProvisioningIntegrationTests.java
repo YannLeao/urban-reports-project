@@ -49,6 +49,8 @@ class AdminProvisioningIntegrationTests {
     @BeforeEach void setup() {
         when(clock.instant()).thenReturn(NOW); when(clock.getZone()).thenReturn(ZoneOffset.UTC);
         doAnswer(call -> {
+            assertThat(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+            assertThat(accounts.findByEmail(call.getArgument(0))).isPresent();
             String link = call.getArgument(1);
             invitations.put(call.getArgument(0), link.substring(link.indexOf("#token=") + 7));
             return null;
@@ -87,6 +89,32 @@ class AdminProvisioningIntegrationTests {
         var created = create(); assertThat(created.mailStatus()).isEqualTo("FAILED");
         assertThat(accounts.findById(created.admin().id()).orElseThrow().getStatus()).isEqualTo(AccountStatus.PENDING_ACTIVATION);
         reset(mail); assertThat(service.resend(root, created.admin().id()).mailStatus()).isEqualTo("ACCEPTED");
+    }
+    @Test void failedResendStillInvalidatesPreviousTokenAndPreservesHttpContracts() throws Exception {
+        var created = create(); String old = invitations.get(created.admin().email());
+        doThrow(new IllegalStateException("synthetic failure")).when(mail).send(anyString(), anyString());
+        mvc.perform(post("/api/super-admin/admins/{id}/activation-resends", created.admin().id())
+                .header("Authorization", "Bearer " + rootToken).contentType("application/json").content("{}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.mailStatus").value("FAILED"));
+        assertThatThrownBy(() -> service.activate(old, PASSWORD)).isInstanceOf(AdministrationException.class);
+        assertThat(accounts.findById(created.admin().id()).orElseThrow().getStatus()).isEqualTo(AccountStatus.PENDING_ACTIVATION);
+        mvc.perform(post("/api/super-admin/admins").header("Authorization", "Bearer " + rootToken)
+                .contentType("application/json").content(mapper.writeValueAsString(Map.of("name", "Pessoa teste", "email", UUID.randomUUID() + "@example.com"))))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.mailStatus").value("FAILED"));
+    }
+    @Test void deferredCommitFailureNeverSendsInvitation() {
+        String email = UUID.randomUUID() + "@example.com";
+        clearInvocations(mail);
+        jdbc.execute("CREATE FUNCTION fail_invitation_commit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'test rollback'; END $$");
+        jdbc.execute("CREATE CONSTRAINT TRIGGER invitation_commit_failure AFTER INSERT ON admin_activation_tokens DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION fail_invitation_commit()");
+        try {
+            assertThatThrownBy(() -> service.create(root, "Pessoa teste", email)).isInstanceOf(RuntimeException.class);
+            verifyNoInteractions(mail);
+            assertThat(accounts.findByEmail(email)).isEmpty();
+        } finally {
+            jdbc.execute("DROP TRIGGER invitation_commit_failure ON admin_activation_tokens");
+            jdbc.execute("DROP FUNCTION fail_invitation_commit()");
+        }
     }
     @Test void invalidPasswordDoesNotConsumeAndExpiryIsExclusive() {
         var created = create(); String token = invitations.get(created.admin().email());

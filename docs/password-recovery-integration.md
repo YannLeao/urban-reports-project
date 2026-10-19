@@ -1,7 +1,7 @@
 # Integração futura de recuperação de senha — S2-R03/R04
 
 A #35 entrega a sessão e a ponte transacional; não implementa solicitação, tokens,
-migration de recuperação, Resend, e-mail ou telas de redefinição. O colega inclui
+migration de recuperação ou telas de redefinição. O colega inclui
 “Esqueci minha senha” em LoginPage somente quando existir rota real.
 
 ## Reuso e contrato
@@ -12,8 +12,10 @@ migration de recuperação, Resend, e-mail ou telas de redefinição. O colega i
 - Token de recuperação é aleatório próprio, persistido apenas como hash, com
   validade de 30 minutos e uso único. Não reutilizar JWT de acesso.
 - Solicitação tem resposta genérica; nova solicitação invalida tokens anteriores
-  ativos. Não registrar token/URL sensível em logs. Resend e link frontend são
-  responsabilidade da implementação seguinte.
+  ativos. Não registrar token/URL sensível em logs. A composição da mensagem e
+  o link frontend são responsabilidade da #20. Reutilizar TransactionalEmailSender do pacote email/
+  conforme o [guia de transporte](transactional-email.md); não reutilizar tokens
+  ou ActivationMailSender administrativos.
 - Consumo do token, troca do hash e revogação global precisam confirmar juntos;
   não autenticar automaticamente. Após commit, orientar login sem senha ou token
   de acesso em URL.

@@ -42,3 +42,5 @@ um novo ADR que substitui o anterior.
 - [0020 — Consolidação da identidade visual](0020-consolidar-identidade-visual.md)
 
 - [0021 — Notificações internas transacionais](0021-materializar-notificacoes-internas.md)
+
+- [0022 — E-mail transacional por HTTPS Brevo](0022-enviar-email-transacional-via-brevo.md)

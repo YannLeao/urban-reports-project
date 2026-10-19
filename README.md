@@ -314,6 +314,7 @@ de conclusão.
 
 ## Documentação
 
+- Transporte de e-mail: [`docs/transactional-email.md`](docs/transactional-email.md);
 - Cadastro e identidade: [`docs/identity.md`](docs/identity.md);
 - Seleção e captura local de imagem: [`docs/image-selection-proof.md`](docs/image-selection-proof.md);
 - Design system: [`docs/design-system`](docs/design-system/README.md);
