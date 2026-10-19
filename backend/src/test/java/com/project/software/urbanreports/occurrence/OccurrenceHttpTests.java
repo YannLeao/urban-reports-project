@@ -43,7 +43,7 @@ class OccurrenceHttpTests {
 
     @BeforeEach void login() throws Exception {
         when(clock.instant()).thenReturn(NOW);
-        storage.calls.set(0); storage.fail = false; storage.loseResponse = false; storage.failDelete = false;
+        storage.calls.set(0); storage.failAt = 0; storage.loseAt = 0; storage.fail = false; storage.loseResponse = false; storage.failDelete = false;
         String email = UUID.randomUUID() + "@example.com";
         String password = "synthetic password for HTTP tests";
         var registered = json("/api/auth/register", Map.of("name", "Pessoa teste", "email", email, "password", password), null);
@@ -142,9 +142,8 @@ class OccurrenceHttpTests {
             assertThat(body.get("status").asString()).isEqualTo("PENDING");
             assertThat(body.get("title").asString()).isEqualTo("Buraco na rua");
             var row = jdbc.queryForMap("select * from occurrences where id = ?", UUID.fromString(body.get("id").asString()));
-            assertThat(row).containsEntry("author_id", author).containsEntry("category_id", 1).containsEntry("status", "PENDING")
-                    .containsEntry("image_key", storage.lastKey);
-            assertThat((String) row.get("image_key")).startsWith("occurrences/");
+            assertThat(row).containsEntry("author_id", author).containsEntry("category_id", 1).containsEntry("status", "PENDING");
+            assertThat(jdbc.queryForObject("select object_key from occurrence_media where occurrence_id = ?", String.class, UUID.fromString(body.get("id").asString()))).isEqualTo(storage.lastKey);
             assertThat(storage.lastBytes).containsExactly(ImageFixtures.photo(extension));
         }
         assertThat(count()).isEqualTo(before + 3);
@@ -205,7 +204,7 @@ class OccurrenceHttpTests {
         var accepted = upload(replace(valid(), image(ImageFixtures.pngOfSize(LIMIT), "image/png")), token);
         assertThat(accepted.statusCode()).as(accepted.body()).isEqualTo(201);
         reject(replace(valid(), image(ImageFixtures.pngOfSize(LIMIT + 1), "image/png")), 413);
-        var oversizedRequest = valid(); oversizedRequest.add(text("extra", "a".repeat(6 * 1024 * 1024)));
+        var oversizedRequest = valid(); oversizedRequest.add(text("extra", "a".repeat(27 * 1024 * 1024)));
         reject(oversizedRequest, 413);
     }
 
@@ -251,7 +250,7 @@ class OccurrenceHttpTests {
                     ? "create constraint trigger reject_test_occurrence after insert on occurrences deferrable initially deferred for each row execute function reject_test_occurrence()"
                     : "create trigger reject_test_occurrence before insert on occurrences for each row execute function reject_test_occurrence()");
             try {
-                assertThat(upload(valid(), token).statusCode()).isEqualTo(500);
+                assertThat(upload(photos(5), token).statusCode()).isEqualTo(500);
                 String key = storage.lastKey;
                 assertThat(storage.objects).contains(key);
                 assertThat(count()).isEqualTo(before);
@@ -367,7 +366,7 @@ class OccurrenceHttpTests {
         assertThat(action("/api/occurrences/" + UUID.randomUUID(), "DELETE", token, "\"0\"").statusCode()).isEqualTo(404);
         var updated = multipart(path, "PUT", fields, ownerToken, "\"0\"");
         assertThat(updated.statusCode()).as(updated.body()).isEqualTo(200);
-        assertThat(jdbc.queryForObject("select image_key from occurrences where id = ?", String.class, id)).isEqualTo(key);
+        assertThat(jdbc.queryForObject("select object_key from occurrence_media where occurrence_id = ?", String.class, id)).isEqualTo(key);
         assertThat(storage.deleted).doesNotContain(key);
         assertThat(multipart(path, "PUT", fields, ownerToken, "\"0\"").statusCode()).isEqualTo(412);
         when(clock.instant()).thenReturn(NOW.plusSeconds(1800));
@@ -419,7 +418,7 @@ class OccurrenceHttpTests {
             fresh = storage.lastKey;
             assertThat(jdbc.queryForObject("select latitude from occurrences where id = ?", Double.class, id)).isEqualTo(-23.550520);
             assertThat(jdbc.queryForObject("select longitude from occurrences where id = ?", Double.class, id)).isEqualTo(-46.633308);
-            assertThat(jdbc.queryForObject("select image_key from occurrences where id = ?", String.class, id)).isEqualTo(old);
+            assertThat(jdbc.queryForObject("select object_key from occurrence_media where occurrence_id = ?", String.class, id)).isEqualTo(old);
             assertThat(jdbc.queryForObject("select version from occurrences where id = ?", Long.class, id)).isZero();
             assertThat(jdbc.queryForObject("select state from image_upload_journal where image_key = ?", String.class, old)).isEqualTo("LINKED");
             assertThat(jdbc.queryForObject("select state from image_upload_journal where image_key = ?", String.class, fresh)).isEqualTo("PENDING");
@@ -438,12 +437,14 @@ class OccurrenceHttpTests {
                 var first = executor.submit(() -> { gate.await(); return multipart(path, "PUT", valid(), token, "\"0\""); });
                 var second = executor.submit(() -> { gate.await(); return deletion ? action(path, "DELETE", token, "\"0\"") : multipart(path, "PUT", valid(), token, "\"0\""); });
                 gate.countDown();
-                var codes = List.of(first.get(30, java.util.concurrent.TimeUnit.SECONDS).statusCode(), second.get(30, java.util.concurrent.TimeUnit.SECONDS).statusCode());
+                var a = first.get(30, java.util.concurrent.TimeUnit.SECONDS); var b = second.get(30, java.util.concurrent.TimeUnit.SECONDS);
+                var codes = List.of(a.statusCode(), b.statusCode());
+                assertThat(codes).as("Responses: %s / %s", a.body(), b.body()).allMatch(code -> List.of(200, 204, 404, 412).contains(code));
                 assertThat(codes.stream().filter(code -> code == 200 || code == 204).count()).isEqualTo(1);
                 assertThat(codes.stream().filter(code -> code == 412 || code == 404).count()).isEqualTo(1);
                 assertThat(jdbc.queryForObject("select count(*) from occurrences where id = ? and version > 1", Integer.class, id)).isZero();
                 when(clock.instant()).thenReturn(NOW.plusSeconds(301)); journal.recover();
-                for (String key : jdbc.queryForList("select image_key from occurrences where id = ?", String.class, id)) assertThat(storage.objects).contains(key);
+                for (String key : jdbc.queryForList("select object_key from occurrence_media where occurrence_id = ?", String.class, id)) assertThat(storage.objects).contains(key);
                 when(clock.instant()).thenReturn(NOW);
             }
         }
@@ -457,16 +458,209 @@ class OccurrenceHttpTests {
             assertThat(multipart(path, "PUT", parts, token, "\"0\"").statusCode()).isEqualTo(400);
         var duplicate = valid(); duplicate.add(text("description", "extra"));
         assertThat(multipart(path, "PUT", duplicate, token, "\"0\"").statusCode()).isEqualTo(400);
-        assertThat(jdbc.queryForObject("select image_key from occurrences where id = ?", String.class, id)).isEqualTo(old);
+        assertThat(jdbc.queryForObject("select object_key from occurrence_media where occurrence_id = ?", String.class, id)).isEqualTo(old);
         assertThat(storage.deleted).doesNotContain(old);
         storage.fail = true;
         assertThat(multipart(path, "PUT", valid(), token, "\"0\"").statusCode()).isEqualTo(502);
-        assertThat(jdbc.queryForObject("select image_key from occurrences where id = ?", String.class, id)).isEqualTo(old);
+        assertThat(jdbc.queryForObject("select object_key from occurrence_media where occurrence_id = ?", String.class, id)).isEqualTo(old);
         var cors = send(HttpRequest.newBuilder(uri(path)).method("OPTIONS", HttpRequest.BodyPublishers.noBody())
                 .header("Origin", "http://localhost:5173").header("Access-Control-Request-Method", "PUT")
                 .header("Access-Control-Request-Headers", "authorization,if-match"));
         assertThat(cors.statusCode()).isEqualTo(200);
         assertThat(cors.headers().firstValue("Access-Control-Allow-Headers").orElse("").toLowerCase()).contains("if-match");
+    }
+
+
+    static List<Part> photos(int count) {
+        var parts = valid(); parts.removeIf(p -> p.name().equals("image"));
+        for (int i = 0; i < count; i++) parts.add(new Part("images", "synthetic.png", "image/png", ImageFixtures.photo("png")));
+        return parts;
+    }
+    Part manifest(Object items) throws Exception {
+        return new Part("media", null, "application/json", mapper.writeValueAsBytes(Map.of("items", items)));
+    }
+    List<String> mediaIds(String body) { return mapper.readTree(body).get("media").valueStream().map(node -> node.get("id").asString()).toList(); }
+
+    @Test void createsOneToFiveAndRejectsMixedExcessUnexpectedAndInvalidBeforeAnyPut() throws Exception {
+        for (int n : List.of(1, 5)) {
+            var created = upload(photos(n), token);
+            assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
+            var body = mapper.readTree(created.body());
+            assertThat(body.get("media").size()).isEqualTo(n);
+            for (int i = 0; i < n; i++) {
+                var media = body.get("media").get(i);
+                assertThat(media.get("position").asInt()).isEqualTo(i);
+                assertThat(media.get("type").asString()).isEqualTo("IMAGE");
+                assertThat(media.get("sizeBytes").asLong()).isEqualTo(ImageFixtures.photo("png").length);
+            }
+            assertThat(created.body()).doesNotContain("objectKey", "object_key", storage.lastKey, "synthetic.png");
+        }
+        reject(photos(0), 400); reject(photos(6), 400);
+        var mixed = photos(1); mixed.add(image(ImageFixtures.photo("png"), "image/png")); reject(mixed, 400);
+        var invalid = photos(4); invalid.add(new Part("images", "", "image/png", new byte[0])); reject(invalid, 400);
+        var corrupt = photos(4); corrupt.add(new Part("images", "bad.png", "image/png", new byte[]{1,2})); reject(corrupt, 400);
+        var extra = photos(1); extra.add(new Part("other", "", "image/png", new byte[0])); reject(extra, 400);
+        var many = photos(1); for (int i = 0; i < 25; i++) many.add(text("extra", "")); reject(many, 413);
+    }
+
+    @Test void fiveMaximumFilesFitRealContainerAndOneByteOverFileLimitDoesNot() throws Exception {
+        var parts = photos(0); byte[] max = ImageFixtures.pngOfSize(LIMIT);
+        for (int i = 0; i < 5; i++) parts.add(new Part("images", "max.png", "image/png", max));
+        var created = upload(parts, token); assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
+        assertThat(mediaIds(created.body())).hasSize(5);
+        reject(List.of(text("categoryId", "1"), text("title", "Valid title"), text("neighborhood", "Centro"),
+                text("reference", "Praça central"), new Part("images", "max.png", "image/png", new byte[LIMIT + 1])), 413);
+    }
+
+    @Test void editReordersFiveToFivePromotesCoverKeepsOmittedMediaAndDeletesAllDurably() throws Exception {
+        var created = upload(photos(5), token); assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
+        var ids = mediaIds(created.body()); UUID id = UUID.fromString(mapper.readTree(created.body()).get("id").asString());
+        String path = "/api/occurrences/" + id;
+        var keys = jdbc.queryForList("select object_key from occurrence_media where occurrence_id = ? order by position", String.class, id);
+        int calls = storage.calls.get();
+        var reverse = new ArrayList<>(ids); Collections.reverse(reverse);
+        var parts = photos(0); parts.add(manifest(reverse.stream().map(value -> Map.of("id", value)).toList()));
+        var updated = multipart(path, "PUT", parts, token, "\"0\"");
+        assertThat(updated.statusCode()).as(updated.body()).isEqualTo(200);
+        assertThat(mediaIds(updated.body())).containsExactlyElementsOf(reverse);
+        assertThat(storage.calls).hasValue(calls);
+        assertThat(jdbc.queryForObject("select object_key from occurrence_media where occurrence_id = ? and position = 0", String.class, id)).isEqualTo(keys.get(4));
+        assertThat(multipart(path, "PUT", photos(0), token, "\"1\"").statusCode()).isEqualTo(200);
+        assertThat(mediaIds(action(path, "GET", token, null).body())).containsExactlyElementsOf(reverse);
+        assertThat(multipart(path, "PUT", valid(), token, "\"2\"").statusCode()).isEqualTo(400);
+        assertThat(multipart(path, "PUT", photos(1), token, "\"2\"").statusCode()).isEqualTo(400);
+        var retained = reverse.subList(1, 4); var finalItems = new ArrayList<Object>();
+        retained.forEach(value -> finalItems.add(Map.of("id", value))); finalItems.add(Map.of("uploadIndex", 0)); finalItems.add(Map.of("uploadIndex", 1));
+        var replacement = photos(2); replacement.add(manifest(finalItems));
+        var changed = multipart(path, "PUT", replacement, token, "\"2\"");
+        assertThat(changed.statusCode()).as(changed.body()).isEqualTo(200);
+        assertThat(mediaIds(changed.body()).subList(0, 3)).containsExactlyElementsOf(retained);
+        assertThat(jdbc.queryForObject("select state from image_upload_journal where image_key = ?", String.class, keys.get(4))).isEqualTo("TOMBSTONE");
+        assertThat(action(path + "/image", "GET", token, null).statusCode()).isEqualTo(200);
+        // Force reconciliation to exercise all references, especially non-cover photos.
+        jdbc.update("update image_upload_journal set state='PENDING', next_attempt_at=? where image_key in (select object_key from occurrence_media where occurrence_id=?)", java.sql.Timestamp.from(NOW), id);
+        journal.recover();
+        for (String key : jdbc.queryForList("select object_key from occurrence_media where occurrence_id=?", String.class, id)) assertThat(storage.deleted).doesNotContain(key);
+        assertThat(action(path, "DELETE", token, "\"3\"").statusCode()).isEqualTo(204);
+        assertThat(jdbc.queryForObject("select count(*) from occurrence_media where occurrence_id=?", Integer.class, id)).isZero();
+        when(clock.instant()).thenReturn(NOW.plusSeconds(301)); journal.recover();
+        for (String key : keys) assertThat(storage.objects).doesNotContain(key);
+    }
+
+    @Test void strictManifestRejectsForeignDuplicateAmbiguousUnusedAndInvalidInputsWithoutUploads() throws Exception {
+        var created = upload(photos(2), token); var ids = mediaIds(created.body());
+        String path = "/api/occurrences/" + mapper.readTree(created.body()).get("id").asString();
+        int calls = storage.calls.get();
+        for (String json : List.of("{}", "[]", "{\"items\":[]}", "{\"items\":[{\"id\":\"" + ids.getFirst() + "\",\"uploadIndex\":0}]}",
+                "{\"items\":[{\"id\":\"" + ids.getFirst() + "\",\"other\":1}]}", "{\"items\":[{\"uploadIndex\":-1}]}",
+                "{\"items\":[{\"uploadIndex\":0,\"uploadIndex\":1}]}", "{\"items\":[{\"uploadIndex\":0.0}]}", "{\"items\":[]} {}")) {
+            var parts = photos(1); parts.add(new Part("media", null, "application/json", json.getBytes(StandardCharsets.UTF_8)));
+            assertThat(multipart(path, "PUT", parts, token, "\"0\"").statusCode()).as(json).isEqualTo(400);
+        }
+        for (Object items : List.of(List.of(Map.of("id", ids.getFirst()), Map.of("id", ids.getFirst())),
+                List.of(Map.of("id", UUID.randomUUID().toString())), List.of(Map.of("uploadIndex", 1)),
+                List.of(Map.of("uploadIndex", 0), Map.of("uploadIndex", 0)), List.of(Map.of("id", ids.getFirst())))) {
+            var parts = photos(1); parts.add(manifest(items));
+            assertThat(multipart(path, "PUT", parts, token, "\"0\"").statusCode()).isEqualTo(400);
+        }
+        assertThat(storage.calls).hasValue(calls);
+        assertThat(mediaIds(action(path, "GET", token, null).body())).containsExactlyElementsOf(ids);
+    }
+
+    @Test void everyPhotoRequiresMatchingReportAndOwnerAndRejectedPhotosAreAllHidden() throws Exception {
+        var created = upload(photos(5), token); var ids = mediaIds(created.body());
+        String id = mapper.readTree(created.body()).get("id").asString();
+        String privatePath = "/api/occurrences/" + id, publicPath = "/api/public/occurrences/" + id;
+        var otherReport = upload(photos(1), token);
+        String otherId = mapper.readTree(otherReport.body()).get("id").asString();
+        for (String media : ids) {
+            assertThat(action("/api/occurrences/" + otherId + "/media/" + media, "GET", token, null).statusCode()).isEqualTo(404);
+            assertThat(action("/api/public/occurrences/" + otherId + "/media/" + media, "GET", null, null).statusCode()).isEqualTo(404);
+        }
+        String ownerToken = token;
+        for (String media : ids) {
+            var response = action(privatePath + "/media/" + media, "GET", ownerToken, null);
+            assertThat(response.statusCode()).isEqualTo(200);
+            assertThat(response.headers().firstValue("Cache-Control")).contains("no-store");
+            assertThat(action(publicPath + "/media/" + media, "GET", null, null).statusCode()).isEqualTo(200);
+            assertThat(action("/api/public/occurrences/" + UUID.randomUUID() + "/media/" + media, "GET", null, null).statusCode()).isEqualTo(404);
+        }
+        login();
+        for (String media : ids) {
+            assertThat(action(privatePath + "/media/" + media, "GET", token, null).statusCode()).isEqualTo(404);
+            assertThat(action(privatePath + "/media/" + media, "GET", null, null).statusCode()).isEqualTo(401);
+            assertThat(action("/api/admin/occurrences/" + id + "/media/" + media, "GET", token, null).statusCode()).isEqualTo(403);
+        }
+        jdbc.update("update occurrences set status='REJECTED' where id=?", UUID.fromString(id));
+        for (String media : ids) {
+            assertThat(action(publicPath + "/media/" + media, "GET", null, null).statusCode()).isEqualTo(404);
+            assertThat(action(privatePath + "/media/" + media, "GET", ownerToken, null).statusCode()).isEqualTo(200);
+        }
+    }
+
+    @Test void failureAtSecondThirdOrFifthPutNeverCommitsPartialCollectionAndRecoversAfterRestart() throws Exception {
+        for (int failAt : List.of(2, 3, 5)) {
+            storage.calls.set(0); storage.failAt = failAt; long rows = count();
+            var response = upload(photos(5), token);
+            assertThat(response.statusCode()).as(response.body()).isEqualTo(502);
+            assertThat(count()).isEqualTo(rows);
+            var pending = jdbc.queryForList("select image_key from image_upload_journal where state='PENDING'", String.class);
+            assertThat(pending).hasSizeGreaterThanOrEqualTo(5);
+            assertThat(storage.deleted).doesNotContainAnyElementsOf(pending);
+            when(clock.instant()).thenReturn(NOW.plusSeconds(301));
+            new UploadJournal(jdbc, manager, imageService, clock, Duration.ofMinutes(5), 100).recover();
+            for (String key : pending) assertThat(storage.objects).doesNotContain(key);
+            when(clock.instant()).thenReturn(NOW);
+        }
+    }
+
+    @Test void concurrentFivePhotoEditsHaveSingleWinnerAndNoPartialReorder() throws Exception {
+        var created = upload(photos(5), token); var ids = mediaIds(created.body());
+        String path = "/api/occurrences/" + mapper.readTree(created.body()).get("id").asString();
+        var reversed = new ArrayList<>(ids); Collections.reverse(reversed);
+        var firstParts = photos(0); firstParts.add(manifest(reversed.stream().map(id -> Map.of("id", id)).toList()));
+        var secondParts = photos(0); secondParts.add(manifest(ids.subList(0, 3).stream().map(id -> Map.of("id", id)).toList()));
+        var gate = new java.util.concurrent.CountDownLatch(1);
+        try (var executor = java.util.concurrent.Executors.newFixedThreadPool(2)) {
+            var a = executor.submit(() -> { gate.await(); return multipart(path, "PUT", firstParts, token, "\"0\""); });
+            var b = executor.submit(() -> { gate.await(); return multipart(path, "PUT", secondParts, token, "\"0\""); });
+            gate.countDown();
+            var first = a.get(30, java.util.concurrent.TimeUnit.SECONDS); var second = b.get(30, java.util.concurrent.TimeUnit.SECONDS);
+            assertThat(List.of(first.statusCode(), second.statusCode())).containsExactlyInAnyOrder(200, 412);
+            var finalIds = mediaIds(action(path, "GET", token, null).body());
+            assertThat(finalIds).containsExactlyElementsOf(first.statusCode() == 200 ? reversed : ids.subList(0, 3));
+        }
+    }
+
+    @Autowired PublicOccurrenceService publicReports;
+    @Autowired jakarta.persistence.EntityManagerFactory entityManagers;
+    @Test void pagedListsCountReportsOnceAndBatchFiveMediaWithoutDownloadingBytes() throws Exception {
+        when(clock.instant()).thenReturn(NOW.plusSeconds(1));
+        for (int i = 0; i < 3; i++) assertThat(upload(photos(5), token).statusCode()).isEqualTo(201);
+        var stats = entityManagers.unwrap(org.hibernate.SessionFactory.class).getStatistics();
+        stats.setStatisticsEnabled(true); stats.clear();
+        try {
+            int puts = storage.calls.get();
+            var page = publicReports.list(0, 2);
+            assertThat(page.items()).hasSize(2);
+            assertThat(page.items()).allSatisfy(item -> assertThat(item.media()).hasSize(5));
+            assertThat(page.totalItems()).isEqualTo(jdbc.queryForObject("select count(*) from occurrences where status <> 'REJECTED'", Long.class));
+            assertThat(stats.getPrepareStatementCount()).isLessThanOrEqualTo(4);
+            assertThat(stats.getCollectionFetchCount()).isLessThanOrEqualTo(1);
+            assertThat(storage.calls).hasValue(puts);
+        } finally { stats.setStatisticsEnabled(false); }
+    }
+
+    @Test void uncertainThirdPutLeavesAllFiveIntentsAndNoPartialReport() throws Exception {
+        storage.loseAt = 3;
+        assertThat(upload(photos(5), token).statusCode()).isEqualTo(502);
+        assertThat(count()).isEqualTo(before);
+        var pending = jdbc.queryForList("select image_key from image_upload_journal where state='PENDING'", String.class);
+        assertThat(pending).hasSizeGreaterThanOrEqualTo(5);
+        assertThat(storage.objects).contains(storage.lastKey); // Provider accepted bytes before losing response.
+        for (String key : pending) assertThat(storage.deleted).doesNotContain(key);
+        when(clock.instant()).thenReturn(NOW.plusSeconds(301)); journal.recover();
+        for (String key : pending) assertThat(storage.objects).doesNotContain(key);
     }
 
     void reject(List<Part> parts, int expected) throws Exception {
@@ -529,11 +723,11 @@ class OccurrenceHttpTests {
         volatile boolean loseResponse;
         java.util.Set<String> objects = java.util.concurrent.ConcurrentHashMap.newKeySet();
         java.util.Set<String> deleted = java.util.concurrent.ConcurrentHashMap.newKeySet();
-        AtomicInteger calls = new AtomicInteger(); volatile boolean fail; volatile String lastKey; volatile byte[] lastBytes;
+        volatile int failAt; volatile int loseAt; AtomicInteger calls = new AtomicInteger(); volatile boolean fail; volatile String lastKey; volatile byte[] lastBytes;
         @Override public StoredImage store(InputStream input, long length, String type) { throw new AssertionError("Prefix required"); }
         @Override public StoredImage store(InputStream input, long length, String type, String prefix) {
-            calls.incrementAndGet();
-            if (fail) throw new ImageStorageException("provider secret should never leak");
+            int call = calls.incrementAndGet();
+            if (fail || call == failAt) throw new ImageStorageException("provider secret should never leak");
             try { lastBytes = input.readAllBytes(); } catch (java.io.IOException exception) { throw new AssertionError(exception); }
             lastKey = prefix + "/" + UUID.randomUUID() + "." + (type.equals("image/jpeg") ? "jpg" : type.substring(6));
             return new StoredImage(lastKey);
@@ -542,7 +736,7 @@ class OccurrenceHttpTests {
             store(input, length, type, "occurrences");
             lastKey = key;
             objects.add(key); contents.put(key, new StoredImageContent(lastBytes, lastBytes.length, type));
-            if (loseResponse) throw new ImageStorageException("Lost PUT response");
+            if (loseResponse || calls.get() == loseAt) throw new ImageStorageException("Lost PUT response");
         }
         @Override public void delete(String key) { if (failDelete) throw new ImageStorageException("synthetic delete failure"); deleted.add(key); objects.remove(key); }
         final java.util.Map<String, StoredImageContent> contents = new java.util.concurrent.ConcurrentHashMap<>();

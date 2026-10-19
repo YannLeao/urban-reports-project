@@ -59,7 +59,7 @@ public class R2ImageStorage implements ImageStorage {
             s3Client.deleteObject(DeleteObjectRequest.builder()
                     .bucket(properties.bucket()).key(key).build());
         } catch (RuntimeException exception) {
-            LOGGER.error("Failed to delete image object {}: {}", key, exception.getClass().getSimpleName());
+            LOGGER.error("Image deletion failed: {}", exception.getClass().getSimpleName());
             throw new ImageStorageException("Image storage provider failed", exception);
         }
     }
@@ -79,11 +79,11 @@ public class R2ImageStorage implements ImageStorage {
         } catch (java.io.IOException exception) {
             throw new ImageStorageException("Image could not be read", exception);
         } catch (NoSuchKeyException exception) {
-            LOGGER.info("Technical proof image was not found for key {}", key);
+
             throw new ImageNotFoundException(key);
         } catch (S3Exception exception) {
             if (exception.statusCode() == 404) {
-                LOGGER.info("Technical proof image was not found for key {}", key);
+
                 throw new ImageNotFoundException(key);
             }
             logAndThrow(key, exception);
@@ -104,8 +104,7 @@ public class R2ImageStorage implements ImageStorage {
     }
 
     private void logAndThrow(String key, RuntimeException exception) {
-        LOGGER.error("Failed to load technical proof image with key {}: {}",
-                key, exception.getClass().getSimpleName());
+        LOGGER.error("Image retrieval failed: {}", exception.getClass().getSimpleName());
         throw new ImageStorageException("Image storage provider failed", exception);
     }
 }

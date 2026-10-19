@@ -41,9 +41,13 @@ public class PublicOccurrenceService {
                 .orElseThrow(() -> new OccurrenceNotFoundException(id));
     }
 
-    public StoredImageContent image(UUID id) {
-        String key = occurrences.findByIdAndStatusNot(id, OccurrenceStatus.REJECTED)
-                .orElseThrow(() -> new OccurrenceNotFoundException(id)).getImageKey();
+    @Transactional(readOnly = true)
+    public StoredImageContent image(UUID id) { return media(id, null); }
+    @Transactional(readOnly = true)
+    public StoredImageContent media(UUID id, UUID mediaId) {
+        var report = occurrences.findByIdAndStatusNot(id, OccurrenceStatus.REJECTED)
+                .orElseThrow(() -> new OccurrenceNotFoundException(id));
+        String key = mediaId == null ? report.getImageKey() : report.mediaKey(mediaId);
         return images.loadOccurrence(key);
     }
 }

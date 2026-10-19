@@ -4,11 +4,11 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record PublicOccurrenceResponse(UUID id, Integer categoryId, String categoryName, String title,
-        String description, String neighborhood, String reference, Double latitude, Double longitude, OccurrenceStatus status, Instant createdAt) {
+        String description, String neighborhood, String reference, Double latitude, Double longitude, OccurrenceStatus status, Instant createdAt, java.util.List<OccurrenceMedia.Response> media) {
     static PublicOccurrenceResponse from(Occurrence occurrence) {
         return new PublicOccurrenceResponse(occurrence.getId(), occurrence.getCategory().getId(),
                 occurrence.getCategory().getName(), occurrence.getTitle(), occurrence.getDescription(),
                 occurrence.getNeighborhood(), occurrence.getLocationReference(), occurrence.getLatitude(), occurrence.getLongitude(), occurrence.getStatus(),
-                occurrence.getCreatedAt());
+                occurrence.getCreatedAt(), occurrence.mediaResponse("/api/public/occurrences/"));
     }
 }

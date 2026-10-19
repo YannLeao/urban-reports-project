@@ -21,8 +21,8 @@ public class MultipartExceptionHandler {
         int status = oversized ? 413 : 400;
         return ResponseEntity.status(status).cacheControl(CacheControl.noStore()).body(new ApiErrorResponse(
                 Instant.now(), status, oversized ? "Content Too Large" : "Bad Request",
-                oversized ? "Envie uma imagem de até 5 MiB (5.242.880 bytes); a requisição completa deve ter até 6 MiB."
-                        : "Multipart inválido. Envie os campos e uma fotografia.",
+                oversized ? "Envie de 1 a 5 fotos de até 5 MiB (5.242.880 bytes) cada; a requisição completa deve ter até 26 MiB e no máximo 20 partes."
+                        : "Multipart inválido. Envie os campos e de 1 a 5 fotografias.",
                 request.getRequestURI(), oversized ? "IMAGE_TOO_LARGE" : "INVALID_REQUEST", null));
     }
 }

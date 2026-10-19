@@ -36,7 +36,7 @@ public class ModerationService {
             AdminProvisioningService.checkPage(page, size);
             var result = occurrences.findByStatusIn(List.of(OccurrenceStatus.PENDING, OccurrenceStatus.IN_ANALYSIS),
                     PageRequest.of(page, size, Sort.by("createdAt", "id")));
-            return new Queue(result.map(OccurrenceResponse::from).getContent(), page, size, result.getTotalElements(), result.getTotalPages());
+            return new Queue(result.map(OccurrenceResponse::administrative).getContent(), page, size, result.getTotalElements(), result.getTotalPages());
         });
     }
     public Detail find(AuthenticatedIdentity actor, UUID id) {
@@ -45,10 +45,12 @@ public class ModerationService {
             return detail(occurrences.findById(id).orElseThrow(() -> new OccurrenceNotFoundException(id)));
         });
     }
-    public StoredImageContent image(AuthenticatedIdentity actor, UUID id) {
+    public StoredImageContent image(AuthenticatedIdentity actor, UUID id) { return media(actor, id, null); }
+    public StoredImageContent media(AuthenticatedIdentity actor, UUID id, UUID mediaId) {
         String key = transaction.execute(status -> {
             access.lock(actor, AccountRole.ADMIN);
-            return occurrences.findById(id).orElseThrow(() -> new OccurrenceNotFoundException(id)).getImageKey();
+            var report = occurrences.findById(id).orElseThrow(() -> new OccurrenceNotFoundException(id));
+            return mediaId == null ? report.getImageKey() : report.mediaKey(mediaId);
         });
         return images.loadOccurrence(key);
     }
@@ -74,6 +76,6 @@ public class ModerationService {
                 WHERE h.occurrence_id = ? ORDER BY h.occurred_at, h.version
                 """, (rs, row) -> new Event(rs.getObject(1, UUID.class), OccurrenceStatus.valueOf(rs.getString(2)),
                         OccurrenceStatus.valueOf(rs.getString(3)), rs.getTimestamp(4).toInstant(), rs.getString(5), rs.getString(6)), report.getId());
-        return new Detail(OccurrenceResponse.from(report), events);
+        return new Detail(OccurrenceResponse.administrative(report), events);
     }
 }

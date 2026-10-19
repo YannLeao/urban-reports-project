@@ -44,7 +44,7 @@ public class OccurrenceExceptionHandler {
             org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class,
             org.springframework.web.method.annotation.MethodArgumentConversionNotSupportedException.class})
     ResponseEntity<ApiErrorResponse> missing(Exception exception, HttpServletRequest request) {
-        return error(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", Map.of("request", List.of("All occurrence fields and exactly one image are required")), request);
+        return error(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", Map.of("request", List.of("All required occurrence fields and one to five images are required")), request);
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)

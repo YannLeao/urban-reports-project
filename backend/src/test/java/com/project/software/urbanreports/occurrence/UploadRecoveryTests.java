@@ -73,9 +73,14 @@ class UploadRecoveryTests {
     }
 
     @Test void activeUploadIsSkippedAndConfirmedCommitSurvivesLostHttpResponse() throws Exception {
+        var keys = new java.util.ArrayList<String>(); keys.add(key);
+        for (int i = 0; i < 4; i++) {
+            String next = "occurrences/" + UUID.randomUUID() + ".png"; journal.record(next); keys.add(next);
+        }
+        java.util.Collections.reverse(keys); // The writer must acquire all five in deterministic key order.
         CountDownLatch locked = new CountDownLatch(1), finish = new CountDownLatch(1);
         try (var executor = Executors.newSingleThreadExecutor()) {
-            var active = executor.submit(() -> journal.link(key, () -> {
+            var active = executor.submit(() -> journal.link(keys, () -> {
                 locked.countDown();
                 try { if (!finish.await(10, TimeUnit.SECONDS)) throw new AssertionError("Timed out"); }
                 catch (InterruptedException exception) { throw new AssertionError(exception); }
@@ -86,7 +91,8 @@ class UploadRecoveryTests {
             finish.countDown(); assertThat(active.get(10, TimeUnit.SECONDS)).isEqualTo("committed response discarded");
         } finally { finish.countDown(); }
         journal.recover(); verifyNoInteractions(images);
-        assertThat(state()).isEqualTo("LINKED");
+        for (String linked : keys) assertThat(jdbc.queryForObject(
+                "select state from image_upload_journal where image_key = ?", String.class, linked)).isEqualTo("LINKED");
     }
 
     @Test void reclaimedIntentCannotBeLinkedByDelayedWriter() {

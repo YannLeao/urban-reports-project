@@ -103,7 +103,7 @@ class OccurrenceReportIntegrationTests {
 
     @Test void resolvedOnlyUsesCreationEvenAfterEditsAndUnroundedSubsecondDurations() {
         var edited = report(1, "Centro", 90000.125);
-        edited.update(categories.findById(2).orElseThrow(), "Relato editado", null, "Outro bairro", "Praça central", edited.getImageKey());
+        edited.update(categories.findById(2).orElseThrow(), "Relato editado", null, "Outro bairro", "Praça central");
         occurrences.saveAndFlush(edited);
         transition(edited, "1", OccurrenceStatus.IN_ANALYSIS); transition(edited, "2", OccurrenceStatus.RESOLVED);
         resolve(report(1, "Centro", 0.375));
