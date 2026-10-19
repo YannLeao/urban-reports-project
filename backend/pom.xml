@@ -36,10 +36,6 @@
 		</dependencies>
 	</dependencyManagement>
 	<dependencies>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-mail</artifactId>
-		</dependency>
 		<!-- Pure Java WebP decoder; BSD-3-Clause. JPEG/PNG use JDK readers. -->
 		<dependency>
 			<groupId>com.twelvemonkeys.imageio</groupId>
