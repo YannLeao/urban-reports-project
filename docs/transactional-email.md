@@ -42,9 +42,10 @@ chegar fora de ordem; somente o token mais recente é válido por 24h da emissã
 Não há logs do transporte contendo corpo, destinatário, chave, link, token,
 headers ou resposta bruta, nem exceções encadeadas. Mensagens, resultados e
 adaptador redigem `toString()`. Não ativar logs JDK de headers/content/wire,
-dumps HTTP, proxies de captura ou exportações públicas das mensagens. Se for
-necessária observabilidade, usar apenas categoria, status, duração, tentativas
-e correlação opaca; o contrato HTTP administrativo expõe apenas FAILED.
+dumps HTTP, proxies de captura ou exportações públicas das mensagens. A [observabilidade segura](observability.md) registra categoria, estágio, motivo,
+status/código permitido, duração, tentativas e correlação opaca. O logger dedicado
+usa WARN por padrão e JSON no perfil prod; DEBUG temporário tem até duas linhas
+por tentativa. O contrato HTTP administrativo continua expondo apenas FAILED.
 
 | Categoria interna | Situação | Ação |
 | --- | --- | --- |
