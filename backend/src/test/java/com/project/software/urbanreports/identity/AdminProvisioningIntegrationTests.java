@@ -28,6 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AdminProvisioningIntegrationTests {
     static final String PASSWORD = "synthetic strong password phrase";
     static final Instant NOW = Instant.parse("2026-10-15T12:00:00Z");
+    @Autowired org.springframework.context.ApplicationContext context;
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper mapper;
     @Autowired BootstrapService bootstrap;
@@ -54,7 +55,7 @@ class AdminProvisioningIntegrationTests {
             String link = call.getArgument(1);
             invitations.put(call.getArgument(0), link.substring(link.indexOf("#token=") + 7));
             return null;
-        }).when(mail).send(anyString(), anyString());
+        }).when(mail).send(anyString(), anyString(), any());
         if (!accounts.existsByRole(AccountRole.SUPER_ADMIN)) bootstrap.createFirst("Responsável teste", "root@example.com", PASSWORD);
         var result = login.login("root@example.com", PASSWORD);
         rootToken = result.accessToken(); root = identity(result);
@@ -85,14 +86,14 @@ class AdminProvisioningIntegrationTests {
         var citizen = citizen();
         assertThatThrownBy(() -> service.create(root, "Nome existente", " " + citizen.email().toUpperCase(Locale.ROOT) + " ")).isInstanceOf(AdministrationException.class);
         assertThat(accounts.findById(citizen.id()).orElseThrow().getRole()).isEqualTo(AccountRole.USER);
-        doThrow(new IllegalStateException("Provider unavailable")).when(mail).send(anyString(), anyString());
+        doThrow(new IllegalStateException("Provider unavailable")).when(mail).send(anyString(), anyString(), any());
         var created = create(); assertThat(created.mailStatus()).isEqualTo("FAILED");
         assertThat(accounts.findById(created.admin().id()).orElseThrow().getStatus()).isEqualTo(AccountStatus.PENDING_ACTIVATION);
         reset(mail); assertThat(service.resend(root, created.admin().id()).mailStatus()).isEqualTo("ACCEPTED");
     }
     @Test void failedResendStillInvalidatesPreviousTokenAndPreservesHttpContracts() throws Exception {
         var created = create(); String old = invitations.get(created.admin().email());
-        doThrow(new IllegalStateException("synthetic failure")).when(mail).send(anyString(), anyString());
+        doThrow(new IllegalStateException("synthetic failure")).when(mail).send(anyString(), anyString(), any());
         mvc.perform(post("/api/super-admin/admins/{id}/activation-resends", created.admin().id())
                 .header("Authorization", "Bearer " + rootToken).contentType("application/json").content("{}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.mailStatus").value("FAILED"));
@@ -102,20 +103,81 @@ class AdminProvisioningIntegrationTests {
                 .contentType("application/json").content(mapper.writeValueAsString(Map.of("name", "Pessoa teste", "email", UUID.randomUUID() + "@example.com"))))
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.mailStatus").value("FAILED"));
     }
-    @Test void deferredCommitFailureNeverSendsInvitation() {
+    @Test void deferredCommitFailureNeverSendsInvitation() throws Exception {
+        var logger = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(
+                com.project.software.urbanreports.email.EmailObservation.LOGGER);
+        var events = new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();
+        events.start(); logger.addAppender(events);
         String email = UUID.randomUUID() + "@example.com";
         clearInvocations(mail);
         jdbc.execute("CREATE FUNCTION fail_invitation_commit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'test rollback'; END $$");
         jdbc.execute("CREATE CONSTRAINT TRIGGER invitation_commit_failure AFTER INSERT ON admin_activation_tokens DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION fail_invitation_commit()");
         try {
+            for (int i = 0; i < 2; i++) {
+                mvc.perform(get("/api/health")).andExpect(status().isOk());
+                mvc.perform(get("/api/super-admin/admins").header("Authorization", "Bearer " + rootToken))
+                        .andExpect(status().isOk());
+            }
+            assertThat(events.list).isEmpty();
             assertThatThrownBy(() -> service.create(root, "Pessoa teste", email)).isInstanceOf(RuntimeException.class);
             verifyNoInteractions(mail);
             assertThat(accounts.findByEmail(email)).isEmpty();
+            assertThat(events.list).isEmpty();
         } finally {
+            logger.detachAppender(events); events.stop();
             jdbc.execute("DROP TRIGGER invitation_commit_failure ON admin_activation_tokens");
             jdbc.execute("DROP FUNCTION fail_invitation_commit()");
         }
     }
+    @Test void transportAndServiceShareOneTerminalPerCreationAndResend() {
+        var logger = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(
+                com.project.software.urbanreports.email.EmailObservation.LOGGER);
+        var events = new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();
+        events.start(); logger.addAppender(events);
+        doAnswer(call -> {
+            com.project.software.urbanreports.email.EmailObservation observation = call.getArgument(2);
+            observation.stage(com.project.software.urbanreports.email.EmailObservation.Stage.VALIDATION);
+            observation.failed(com.project.software.urbanreports.email.EmailSendException.Category.CONFIGURATION,
+                    com.project.software.urbanreports.email.EmailObservation.Reason.configuration_missing, 0, null);
+            throw new com.project.software.urbanreports.email.EmailSendException(
+                    com.project.software.urbanreports.email.EmailSendException.Category.CONFIGURATION, 0);
+        }).when(mail).send(anyString(), anyString(), any());
+        try {
+            var created = create();
+            assertThat(created.mailStatus()).isEqualTo("FAILED");
+            assertThat(service.resend(root, created.admin().id()).mailStatus()).isEqualTo("FAILED");
+            assertThat(events.list).hasSize(2);
+            var fields = events.list.stream().map(event -> event.getKeyValuePairs().stream().collect(
+                    java.util.stream.Collectors.toMap(pair -> pair.key, pair -> pair.value))).toList();
+            assertThat(fields.get(0).get("send_id")).isNotEqualTo(fields.get(1).get("send_id"));
+            assertThat(fields.get(0)).containsEntry("operation", "ADMIN_INVITATION");
+            assertThat(fields.get(1)).containsEntry("operation", "ADMIN_RESEND");
+        } finally { logger.detachAppender(events); events.stop(); }
+    }
+
+    @Test void linkPreparationFailureIsLoggedOnceAfterCommitWithoutCallingMail() {
+        var logger = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(
+                com.project.software.urbanreports.email.EmailObservation.LOGGER);
+        var events = new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();
+        events.start(); logger.addAppender(events);
+        try {
+            var invalidOrigin = new AdminProvisioningService(accounts, context.getBean(AccountAccess.class),
+                    context.getBean(AdminActivationTokens.class), mail, context.getBean(SessionRevocation.class),
+                    context.getBean(org.springframework.security.crypto.password.PasswordEncoder.class), clock,
+                    context.getBean(org.springframework.transaction.PlatformTransactionManager.class), "https://secret-marker.invalid/path");
+            clearInvocations(mail);
+            var created = invalidOrigin.create(root, "Pessoa teste", UUID.randomUUID() + "@example.com");
+            assertThat(created.mailStatus()).isEqualTo("FAILED");
+            assertThat(accounts.findById(created.admin().id())).isPresent();
+            verifyNoInteractions(mail);
+            assertThat(events.list).hasSize(1);
+            assertThat(events.list.getFirst().getKeyValuePairs().stream().collect(java.util.stream.Collectors.toMap(
+                    pair -> pair.key, pair -> pair.value)))
+                    .containsEntry("reason", "activation_link_preparation_failed").containsEntry("stage", "PREPARATION")
+                    .containsEntry("attempts", 0).containsEntry("operation", "ADMIN_INVITATION");
+        } finally { logger.detachAppender(events); events.stop(); }
+    }
+
     @Test void invalidPasswordDoesNotConsumeAndExpiryIsExclusive() {
         var created = create(); String token = invitations.get(created.admin().email());
         assertThatThrownBy(() -> service.activate(token, "weak")).isInstanceOfSatisfying(AdministrationException.class, e -> assertThat(e.code).isEqualTo("INVALID_PASSWORD"));
@@ -177,7 +239,7 @@ class AdminProvisioningIntegrationTests {
         }
         var account = accounts.findByEmail(email).orElseThrow();
         var captured = new ConcurrentLinkedQueue<String>();
-        doAnswer(call -> { String link = call.getArgument(1); captured.add(link.substring(link.indexOf("#token=") + 7)); return null; }).when(mail).send(eq(email), anyString());
+        doAnswer(call -> { String link = call.getArgument(1); captured.add(link.substring(link.indexOf("#token=") + 7)); return null; }).when(mail).send(eq(email), anyString(), any());
         var resendGate = new CountDownLatch(1);
         try (var executor = Executors.newFixedThreadPool(2)) {
             Callable<Void> resend = () -> { resendGate.await(); service.resend(root, account.getId()); return null; };
