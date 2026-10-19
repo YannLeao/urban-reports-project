@@ -56,6 +56,7 @@ class NotificationIntegrationTests {
         mvc.perform(get("/api/notifications").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.unreadCount").value(1));
         assertThat(jdbc.queryForObject("SELECT read_at FROM occurrence_notifications WHERE id = ?", java.sql.Timestamp.class, second)).isNull();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM occurrence_notification_email_deliveries d JOIN occurrence_notifications n ON n.id=d.notification_id WHERE n.recipient_id=?", Integer.class, author.id())).isEqualTo(2);
         for (String path : new String[]{"/api/notifications?page=-1", "/api/notifications?size=101", "/api/notifications?size=no"})
             mvc.perform(get(path).header("Authorization", "Bearer " + token)).andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
@@ -100,7 +101,7 @@ class NotificationIntegrationTests {
         UUID newEvent = UUID.randomUUID();
         upgradeEvent(schema, newEvent, report, author, true);
         var upgraded = org.flywaydb.core.Flyway.configure().dataSource(source).schemas(schema).defaultSchema(schema).load();
-        assertThat(upgraded.migrate().migrationsExecuted).isEqualTo(1);
+        assertThat(upgraded.migrate().migrationsExecuted).isEqualTo(2);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema + ".occurrence_notifications", Integer.class)).isEqualTo(2);
         assertThat(jdbc.queryForObject("SELECT message FROM " + schema + ".occurrence_notifications WHERE event_id = ?", String.class, event)).endsWith("Explicação anterior");
         assertThat(upgraded.migrate().migrationsExecuted).isZero();

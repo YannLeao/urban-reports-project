@@ -8,12 +8,18 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class UrbanReportsApplication {
 
     public static void main(String[] args) {
+        if (args.length > 0 && args[0].equals("--notification-email-ops")) {
+            System.exit(com.project.software.urbanreports.notification.email.NotificationEmailCommand.run(
+                    java.util.Arrays.copyOfRange(args, 1, args.length), System.getenv(), System.out));
+            return;
+        }
         var application = new SpringApplication(UrbanReportsApplication.class);
         if (java.util.Arrays.asList(args).contains("--admin.bootstrap=true")) {
             application.setWebApplicationType(org.springframework.boot.WebApplicationType.NONE);
-            var bootstrapArgs = java.util.Arrays.copyOf(args, args.length + 2);
+            var bootstrapArgs = java.util.Arrays.copyOf(args, args.length + 3);
             bootstrapArgs[args.length] = "--spring.main.web-application-type=none";
             bootstrapArgs[args.length + 1] = "--image.recovery.enabled=false";
+            bootstrapArgs[args.length + 2] = "--notifications.email.enabled=false";
             try (var context = application.run(bootstrapArgs)) { /* Explicit one-shot operator command. */ }
         } else application.run(args);
     }

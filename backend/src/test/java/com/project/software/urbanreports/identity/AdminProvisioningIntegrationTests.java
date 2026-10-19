@@ -81,6 +81,7 @@ class AdminProvisioningIntegrationTests {
         assertThat(jdbc.queryForObject("SELECT moderator_id FROM occurrence_history WHERE occurrence_id = ?", UUID.class, report.getId())).isEqualTo(id);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM occurrence_notification_outbox WHERE recipient_id = ?", Integer.class, citizen.id())).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM occurrence_notifications WHERE recipient_id = ?", Integer.class, citizen.id())).isEqualTo(1);
+        assertDeliveries(report.getId(), citizen.id(), 1);
     }
     @Test void occupiedEmailsNeverPromoteAndMailFailureIsRecoverable() {
         var citizen = citizen();
@@ -263,6 +264,7 @@ class AdminProvisioningIntegrationTests {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM occurrence_history WHERE occurrence_id = ?", Integer.class, report.getId())).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM occurrence_notification_outbox WHERE recipient_id = ?", Integer.class, citizen.id())).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM occurrence_notifications WHERE recipient_id = ?", Integer.class, citizen.id())).isEqualTo(1);
+        assertDeliveries(report.getId(), citizen.id(), 1);
     }
     @Test void moderationInvalidatesOldAuthorDraftAndPreventsDeletion() {
         var admin = activatedAdmin(); var citizen = citizen(); var report = report(citizen.id());
@@ -272,10 +274,13 @@ class AdminProvisioningIntegrationTests {
         var resolved = moderation.transition(admin, report.getId(), "\"1\"", new OccurrenceTransition(OccurrenceStatus.RESOLVED, null));
         assertThat(resolved.report().status()).isEqualTo(OccurrenceStatus.RESOLVED);
         assertThat(resolved.history()).hasSize(2);
+        assertThatThrownBy(() -> moderation.transition(admin, report.getId(), "\"2\"", new OccurrenceTransition(OccurrenceStatus.RESOLVED, null)))
+                .isInstanceOf(OccurrenceWriteException.class);
         assertThat(jdbc.queryForList("SELECT message FROM occurrence_notifications WHERE occurrence_id = ?", String.class, report.getId()))
                 .anySatisfy(message -> assertThat(message).contains("Pendente para Em análise"))
                 .anySatisfy(message -> assertThat(message).contains("Em análise para Resolvida"));
         assertThat(jdbc.queryForObject("SELECT count(*) FROM occurrence_notifications WHERE occurrence_id = ?", Integer.class, report.getId())).isEqualTo(2);
+        assertDeliveries(report.getId(), citizen.id(), 2);
     }
     @Test void rejectedFromEachAllowedSourceAndFailedCommitRollsBackStateEventAndIntent() {
         var admin = activatedAdmin();
@@ -287,6 +292,7 @@ class AdminProvisioningIntegrationTests {
             assertThat(result.history().getLast().reason()).isEqualTo("Justificativa válida");
             assertThat(jdbc.queryForObject("SELECT count(*) FROM occurrence_notifications WHERE occurrence_id = ?", Integer.class, report.getId())).isEqualTo(analyze ? 2 : 1);
             assertThat(jdbc.queryForObject("SELECT message FROM occurrence_notifications WHERE occurrence_id = ? AND type = 'OCCURRENCE_REJECTED'", String.class, report.getId())).endsWith("Justificativa válida");
+            assertDeliveries(report.getId(), report.getAuthorId(), analyze ? 2 : 1);
         }
         var citizen = citizen(); var report = report(citizen.id());
         jdbc.execute("CREATE FUNCTION fail_moderation_commit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.occurrence_id = '" + report.getId() + "'::uuid THEN RAISE EXCEPTION 'test rollback'; END IF; RETURN NEW; END $$");
@@ -298,7 +304,12 @@ class AdminProvisioningIntegrationTests {
             assertThat(jdbc.queryForObject("SELECT count(*) FROM occurrence_history WHERE occurrence_id = ?", Integer.class, report.getId())).isZero();
             assertThat(jdbc.queryForObject("SELECT count(*) FROM occurrence_notification_outbox WHERE recipient_id = ?", Integer.class, citizen.id())).isZero();
             assertThat(jdbc.queryForObject("SELECT count(*) FROM occurrence_notifications WHERE occurrence_id = ?", Integer.class, report.getId())).isZero();
+            assertDeliveries(report.getId(), citizen.id(), 0);
         } finally { jdbc.execute("DROP TRIGGER moderation_commit_failure ON occurrence_history"); jdbc.execute("DROP FUNCTION fail_moderation_commit()"); }
+    }
+    private void assertDeliveries(UUID report, UUID author, int count) {
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM occurrence_notification_email_deliveries d JOIN occurrence_notifications n ON n.id=d.notification_id WHERE n.occurrence_id=?", Integer.class, report)).isEqualTo(count);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM occurrence_notification_email_deliveries d JOIN occurrence_notifications n ON n.id=d.notification_id WHERE n.occurrence_id=? AND n.recipient_id<>?", Integer.class, report, author)).isZero();
     }
     @Test void racingDeactivationWithActivationOrModerationAlwaysEndsDisabled() throws Exception {
         var invitation = create(); String raw = invitations.get(invitation.admin().email());

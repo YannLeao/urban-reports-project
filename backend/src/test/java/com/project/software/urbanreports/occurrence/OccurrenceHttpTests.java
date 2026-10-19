@@ -55,6 +55,16 @@ class OccurrenceHttpTests {
         before = count();
     }
 
+    @Test void registrationEditingAndDeletionNeverCreateNotificationEmailDeliveries() throws Exception {
+        long initial = jdbc.queryForObject("SELECT count(*) FROM occurrence_notification_email_deliveries", Long.class);
+        var created = upload(valid(), token);
+        assertThat(created.statusCode()).isEqualTo(201);
+        String path = "/api/occurrences/" + mapper.readTree(created.body()).get("id").asString();
+        assertThat(multipart(path, "PUT", valid(), token, "\"0\"").statusCode()).isEqualTo(200);
+        assertThat(action(path, "DELETE", token, "\"1\"").statusCode()).isEqualTo(204);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM occurrence_notification_email_deliveries", Long.class)).isEqualTo(initial);
+    }
+
     @Test void locationContractRejectsInvalidPairsBeforeUpload() throws Exception {
         var absent = valid(); absent.removeIf(part -> List.of("latitude", "longitude").contains(part.name()));
         reject(absent, 400);
