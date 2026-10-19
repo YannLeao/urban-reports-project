@@ -9,7 +9,7 @@ import { Card } from '../components/ui/Card'
 import { buttonStyles } from '../components/ui/button-styles'
 import { useAuth } from '../features/auth/auth'
 import { moderationDetailSchema, useAdministrativeQuery } from '../features/administration/administration'
-import { OccurrencePhoto } from '../features/occurrence/OccurrencePhoto'
+import { OccurrenceGallery } from '../features/occurrence/OccurrenceGallery'
 import { occurrenceDate, occurrenceStatusLabel, type Occurrence } from '../features/occurrence/occurrence'
 import { moderationActions, transitionSchema } from '../features/occurrence/moderation'
 import { cleanOccurrenceText } from '../features/occurrence/occurrence-text'
@@ -73,7 +73,7 @@ export function ModerationDetailPage() {
     {!query.isError && report && <>
       <h1 id="moderation-title" className="mt-6">{report.title}</h1><OccurrenceStatus status={report.status} />
       <div className="mt-5 grid min-w-0 gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-      <div className="min-w-0"><OccurrencePhoto report={report} full administrative />
+      <div className="min-w-0"><OccurrenceGallery report={report} administrative />
       <Card><dl className="grid gap-4"><div><dt className="font-bold">Categoria</dt><dd className="m-0">{report.categoryName}</dd></div><div><dt className="font-bold">Localização</dt><dd className="m-0">{report.neighborhood} · {report.reference}</dd></div>{report.description && <div><dt className="font-bold">Detalhes</dt><dd className="m-0 whitespace-pre-wrap">{report.description}</dd></div>}<div><dt className="font-bold">Registro</dt><dd className="m-0">{occurrenceDate(report.createdAt)}</dd></div></dl></Card></div>
       <div className="min-w-0 self-start rounded-card border border-border-subtle bg-surface-raised p-4 sm:p-6"><h2 className="text-title">Acompanhar e decidir</h2>
       {moderationActions[report.status].length === 0 ? <p className="mt-6">Relato finalizado. Não há novas ações disponíveis.</p> : <div className="mt-6 flex flex-wrap gap-3">

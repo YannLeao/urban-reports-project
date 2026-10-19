@@ -236,3 +236,5 @@ comandos da CLI privada, recuperação e roteiro Render. Não há retry automát
 leases abandonadas tornam-se UNCERTAIN. A CLI roda fora do serviço web e não
 executa Flyway. Plano Render deve ser conferido; suspensão pausa o scheduler,
 mantendo intenções no Neon, sem promessa de prazo ou necessidade de keep-alive.
+
+A V13 migra fotografias para `occurrence_media` e retira `occurrences.image_key`. É obrigatória a parada coordenada de todas as instâncias/workers antigos antes da migração; publicar API nova antes do frontend. Não há rollback binário para backend antigo. [Procedimento e limites multipart](multiple-photos.md).

@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class OccurrenceService {
+    private final com.project.software.urbanreports.administration.AccountAccess access;
     private final OccurrenceRepository occurrences;
     private final OccurrenceCategoryRepository categories;
     private final ImageStorageService images;
@@ -24,7 +25,9 @@ public class OccurrenceService {
 
     public OccurrenceService(OccurrenceRepository occurrences, OccurrenceCategoryRepository categories,
             ImageStorageService images, Clock clock, UploadJournal journal, OccurrenceHistoryRepository history,
-            com.project.software.urbanreports.identity.UserAccountRepository accounts) {
+            com.project.software.urbanreports.identity.UserAccountRepository accounts,
+            com.project.software.urbanreports.administration.AccountAccess access) {
+        this.access = access;
         this.occurrences = occurrences;
         this.categories = categories;
         this.images = images;
@@ -35,25 +38,51 @@ public class OccurrenceService {
     }
 
     public OccurrenceResponse create(UUID authorId, OccurrenceRequest request, MultipartFile image) {
+        return createPhotos(authorId, request, image == null ? List.of() : List.of(image));
+    }
+
+    public OccurrenceResponse createPhotos(com.project.software.urbanreports.auth.AuthenticatedIdentity actor,
+            OccurrenceRequest request, List<MultipartFile> files) {
+        return createPhotos(actor.userId(), request, files, actor);
+    }
+    public OccurrenceResponse createPhotos(UUID authorId, OccurrenceRequest request, List<MultipartFile> files) {
+        return createPhotos(authorId, request, files, null);
+    }
+    private OccurrenceResponse createPhotos(UUID authorId, OccurrenceRequest request, List<MultipartFile> files,
+            com.project.software.urbanreports.auth.AuthenticatedIdentity actor) {
         accounts.findById(authorId).filter(account -> account.isActive()
                 && account.getRole() == com.project.software.urbanreports.identity.AccountRole.USER)
                 .orElseThrow(() -> new org.springframework.security.access.AccessDeniedException("Access denied"));
-        Map<String, List<String>> fields = validate(request, image);
+        var fields = validate(request, null); fields.remove("image");
         var point = GeographicPoint.parse(request.latitude(), request.longitude(), true);
         if (!fields.isEmpty()) throw new OccurrenceValidationException(fields);
-        OccurrenceCategory category = categories.findById(request.categoryId())
-                .orElseThrow(() -> new OccurrenceValidationException(Map.of("categoryId", List.of("Choose a valid category"))));
-
-        var prepared = images.prepareOccurrence(image);
-        journal.record(prepared.key());
-        return journal.link(prepared.key(), () -> {
-            images.upload(prepared);
-            Occurrence occurrence = new Occurrence(authorId, category, clean(request.title()), description(request.description()),
-                    clean(request.neighborhood()), clean(request.reference()), prepared.key(), clock.instant());
+        var category = categories.findById(request.categoryId()).orElseThrow(() ->
+                new OccurrenceValidationException(Map.of("categoryId", List.of("Choose a valid category"))));
+        var prepared = prepare(files);
+        for (var upload : prepared) journal.record(upload.key());
+        return journal.link(prepared.stream().map(Upload::key).toList(), () -> authorize(actor), () -> {
+            for (var upload : prepared) upload(upload);
+            var occurrence = new Occurrence(authorId, category, clean(request.title()), description(request.description()),
+                    clean(request.neighborhood()), clean(request.reference()), null, clock.instant());
             occurrence.locate(point);
+            occurrence.replaceMedia(prepared.stream().map(upload -> new OccurrenceMedia(occurrence, upload.key(),
+                    upload.contentType(), upload.file().getSize(), 0)).toList());
             return OccurrenceResponse.from(occurrences.saveAndFlush(occurrence));
         });
     }
+
+    // Validate sequentially; retain multipart handles and metadata, never five byte arrays/pixel buffers.
+    private record Upload(String key, String contentType, MultipartFile file) {}
+    private List<Upload> prepare(List<MultipartFile> files) {
+        if (files.isEmpty() || files.size() > 5) throw MediaManifest.invalid();
+        var uploads = new java.util.ArrayList<Upload>();
+        for (var file : files) {
+            var validated = images.prepareOccurrence(file);
+            uploads.add(new Upload(validated.key(), validated.contentType(), file));
+        }
+        return uploads;
+    }
+    private void upload(Upload upload) { images.uploadAt(upload.key(), upload.contentType(), upload.file()); }
 
     @Transactional(readOnly = true)
     public List<OccurrenceResponse> findByAuthorId(UUID authorId) {
@@ -92,8 +121,13 @@ public class OccurrenceService {
     private static String description(String value) { return value == null || clean(value).isEmpty() ? null : clean(value); }
 
     public com.project.software.urbanreports.storage.application.StoredImageContent image(UUID authorId, UUID id) {
-        String key = occurrences.findByIdAndAuthorId(id, authorId)
-                .orElseThrow(() -> new OccurrenceNotFoundException(id)).getImageKey();
+        return media(authorId, id, null);
+    }
+    public com.project.software.urbanreports.storage.application.StoredImageContent media(UUID authorId, UUID id, UUID mediaId) {
+        String key = journal.write(() -> {
+            var report = occurrences.findByIdAndAuthorId(id, authorId).orElseThrow(() -> new OccurrenceNotFoundException(id));
+            return mediaId == null ? report.getImageKey() : report.mediaKey(mediaId);
+        });
         return images.loadOccurrence(key);
     }
 
@@ -104,35 +138,78 @@ public class OccurrenceService {
     }
 
     public OccurrenceResponse update(UUID authorId, UUID id, String match, OccurrenceRequest request, MultipartFile image) {
-        // Reject unauthorised/stale requests before any remote I/O; revalidate under lock below.
-        var snapshot = journal.write(() -> findById(authorId, id));
+        return updatePhotos(authorId, id, match, request, image == null ? List.of() : List.of(image), null, image != null);
+    }
+
+    public OccurrenceResponse updatePhotos(com.project.software.urbanreports.auth.AuthenticatedIdentity actor,
+            UUID id, String match, OccurrenceRequest request, List<MultipartFile> files, MediaManifest manifest, boolean legacy) {
+        return updatePhotos(actor.userId(), id, match, request, files, manifest, legacy, actor);
+    }
+    public OccurrenceResponse updatePhotos(UUID authorId, UUID id, String match, OccurrenceRequest request,
+            List<MultipartFile> files, MediaManifest manifest, boolean legacy) {
+        return updatePhotos(authorId, id, match, request, files, manifest, legacy, null);
+    }
+    private OccurrenceResponse updatePhotos(UUID authorId, UUID id, String match, OccurrenceRequest request,
+            List<MultipartFile> files, MediaManifest manifest, boolean legacy,
+            com.project.software.urbanreports.auth.AuthenticatedIdentity actor) {
+        var snapshot = journal.write(() -> {
+            if (actor != null) access.check(actor, com.project.software.urbanreports.identity.AccountRole.USER);
+            return findById(authorId, id);
+        });
         checkWritable(snapshot.status(), snapshot.version(), match);
-        var fields = validate(request, image);
+        var fields = validate(request, null); fields.remove("image");
         var point = GeographicPoint.parse(request.latitude(), request.longitude(), false);
-        if (image == null) fields.remove("image");
         if (!fields.isEmpty()) throw new OccurrenceValidationException(fields);
         var category = categories.findById(request.categoryId()).orElseThrow(() ->
                 new OccurrenceValidationException(Map.of("categoryId", List.of("Choose a valid category"))));
-        var prepared = image == null ? null : images.prepareOccurrence(image);
-        if (prepared != null) { journal.record(prepared.key()); images.upload(prepared); }
-        java.util.function.Supplier<OccurrenceResponse> write = () -> {
+        if (legacy) {
+            if (snapshot.media().size() != 1 || files.size() != 1 || manifest != null) throw MediaManifest.invalid();
+            manifest = new MediaManifest(List.of(new MediaManifest.Item(null, 0)));
+        }
+        if (manifest == null && !files.isEmpty()) throw MediaManifest.invalid();
+        if (manifest != null) manifest.validate(snapshot.media().stream().map(OccurrenceMedia.Response::id).toList(), files.size());
+        final var finalManifest = manifest;
+        var prepared = files.isEmpty() ? List.<Upload>of() : prepare(files);
+        for (var upload : prepared) journal.record(upload.key());
+        // Globally sorted new journal keys -> occurrence; existing keys are retired only under occurrence lock.
+        // Recovery never locks occurrences and only performs a nonlocking reference check.
+        return journal.link(prepared.stream().map(Upload::key).toList(), () -> authorize(actor), () -> {
+            for (var upload : prepared) upload(upload);
             var occurrence = occurrences.lockOwned(id, authorId).orElseThrow(() -> new OccurrenceNotFoundException(id));
             checkWritable(occurrence.getStatus(), occurrence.getVersion(), match);
             occurrence.locate(point);
-            String key = occurrence.getImageKey();
-            if (prepared != null) { journal.retire(key); key = prepared.key(); }
+            if (finalManifest != null) {
+                finalManifest.validate(occurrence.getMedia().stream().map(OccurrenceMedia::getId).toList(), prepared.size());
+                var byId = occurrence.getMedia().stream().collect(java.util.stream.Collectors.toMap(OccurrenceMedia::getId, item -> item));
+                var selected = finalManifest.items().stream().map(item -> {
+                    if (item.id() != null) return byId.get(item.id());
+                    var upload = prepared.get(item.uploadIndex());
+                    return new OccurrenceMedia(occurrence, upload.key(), upload.contentType(), upload.file().getSize(), 0);
+                }).toList();
+                occurrence.getMedia().stream().filter(item -> !selected.contains(item))
+                        .sorted(java.util.Comparator.comparing(OccurrenceMedia::getObjectKey))
+                        .forEach(item -> journal.retire(item.getObjectKey()));
+                occurrence.replaceMedia(selected);
+            }
             occurrence.update(category, clean(request.title()), description(request.description()),
-                    clean(request.neighborhood()), clean(request.reference()), key);
+                    clean(request.neighborhood()), clean(request.reference()));
             return OccurrenceResponse.from(occurrences.saveAndFlush(occurrence));
-        };
-        return prepared == null ? journal.write(write) : journal.link(prepared.key(), write);
+        });
     }
 
-    public void delete(UUID authorId, UUID id, String match) {
+    private void authorize(com.project.software.urbanreports.auth.AuthenticatedIdentity actor) {
+        if (actor != null) access.lock(actor, com.project.software.urbanreports.identity.AccountRole.USER);
+    }
+    public void delete(com.project.software.urbanreports.auth.AuthenticatedIdentity actor, UUID id, String match) {
+        delete(actor.userId(), id, match, actor);
+    }
+    public void delete(UUID authorId, UUID id, String match) { delete(authorId, id, match, null); }
+    private void delete(UUID authorId, UUID id, String match, com.project.software.urbanreports.auth.AuthenticatedIdentity actor) {
         journal.write(() -> {
+            authorize(actor);
             var occurrence = occurrences.lockOwned(id, authorId).orElseThrow(() -> new OccurrenceNotFoundException(id));
             checkWritable(occurrence.getStatus(), occurrence.getVersion(), match);
-            journal.retire(occurrence.getImageKey());
+            occurrence.getMedia().stream().map(OccurrenceMedia::getObjectKey).sorted().forEach(journal::retire);
             occurrences.delete(occurrence); occurrences.flush();
             return null;
         });

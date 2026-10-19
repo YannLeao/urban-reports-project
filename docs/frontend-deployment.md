@@ -254,3 +254,5 @@ capturado em memória e removido da URL, sem analytics ou recursos externos.
 O documento define no-referrer. Não enviar token de ativação em variáveis VITE_*.
 Publicar suporte a USER/ADMIN/SUPER_ADMIN antes de emitir novas identidades no
 backend. Contratos e roteiro: [provisionamento](admin-provisioning.md).
+
+A V13 migra fotografias para `occurrence_media` e retira `occurrences.image_key`. É obrigatória a parada coordenada de todas as instâncias/workers antigos antes da migração; publicar API nova antes do frontend. Não há rollback binário para backend antigo. [Procedimento e limites multipart](multiple-photos.md).

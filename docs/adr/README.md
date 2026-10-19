@@ -46,3 +46,5 @@ um novo ADR que substitui o anterior.
 - [0022 — E-mail transacional por HTTPS Brevo](0022-enviar-email-transacional-via-brevo.md)
 
 - [0023 — Notificações por e-mail com intenção durável](0023-entregar-notificacoes-por-email-com-intencao-duravel.md)
+
+- [0024 — Coleção de mídias e recuperação](0024-colecionar-midias-de-ocorrencias.md)

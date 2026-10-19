@@ -23,6 +23,12 @@ public class ModerationController {
     public ResponseEntity<ModerationService.Detail> find(@AuthenticationPrincipal AuthenticatedIdentity actor, @PathVariable UUID id) {
         return response(service.find(actor, id));
     }
+    @GetMapping("/{id}/media/{mediaId}")
+    public ResponseEntity<byte[]> media(@AuthenticationPrincipal AuthenticatedIdentity actor, @PathVariable UUID id, @PathVariable UUID mediaId) {
+        var image = service.media(actor, id, mediaId);
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).header("X-Content-Type-Options", "nosniff")
+                .contentType(MediaType.parseMediaType(image.contentType())).body(image.content());
+    }
     @GetMapping("/{id}/image")
     public ResponseEntity<byte[]> image(@AuthenticationPrincipal AuthenticatedIdentity actor, @PathVariable UUID id) {
         var image = service.image(actor, id);

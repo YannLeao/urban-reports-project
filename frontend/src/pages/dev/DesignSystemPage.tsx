@@ -9,6 +9,8 @@ import type { GeographicPoint } from '../../features/location/point'
 import { Dialog } from '../../components/ui/Dialog'
 import { useRef, useState } from 'react'
 import { ImagePicker } from '../../features/image/ImagePicker'
+import { PhotoCollectionPicker } from '../../features/image/PhotoCollectionPicker'
+import type { PhotoDraft } from '../../features/image/photo-draft'
 import { Button } from '../../components/ui/Button'
 import { Input, Select, Textarea } from '../../components/ui/Field'
 import { Alert, StatusBadge } from '../../components/ui/Feedback'
@@ -17,6 +19,7 @@ import { OccurrenceHistory } from '../../features/occurrence/OccurrenceHistory'
 import { CountDistribution } from '../../components/ui/CountDistribution'
 
 export default function DesignSystemPage() {
+  const [photos, setPhotos] = useState<PhotoDraft[]>([])
   const [point, setPoint] = useState<GeographicPoint | null>(null)
   const [showMap, setShowMap] = useState(false)
   const dialog = useRef<HTMLDialogElement>(null)
@@ -29,6 +32,10 @@ export default function DesignSystemPage() {
     <section className="pt-12 pb-8 md:pt-16"><p className="mb-3 text-small font-bold text-brand-default">Referência de desenvolvimento</p>
       <h1>Design system Alô Cidade</h1><p className="mb-0 text-lead text-text-secondary">Exemplos demonstrativos. Nenhum dado é enviado ao serviço.</p></section>
     <div className="grid gap-8 pb-8">
+      <Card><h2>Coleção de fotografias</h2>
+        <p>Uma a cinco fotos, com primeira foto como capa. Seleção local sem upload; botões para mover e remover.</p>
+        <PhotoCollectionPicker value={photos} onChange={setPhotos} />
+      </Card>
       <Card><h2>Navegação e exploração</h2>
         <p>Ícone com rótulo visível; o shell adapta destinos ao papel. Controles compactos preservam o alvo de toque.</p>
         <div className="flex flex-wrap gap-4"><span className="inline-flex items-center gap-2"><Icon name="map" />Mapa</span><span className="inline-flex items-center gap-2"><Icon name="plus" />Relatar</span><Button size="compact" disabled>Atualizar</Button><NotificationBell unreadCount={3} /></div>

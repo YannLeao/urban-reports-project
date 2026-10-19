@@ -380,6 +380,23 @@ class AdminProvisioningIntegrationTests {
                 .andExpect(status().isPreconditionFailed());
         assertThat(jdbc.queryForObject("SELECT count(*) FROM occurrence_history WHERE occurrence_id = ?", Integer.class, report.getId())).isEqualTo(1);
     }
+    @Test void administrativeIndividualMediaChecksMembershipActiveAdminAndAllPhotos() throws Exception {
+        var admin = activatedAdmin(); var owner = citizen();
+        byte[] png = com.project.software.urbanreports.support.ImageFixtures.photo("png");
+        var files = java.util.stream.IntStream.range(0, 5).mapToObj(i -> (org.springframework.web.multipart.MultipartFile)
+                new org.springframework.mock.web.MockMultipartFile("images", "synthetic.png", "image/png", png)).toList();
+        var report = ownReports.createPhotos(owner.id(), new OccurrenceRequest(1, "Poste apagado", null, "Centro", "Praça central", "0", "0"), files);
+        when(imageStorage.load(anyString())).thenReturn(new com.project.software.urbanreports.storage.application.StoredImageContent(png, png.length, "image/png"));
+        for (var media : report.media()) {
+            assertThat(moderation.media(admin, report.id(), media.id()).content()).containsExactly(png);
+            assertThatThrownBy(() -> moderation.media(admin, UUID.randomUUID(), media.id())).isInstanceOf(OccurrenceNotFoundException.class);
+        }
+        assertThatThrownBy(() -> moderation.media(admin, report.id(), UUID.randomUUID())).isInstanceOf(OccurrenceNotFoundException.class);
+        service.deactivate(root, admin.userId());
+        for (var media : report.media()) assertThatThrownBy(() -> moderation.media(admin, report.id(), media.id()))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+    }
+
     @Test void photoReplacementLosingToModerationLeavesRecoverableJournalAndPreservesOldPhoto() throws Exception {
         var admin = activatedAdmin(); var citizen = citizen(); var report = report(citizen.id());
         byte[] png = java.nio.file.Files.readAllBytes(java.nio.file.Path.of("src/test/resources/images/photo.png"));
@@ -397,7 +414,7 @@ class AdminProvisioningIntegrationTests {
             } finally { release.countDown(); }
             assertThatThrownBy(() -> update.get(20, TimeUnit.SECONDS)).hasCauseInstanceOf(OccurrenceWriteException.class);
         }
-        assertThat(reports.findById(report.getId()).orElseThrow().getImageKey()).isEqualTo(report.getImageKey());
+        assertThat(jdbc.queryForObject("select object_key from occurrence_media where occurrence_id=? and position=0", String.class, report.getId())).isEqualTo(report.getImageKey());
         assertThat(jdbc.queryForObject("SELECT state FROM image_upload_journal WHERE image_key = ?", String.class, replacement.get())).isEqualTo("PENDING");
         when(clock.instant()).thenReturn(NOW.plusSeconds(601)); journal.recover();
         verify(imageStorage).delete(replacement.get()); verify(imageStorage, never()).delete(report.getImageKey());

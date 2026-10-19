@@ -30,7 +30,7 @@ A [central de notificações](docs/notifications.md) em `/notificacoes` permite 
 cidadão acompanhar transições e marcar avisos como lidos, com contador no sino.
 Novos avisos também capturam [intenções de e-mail](docs/notification-email.md)
 para o mesmo autor, com consumidor desligado por padrão e recuperação operacional.
-O registro autenticado em `/registrar-ocorrencia` integra categorias, fotografia,
+O registro autenticado em `/registrar-ocorrencia` integra categorias, [uma a cinco fotografias ordenadas](docs/multiple-photos.md),
 [localização confirmada](docs/occurrence-location.md) e persistência. Consulte o [contrato de ocorrência](docs/occurrence-registration.md):
 a implementação não comprova, por si só, o aceite publicado ou a captura física.
 

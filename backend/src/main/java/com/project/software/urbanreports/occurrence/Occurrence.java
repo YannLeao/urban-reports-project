@@ -18,7 +18,27 @@ public class Occurrence {
     @Column(name = "reference", nullable = false, length = 200) private String locationReference;
     @Column private Double latitude;
     @Column private Double longitude;
-    @Column(name = "image_key", nullable = false, unique = true, length = 255) private String imageKey;
+    @OneToMany(mappedBy = "occurrence", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("position ASC, id ASC")
+    @org.hibernate.annotations.BatchSize(size = 50)
+    private java.util.List<OccurrenceMedia> media = new java.util.ArrayList<>();
+    public java.util.List<OccurrenceMedia> getMedia() { return java.util.Collections.unmodifiableList(media); }
+    public java.util.List<OccurrenceMedia.Response> mediaResponse(String base) {
+        return media.stream().map(item -> item.response(base + id)).toList();
+    }
+    void replaceMedia(java.util.List<OccurrenceMedia> items) {
+        if (items.isEmpty() || items.size() > 5) throw new IllegalArgumentException("Invalid media count");
+        media.removeIf(item -> !items.contains(item));
+        for (int i = 0; i < items.size(); i++) {
+            var item = items.get(i); item.position(i);
+            if (!media.contains(item)) media.add(item);
+        }
+        media.sort(java.util.Comparator.comparingInt(item -> items.indexOf(item)));
+    }
+    String mediaKey(UUID mediaId) {
+        return media.stream().filter(item -> item.getId().equals(mediaId)).findFirst()
+                .orElseThrow(() -> new OccurrenceNotFoundException(id)).getObjectKey();
+    }
     @Enumerated(EnumType.STRING) @Column(nullable = false, length = 32) private OccurrenceStatus status;
     @Column(name = "created_at", nullable = false) private Instant createdAt;
 
@@ -29,9 +49,9 @@ public class Occurrence {
         status = target; version++;
     }
     public void update(OccurrenceCategory category, String title, String description, String neighborhood,
-            String reference, String imageKey) {
+            String reference) {
         this.category = category; this.title = title; this.description = description;
-        this.neighborhood = neighborhood; this.locationReference = reference; this.imageKey = imageKey;
+        this.neighborhood = neighborhood; this.locationReference = reference;
         this.version++;
     }
     protected Occurrence() {}
@@ -45,7 +65,7 @@ public class Occurrence {
         this.description = description;
         this.neighborhood = neighborhood;
         this.locationReference = locationReference;
-        this.imageKey = imageKey;
+        if (imageKey != null) media.add(new OccurrenceMedia(this, imageKey, null, null, 0));
         this.status = OccurrenceStatus.PENDING;
         this.createdAt = createdAt;
     }
@@ -63,7 +83,7 @@ public class Occurrence {
     public String getDescription() { return description; }
     public String getNeighborhood() { return neighborhood; }
     public String getLocationReference() { return locationReference; }
-    public String getImageKey() { return imageKey; }
+    public String getImageKey() { return media.getFirst().getObjectKey(); }
     public OccurrenceStatus getStatus() { return status; }
     public Instant getCreatedAt() { return createdAt; }
 }

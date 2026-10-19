@@ -14,13 +14,14 @@ A fotografia e o ponto existentes são restaurados na edição; trocar fotografi
 seguem [registro](occurrence-registration.md) e [consulta privada](occurrence-query.md).
 Falhas mantêm o rascunho em memória; sair/recarregar perde alterações locais.
 
-O `ImagePicker` prioriza “Tirar foto” com ícone, com “Escolher da galeria” como
-alternativa. A prévia mantém a foto inteira, permite nova captura, troca e
-remoção da seleção local. Na edição, remover uma nova seleção volta a mostrar
-a foto existente; não exclui a foto persistida. Nome/bytes do arquivo não são
-conteúdo principal. Formatos, 5 MiB e erros reais permanecem; a captura depende
-do navegador. Não há compressão, limpeza de EXIF ou garantia de câmera nativa.
-[Seleção de imagem](image-selection-proof.md) descreve validação e limpeza.
+O `PhotoCollectionPicker` permite galeria múltipla e captura incremental, com
+contador 1–5 e prévias inteiras. A primeira foto é a capa. Botões acessíveis movem,
+definem capa e removem itens da coleção final; remover uma foto existente agenda
+seu descarte quando a edição confirma. Cancelar/seleção inválida preserva a coleção.
+Não exibe nome original/bytes como conteúdo. Formatos e 5 MiB por arquivo permanecem;
+captura depende do navegador. Não há compressão, limpeza EXIF ou garantia de câmera
+nativa. `ImagePicker` singular continua na prova independente `/prova-imagem`.
+[Contrato de coleção](multiple-photos.md) descreve manifesto, galeria e limpeza.
 
 ## Localização e acesso
 
@@ -80,3 +81,5 @@ SUPER_ADMIN consulta a lista sem percorrer formulário vazio. “Criar administr
 abre seção com foco no nome; fechar preserva o rascunho, sucesso fecha a seção e
 renova a lista. Falhas/incerteza de e-mail e confirmação de desativação seguem
 [provisionamento](admin-provisioning.md). Não há promoção ou herança de ADMIN.
+
+Seleção de fotografias no produto usa `PhotoCollectionPicker` (1–5, ordenação/capa), reutilizável no futuro Wizard; detalhes usam `OccurrenceGallery`. Prova singular permanece independente. [Contrato, roteiro e limites](multiple-photos.md).

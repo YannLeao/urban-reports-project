@@ -48,37 +48,30 @@ public class OccurrenceController {
                 .body(service.findById(identity.userId(), id));
     }
 
+    @io.swagger.v3.oas.annotations.Operation(summary = "Registrar relato com 1 a 5 fotografias ordenadas",
+            description = "Envie images repetido (1–5), na ordem da coleção. image é alias legado singular, sem mistura. JPEG/PNG/WebP estático: 5 MiB por arquivo, 26 MiB por requisição. Primeira mídia é a capa.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @io.swagger.v3.oas.annotations.media.Content(
+                    mediaType = "multipart/form-data", schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = PhotoForm.class),
+                    encoding = @io.swagger.v3.oas.annotations.media.Encoding(name = "media", contentType = "application/json"))))
     @PostMapping(path = "/occurrences", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<OccurrenceResponse> create(@AuthenticationPrincipal AuthenticatedIdentity identity,
             @RequestParam Integer categoryId, @RequestParam String title, @RequestParam(required = false) String description,
             @RequestParam String neighborhood, @RequestParam String reference,
             @RequestParam(required = false) String latitude, @RequestParam(required = false) String longitude,
-            @RequestPart("image") MultipartFile image, HttpServletRequest request) throws Exception {
-        validateParts(request, true);
-        OccurrenceResponse response = service.create(identity.userId(),
-                new OccurrenceRequest(categoryId, title, description, neighborhood, reference, latitude, longitude), image);
+            @RequestPart(value = "image", required = false) MultipartFile image,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images, HttpServletRequest request) throws Exception {
+        var media = OccurrenceMultipart.read(request, images, image, true);
+        OccurrenceResponse response = service.createPhotos(identity,
+                new OccurrenceRequest(categoryId, title, description, neighborhood, reference, latitude, longitude), media.images());
         return ResponseEntity.status(201).cacheControl(CacheControl.noStore()).body(response);
     }
 
-    private void validateParts(HttpServletRequest request, boolean creating) throws Exception {
-        var parts = request.getParts();
-        var required = java.util.Set.of("categoryId", "title", "neighborhood", "reference");
-        for (String name : required) {
-            if (parts.stream().filter(part -> name.equals(part.getName())).count() != 1) {
-                throw new OccurrenceValidationException(java.util.Map.of(name, List.of("Envie exatamente uma parte por campo obrigatório.")));
-            }
-        }
-        for (String name : java.util.List.of("description", "image", "latitude", "longitude")) {
-            long count = parts.stream().filter(part -> name.equals(part.getName())).count();
-            if (count > 1 || (creating && name.equals("image") && count != 1))
-                throw new OccurrenceValidationException(java.util.Map.of(name, List.of("Envie uma única parte por campo.")));
-        }
-        for (var part : parts) {
-            boolean file = part.getSubmittedFileName() != null;
-            if ((file && !"image".equals(part.getName())) || ("image".equals(part.getName()) && !file)) {
-                throw new OccurrenceValidationException(java.util.Map.of("image", List.of("Envie somente um arquivo, no campo image.")));
-            }
-        }
+    @GetMapping("/occurrences/{id}/media/{mediaId}")
+    public ResponseEntity<byte[]> media(@AuthenticationPrincipal AuthenticatedIdentity identity, @PathVariable UUID id,
+            @PathVariable UUID mediaId) {
+        var image = service.media(identity.userId(), id, mediaId);
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).header("X-Content-Type-Options", "nosniff")
+                .contentType(MediaType.parseMediaType(image.contentType())).body(image.content());
     }
 
     @GetMapping("/occurrences/{id}/image")
@@ -88,24 +81,37 @@ public class OccurrenceController {
                 .contentType(MediaType.parseMediaType(image.contentType())).body(image.content());
     }
 
+    @io.swagger.v3.oas.annotations.Operation(summary = "Editar campos e coleção final de fotografias",
+            description = "Exige If-Match e PENDING. Sem media/arquivos preserva todas as fotos. media é parte application/json: {items:[{id:UUID},{uploadIndex:0}]}. Lista final de 1–5, sem repetição e usando cada images novo exatamente uma vez. image legado só substitui coleção singular. Removidas são descartadas eventualmente.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @io.swagger.v3.oas.annotations.media.Content(
+                    mediaType = "multipart/form-data", schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = PhotoForm.class),
+                    encoding = @io.swagger.v3.oas.annotations.media.Encoding(name = "media", contentType = "application/json"))))
     @org.springframework.web.bind.annotation.PutMapping(path = "/occurrences/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<OccurrenceResponse> update(@AuthenticationPrincipal AuthenticatedIdentity identity,
             @PathVariable UUID id, @org.springframework.web.bind.annotation.RequestHeader(value = "If-Match", required = false) String match,
             @RequestParam Integer categoryId, @RequestParam String title, @RequestParam(required = false) String description,
             @RequestParam String neighborhood, @RequestParam String reference,
             @RequestParam(required = false) String latitude, @RequestParam(required = false) String longitude,
-            @RequestPart(value = "image", required = false) MultipartFile image, HttpServletRequest request) throws Exception {
-        validateParts(request, false);
-        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.update(identity.userId(), id, match,
-                new OccurrenceRequest(categoryId, title, description, neighborhood, reference, latitude, longitude), image));
+            @RequestPart(value = "image", required = false) MultipartFile image,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images, HttpServletRequest request) throws Exception {
+        var media = OccurrenceMultipart.read(request, images, image, false);
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.updatePhotos(identity, id, match,
+                new OccurrenceRequest(categoryId, title, description, neighborhood, reference, latitude, longitude), media.images(), media.manifest(), media.legacy()));
     }
 
     @org.springframework.web.bind.annotation.DeleteMapping("/occurrences/{id}")
     public ResponseEntity<Void> delete(@AuthenticationPrincipal AuthenticatedIdentity identity, @PathVariable UUID id,
             @org.springframework.web.bind.annotation.RequestHeader(value = "If-Match", required = false) String match) {
-        service.delete(identity.userId(), id, match);
+        service.delete(identity, id, match);
         return ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build();
     }
+
+    public record PhotoForm(Integer categoryId, String title, String description, String neighborhood,
+            String reference, Double latitude, Double longitude,
+            @io.swagger.v3.oas.annotations.media.ArraySchema(maxItems = 5, schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string", format = "binary"))
+            List<String> images,
+            @io.swagger.v3.oas.annotations.media.Schema(type = "string", format = "binary", description = "Alias legado singular; não misturar com images/media") String image,
+            @io.swagger.v3.oas.annotations.media.Schema(description = "Somente PUT: parte application/json com items ordenados; id existente OU uploadIndex inteiro", example = "{\"items\":[{\"uploadIndex\":0}]}") String media) {}
 
     public record OccurrenceCategoryResponse(Integer id, String name) {}
 }

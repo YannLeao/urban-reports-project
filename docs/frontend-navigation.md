@@ -86,3 +86,5 @@ servidor novamente. Contrato: [notificações](notifications.md).
 
 `PasswordRecoveryAccess`, após a senha do login, continua como texto auxiliar
 “Recuperação de senha em breve”, sem href, submit ou e-mail simulado.
+
+Seleção de fotografias no produto usa `PhotoCollectionPicker` (1–5, ordenação/capa), reutilizável no futuro Wizard; detalhes usam `OccurrenceGallery`. Prova singular permanece independente. [Contrato, roteiro e limites](multiple-photos.md).

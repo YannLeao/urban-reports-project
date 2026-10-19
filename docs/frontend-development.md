@@ -267,3 +267,5 @@ Zod, AbortSignal e cache `['private', userId, 'notifications', page]`. O sino
 compartilha a primeira página e lê `unreadCount` global do servidor. Marcar como
 lida invalida todas as páginas do usuário, incluindo o sino, sem retry de POST.
 Contrato e limitações: [notificações](notifications.md).
+
+Seleção de fotografias no produto usa `PhotoCollectionPicker` (1–5, ordenação/capa), reutilizável no futuro Wizard; detalhes usam `OccurrenceGallery`. Prova singular permanece independente. [Contrato, roteiro e limites](multiple-photos.md).

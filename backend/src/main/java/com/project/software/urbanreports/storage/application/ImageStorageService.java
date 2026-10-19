@@ -47,6 +47,12 @@ public class ImageStorageService {
                 image.content().length, image.contentType());
     }
 
+    public void uploadAt(String key, String contentType, MultipartFile file) {
+        try (var input = file.getInputStream()) {
+            storage().storeAt(key, input, file.getSize(), contentType);
+        } catch (IOException failure) { throw new ImageStorageException("Upload could not be read"); }
+    }
+
     public void delete(String key) {
         if (key == null || !(key.startsWith("proofs/") || key.startsWith("occurrences/"))) {
             throw new ImageStorageException("Storage returned an invalid image key");

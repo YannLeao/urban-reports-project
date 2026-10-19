@@ -236,3 +236,7 @@ o nome acessível inclui a contagem completa, mesmo quando o badge mostra 99+.
 A central usa Card e estado textual Lida/Não lida, Button para leitura e paginação,
 Alert para falhas e Link para o relato. Não interpretar HTML das mensagens.
 A composição é coberta por NotificationsPage.test.tsx; não há novo componente base.
+
+### Coleção de fotografias
+
+`PhotoCollectionPicker` reutiliza Button/Alert e tokens existentes para contador, prévias, remoção e reordenação acessível. Primeira foto é capa. `OccurrenceGallery` mantém foto inteira, posição e botões anterior/próxima apenas quando há múltiplas. Cards/mapas mantêm composição e capa original, sem baixar coleção inteira. Não gera thumbnails. [Contrato](../multiple-photos.md).

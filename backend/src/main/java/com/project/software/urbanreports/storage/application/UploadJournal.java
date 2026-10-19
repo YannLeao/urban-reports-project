@@ -37,13 +37,19 @@ public class UploadJournal {
                 key, Timestamp.from(clock.instant()), Timestamp.from(clock.instant().plus(safetyDelay))));
     }
 
-    public <T> T link(String key, Supplier<T> creation) {
+    public <T> T link(String key, Supplier<T> creation) { return link(java.util.List.of(key), creation); }
+    public <T> T link(java.util.List<String> keys, Supplier<T> creation) { return link(keys, () -> {}, creation); }
+    public <T> T link(java.util.List<String> keys, Runnable authorize, Supplier<T> creation) {
         // execute returns after commit, including failures outside the callback.
         return transaction.execute(status -> {
+            authorize.run();
+            for (String key : keys.stream().sorted().toList()) {
             String state = jdbc.queryForObject(
                     "select state from image_upload_journal where image_key = ? for update", String.class, key);
             if (!"PENDING".equals(state)) throw new ImageStorageException("Upload intent is no longer writable");
+            }
             T result = creation.get();
+            for (String key : keys)
             jdbc.update("update image_upload_journal set state = 'LINKED', last_error = null where image_key = ?", key);
             return result;
         });
@@ -70,7 +76,7 @@ public class UploadJournal {
                     """, String.class, Timestamp.from(clock.instant()), batchSize);
             for (String key : keys) {
                 if (Boolean.TRUE.equals(jdbc.queryForObject(
-                        "select exists(select 1 from occurrences where image_key = ?)", Boolean.class, key))) {
+                        "select exists(select 1 from occurrence_media where object_key = ?)", Boolean.class, key))) {
                     jdbc.update("update image_upload_journal set state = 'LINKED', last_error = null where image_key = ?", key);
                     continue;
                 }
