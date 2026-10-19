@@ -13,6 +13,7 @@ vi.mock('../features/location/LocationMap', () => ({ LocationMap: () => null }))
 
 const person = { id: 'a50062d3-9ac2-4e70-86fa-eac5249f4d0c', name: 'Ana Silva', email: 'ana@example.com', role: 'USER' }
 const report = {
+  media: [{ id: 'b50062d3-9ac2-4e70-86fa-eac5249f4d0c', type: 'IMAGE' as const, mime: 'image/png' as const, sizeBytes: null, position: 0, endpoint: '/api/occurrences/example/media/example' }],
   id: '3e85aa3d-19e3-42a3-8861-c435ff5908af', categoryId: 1 as const,
   categoryName: 'Iluminação pública', title: 'Poste apagado na praça',
   description: 'A iluminação está apagada e dificulta a passagem à noite.',
@@ -132,7 +133,7 @@ function mockFlow(initial: Occurrence = { ...report, status: 'PENDING' }) {
     const path = String(url)
     if (path.endsWith('/api/auth/me')) return Response.json(person)
     if (path.endsWith('/occurrence-categories')) return Response.json([{ id: 1, name: 'Iluminação pública' }])
-    if (path.endsWith('/image')) return new Response('photo', { headers: { 'Content-Type': 'image/png' } })
+    if ((path.endsWith('/image') || path.includes('/media/'))) return new Response('photo', { headers: { 'Content-Type': 'image/png' } })
     if (options?.method === 'PUT') {
       const body = options.body as FormData
       current = { ...current, title: String(body.get('title')), description: String(body.get('description')), version: current.version + 1 }
@@ -150,7 +151,7 @@ test('private photo sends Bearer, remains outside query cache and releases URL o
   mockFlow()
   const view = renderPage(`/meus-relatos/${report.id}`)
   expect(await screen.findByRole('img', { name: `Foto do problema: ${report.title}` })).toHaveAttribute('src', 'blob:private-photo')
-  const photo = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/image'))!
+  const photo = fetchMock.mock.calls.find(([url]) => (String(url).endsWith('/image') || String(url).includes('/media/')))!
   expect(photo[1]).toMatchObject({ credentials: 'omit', headers: { Authorization: 'Bearer synthetic-token' } })
   expect(view.client.getQueryCache().findAll({ queryKey: ['private', person.id, 'occurrences'] })).toHaveLength(1)
   expect(view.client.getQueryCache().getAll().some(query => query.queryKey.includes('image'))).toBe(false)
@@ -227,7 +228,7 @@ test('session ending cancels late image and never creates its object URL', async
   mockFlow()
   let resolve!: (response: Response) => void
   const flow = fetchMock.getMockImplementation()!
-  fetchMock.mockImplementation((url, options) => String(url).endsWith('/image')
+  fetchMock.mockImplementation((url, options) => (String(url).endsWith('/image') || String(url).includes('/media/'))
     ? new Promise<Response>(done => { resolve = done }) : flow(url, options))
   renderPage(`/meus-relatos/${report.id}`)
   await screen.findByRole('heading', { name: report.title })
@@ -264,7 +265,7 @@ test('replacement selection uses ImagePicker and one PUT while upload controls s
   expect(screen.getByLabelText('Arquivo de imagem')).toBeDisabled()
   expect(screen.getByRole('button', { name: 'Cancelar edição' })).toBeDisabled()
   const put = fetchMock.mock.calls.find(([, options]) => options?.method === 'PUT')!
-  expect((put[1]?.body as FormData).get('image')).toMatchObject({ name: file.name, size: file.size, type: file.type })
+  expect((put[1]?.body as FormData).get('images')).toMatchObject({ name: file.name, size: file.size, type: file.type })
   await act(async () => resolve(Response.json({ ...report, version: 1 })))
   expect(await screen.findByRole('heading', { name: report.title })).toBeVisible()
 })

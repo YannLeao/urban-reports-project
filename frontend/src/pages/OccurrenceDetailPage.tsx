@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../features/auth/auth'
 import { PrivateRequestError } from '../lib/api'
-import { OccurrencePhoto } from '../features/occurrence/OccurrencePhoto'
+import { OccurrenceGallery } from '../features/occurrence/OccurrenceGallery'
 import { OccurrenceHistory } from '../features/occurrence/OccurrenceHistory'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { Alert } from '../components/ui/Feedback'
@@ -72,7 +72,7 @@ export function OccurrenceDetailPage() {
       {error && <Link className={`${buttonStyles('secondary')} mt-4`} to="/meus-relatos">Voltar para meus relatos</Link>}
       {report && <>
         <div className="mt-8 flex flex-wrap items-start justify-between gap-3"><div><p className="mb-2 text-small font-bold text-brand-default">Relato registrado</p><h1 id="detail-title" className="mb-0">{report.title}</h1></div><OccurrenceStatus status={report.status} /></div>
-        <OccurrencePhoto report={report} full />
+        <OccurrenceGallery report={report} />
         {latestChange && <p className="text-small text-text-secondary">Último andamento: {occurrenceStatusLabel(latestChange.newStatus)} · <time dateTime={latestChange.occurredAt}>{occurrenceDate(latestChange.occurredAt)}</time></p>}
         {rejection && <Alert tone="danger" className="my-5"><h2 className="text-title">Por que foi rejeitado?</h2><p className="whitespace-pre-wrap">{rejection.reason}</p></Alert>}
         <Card className="mt-6"><dl className="grid gap-5"><div><dt className="font-bold">Categoria</dt><dd className="m-0">{report.categoryName}</dd></div>{report.description && <div><dt className="font-bold">Detalhes</dt><dd className="m-0 whitespace-pre-wrap">{report.description}</dd></div>}<div><dt className="font-bold">Localização</dt><dd className="m-0">{report.neighborhood} · {report.reference}</dd></div><div><dt className="font-bold">Data do registro</dt><dd className="m-0">{occurrenceDate(report.createdAt)}</dd></div></dl></Card>

@@ -9,7 +9,7 @@ import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { buttonStyles } from '../components/ui/button-styles'
 import { PublicRequestError } from '../lib/api'
-import { PublicOccurrencePhoto } from '../features/occurrence/PublicOccurrencePhoto'
+import { OccurrenceGallery } from '../features/occurrence/OccurrenceGallery'
 import { usePublicOccurrence } from '../features/occurrence/usePublicOccurrences'
 import { occurrenceDate } from '../features/occurrence/occurrence'
 
@@ -38,7 +38,7 @@ export function PublicOccurrenceDetailPage() {
       {query.isError && <Link className={`${buttonStyles('secondary')} mt-4`} to={back}>Voltar para os relatos</Link>}
       {report && <>
         <div className="mt-8 flex flex-wrap items-start justify-between gap-3"><div><p className="mb-2 text-small font-bold text-brand-default">Relato registrado</p><h1 className="mb-0">{report.title}</h1></div><OccurrenceStatus status={report.status} /></div>
-        <PublicOccurrencePhoto key={report.id} report={report} full />
+        <OccurrenceGallery report={report} publicView />
         <Card className="mt-6"><dl className="grid gap-5">
           <div><dt className="font-bold">Categoria</dt><dd className="m-0">{report.categoryName}</dd></div>
           {report.description && <div><dt className="font-bold">Detalhes</dt><dd className="m-0 whitespace-pre-wrap">{report.description}</dd></div>}

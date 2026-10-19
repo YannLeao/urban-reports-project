@@ -5,6 +5,10 @@ import { completePair, locationFields } from '../location/point'
 export const occurrenceStatusSchema = z.enum(['PENDING', 'IN_ANALYSIS', 'RESOLVED', 'REJECTED'])
 export const occurrenceBaseSchema = z.object({
   ...locationFields,
+  media: z.array(z.object({
+    id: z.uuid(), type: z.literal('IMAGE'), mime: z.enum(['image/jpeg', 'image/png', 'image/webp']).nullable(),
+    sizeBytes: z.number().int().positive().nullable(), position: z.number().int().min(0).max(4), endpoint: z.string(),
+  })).min(1).max(5).optional(),
   id: z.uuid(),
   categoryId: categoryIdSchema,
   categoryName: z.string(),
