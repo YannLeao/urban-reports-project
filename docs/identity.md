@@ -9,7 +9,7 @@ papel textual USER e created_at/updated_at em timestamptz (Instant/UTC).
 O CHECK de e-mail exige ASCII imprimível sem espaços e lowercase. V8 amplia
 papéis para USER/ADMIN/SUPER_ADMIN e status de conta. Cidadãos existentes e novos
 continuam ACTIVE; só ADMIN pode aguardar ativação ou ser desativado. Hibernate
-permanece em validate. Provisionamento, token próprio de ativação, envio SMTP e
+permanece em validate. Provisionamento, token próprio de ativação, envio HTTPS Brevo e
 bootstrap estão no [guia administrativo](admin-provisioning.md). Não existe seed
 nem promoção pública. Recuperação de senha continua sendo uma integração futura.
 
@@ -127,6 +127,6 @@ Login/recuperação reutilizam conta, canonicalEmail e PasswordEncoder. Login,
 sem alterar V2 aplicada. Login não aplica o mínimo de senha de cadastro.
 O [guia para recuperação](password-recovery-integration.md) define lock da conta,
 troca de hash e revogação atômica. Recuperação ainda não tem rotas; os convites
-administrativos já usam SMTP conforme o guia de provisionamento.
+administrativos já usam Brevo HTTPS conforme o guia de provisionamento.
 O [ADR 0011](adr/0011-adotar-sessoes-jwt-revogaveis.md) atualiza CSRF e sessões;
 o ADR 0010 preserva o histórico do compromisso de exposição de conta no 409.

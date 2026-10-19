@@ -4,7 +4,10 @@ Cada transição válida de moderação cria exatamente uma notificação para o
 na mesma transação do estado e histórico. `event_id` único identifica a transição;
 conflitos, repetições e rollback não criam notificações adicionais. Rejeições
 incluem a explicação integral do ADMIN, renderizada como texto. Não há e-mail,
-push ou entrega em tempo real.
+push ou entrega em tempo real. A #50 disponibiliza o
+[transporte compartilhado Brevo](transactional-email.md), mas notificações externas
+da #42 ainda exigem implementação própria. Não reutilizar esta outbox como fila
+genérica de e-mail.
 
 ## Contrato HTTP
 

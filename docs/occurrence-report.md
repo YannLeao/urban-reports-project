@@ -115,7 +115,7 @@ docker compose up -d db
 Ajuste JAVA_HOME ao JDK 21 instalado. A página fica em
 http://localhost:5173/administracao/relatorio. R2 é necessário apenas para
 registrar/ver fotos reais no fluxo de criação; a leitura dos agregados não
-depende de storage, SMTP ou mapas. ADMIN já ativo não precisa de novo convite.
+depende de storage, envio de e-mail ou mapas. ADMIN já ativo não precisa de novo convite.
 
 1. Em banco local vazio, conferir total 0, média/percentual “Sem dados”, oito
    categorias e quatro estados zerados, tabela vazia.
@@ -142,7 +142,7 @@ restritas ao teste e respeitam constraints/imutabilidade existentes. Um teste
 com latches pausa a leitura após estabelecer o snapshot e confirma moderação
 concorrente antes de liberá-la, sem sleeps. Frontend usa fetch controlado,
 AuthProvider/Query/rotas reais. Navegação com API simulada comprova apresentação,
-não integração publicada, SMTP externo ou aceite remoto.
+não integração publicada, envio externo de e-mail ou aceite remoto.
 
 ```bash
 (cd backend && JAVA_HOME="$HOME/.jdks/ms-21.0.12.1" ./mvnw verify)
