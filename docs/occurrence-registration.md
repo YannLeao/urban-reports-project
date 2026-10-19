@@ -14,13 +14,12 @@ válida e `multipart/form-data`. A rota frontend é `/registrar-ocorrencia`.
 | neighborhood | 2–100 pontos de código |
 | reference | 5–200 pontos de código |
 | latitude / longitude | Par WGS84 obrigatório, confirmado no formulário; faixas [-90,90] / [-180,180] |
-| image | Um arquivo não vazio, segundo as regras abaixo |
+| images | 1–5 arquivos não vazios, partes repetidas na ordem da coleção; image legado singular aceito sem mistura |
 
 Campos textuais recebem trim externo ASCII (U+0009–U+000D e U+0020), sem mudar
 espaços internos. Java, TypeScript e `char_length` PostgreSQL contam pontos de
-código, inclusive emojis; NUL/UTF-16 inválido não são aceitos. Cada parte
-obrigatória deve ocorrer exatamente uma vez; description pode ser omitida, mas não repetida. Arquivos em outros campos,
-arquivos extras e image repetida são recusados, inclusive `filename=""`.
+código, inclusive emojis; NUL/UTF-16 inválido não são aceitos. Cada parte textual
+obrigatória deve ocorrer exatamente uma vez; description pode ser omitida, mas não repetida. Arquivos inesperados, a sexta foto, image repetida e mistura de aliases são recusados, inclusive arquivos vazios com `filename=""`.
 Nome vazio não transforma arquivo em campo textual. Campos textuais extras são
 ignorados; autoria/status forjados nunca alteram a persistência.
 
@@ -49,9 +48,9 @@ image explica resolução excessiva e a restrição a imagens estáticas.
 
 ## Transporte e erros
 
-`max-file-size=5242880B`, `max-request-size=6291456B` (6 MiB), deixando espaço
-para os campos e overhead de uma fotografia no limite. Tomcat descarta no máximo
-7 MiB de corpo rejeitado para entregar o erro perto do limite sem reset prematuro.
+`max-file-size=5242880B`, `max-request-size=27262976B` (26 MiB), deixando espaço
+para campos e overhead de cinco fotografias no limite. Tomcat descarta no máximo
+27 MiB de corpo rejeitado para entregar o erro perto do limite sem reset prematuro.
 Corpos arbitrariamente maiores podem ter a conexão encerrada; não há descarte
 ilimitado de dados. A aplicação não substitui limites do proxy de produção.
 
@@ -120,10 +119,9 @@ privada sai do formulário; dados/fotografia não são persistidos para recupera
 fica para melhoria posterior: perda da resposta pode ocorrer após commit;
 reenvio manual pode duplicar, mesmo com guarda contra cliques concorrentes.
 
-Handoff R07/R09/R10: reutilizar a key canônica e associação da ocorrência;
-preservar a leitura privada e o descarte coordenado descritos em
-[consulta](occurrence-query.md); sanitizar metadados antes da publicação R07. Não abrir leitura pública
-para justificar Location ou provar persistência.
+A leitura pública atual serve os originais inclusive EXIF, sem anonimização;
+sanitização é decisão pendente do mantenedor. Coleção, endpoints individuais,
+compatibilidade e roteiro: [múltiplas fotos](multiple-photos.md).
 
 Aceite completo de R05/R06 ainda requer evidência em MR/issue de SHA, pipeline,
 deployment/URLs reais, upload PostgreSQL/R2, restart preservando foto e ocorrência,
@@ -180,3 +178,5 @@ ou Registrar outro problema. UUID só serve ao contrato e à navegação interna
 O cadastro novo exige ponto confirmado e a edição permite ajustá-lo somente em
 Pendente. Migração V9 preserva legado sem ponto. Contrato completo, publicação
 frontend primeiro/API final depois e roteiro: [localização](occurrence-location.md).
+
+O DTO agora inclui `media` ordenado com IDs/metadados/endpoint; capa é posição zero. Contrato completo e publicação coordenada V13: [múltiplas fotos](multiple-photos.md).

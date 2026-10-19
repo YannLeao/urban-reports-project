@@ -1,5 +1,7 @@
 # Prova técnica de armazenamento de imagens
 
+O contrato de coleção de 1–5 fotografias, manifesto de edição e publicação coordenada está em [múltiplas fotos](multiple-photos.md).
+
 Este guia descreve a integração técnica com um bucket privado do Cloudflare R2. O registro autenticado de ocorrência usa a mesma abstração e grava a referência do objeto no PostgreSQL.
 
 A [prova de seleção e captura no frontend](image-selection-proof.md) em
@@ -77,8 +79,8 @@ dependências/imagens exigem rede quando não estão em cache. Docker é necess�
 
 ## Ocorrências
 
-`POST /api/occurrences` é autenticado e recebe os campos textuais e exatamente
-uma parte `image` em multipart. O serviço valida o conteúdo, grava a imagem em
+`POST /api/occurrences` é autenticado e recebe os campos textuais e de uma a cinco
+partes `images` em multipart (ou `image` legado singular, sem mistura). O serviço valida o conteúdo, grava as imagens em
 `occurrences/` e só então persiste a ocorrência `PENDING` com o `userId` da
 sessão. A key é registrada antes do PUT em journal durável e vinculada na mesma
 transação da ocorrência; veja recuperação abaixo. Falhas são recuperadas
@@ -87,20 +89,20 @@ eventualmente, sem garantia de remoção imediata.
 ## Limites deliberados
 
 Esta integração não implementa URL pública/assinada, transformação, moderação,
-remoção de EXIF ou uma rotina agendada de varredura de órfãos. A referência da
-imagem de ocorrência fica na própria tabela `occurrences`.
+remoção de EXIF ou uma rotina agendada de varredura de órfãos. As referências ordenadas ficam em `occurrence_media`; a primeira é a capa.
 
 A validação usa JPEG/PNG do JDK 21 e `imageio-webp` TwelveMonkeys 3.15.1
 (BSD-3-Clause, Java puro) para WebP. Não reencoda, recorta, gira nem remove EXIF.
-Antes da entrega pública R07, definir sanitização de metadados e autorização de
-leitura; o bucket privado e a decodificação não garantem anonimização. Consulte
+A leitura pública atual serve os bytes originais, inclusive EXIF. Sanitização
+de metadados segue pendente para decisão do mantenedor; bucket privado e
+decodificação não garantem anonimização. Consulte
 [ADR 0012](adr/0012-validar-conteudo-e-limites-de-imagens.md).
 
 ## Recuperação durável
 
 Novos uploads de ocorrência registram a key antes do PUT na V5. Validação ocorre
-antes da intenção; a intenção confirma em transação própria. Upload e associação
-mantêm lock no journal até commit, com custo de conexão aberta durante I/O.
+antes da intenção; a intenção confirma em transação própria. Uploads sequenciais e associação
+mantêm locks nas novas linhas de journal até commit, após lock de conta HTTP, com custo de conexão aberta durante I/O.
 201 exige commit confirmado. Em falha ou resultado incerto, o estado durável
 decide a recuperação; não há delete cego no catch.
 
@@ -126,7 +128,7 @@ objetos ligados e tombstones exigem política de retenção explícita.
 
 Para órfãos antigos, inventariar em modo read-only somente o prefixo autorizado
 `occurrences/`, exportando keys/datas (sem bytes ou URLs públicas). Comparar com
-`SELECT image_key FROM occurrences` e `SELECT image_key, state FROM
+`SELECT object_key FROM occurrence_media` e `SELECT image_key, state FROM
 image_upload_journal` no mesmo ambiente; marcar candidatos para revisão humana.
 Ausência de referência em uma fotografia pontual não autoriza exclusão: repetir
 após janela segura e confirmar escopo/atividade. Esta entrega não varre bucket,
@@ -139,7 +141,7 @@ comprovam comportamento remoto. Ver ADR 0013.
 
 ## Descarte de relatos
 
-Substituição/exclusão agenda a chave antiga como TOMBSTONE na mesma transação
+Remoção/substituição/exclusão agenda todas as chaves retiradas como TOMBSTONE na mesma transação
 que troca/remove a referência. O worker existente retoma após restart, com
 backoff e tentativas limitadas por lote; não depende de callback em memória.
 Vínculos só usam PENDING sob lock do journal; chaves não são reutilizadas.

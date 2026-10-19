@@ -21,10 +21,12 @@ GET /api/occurrences/{id}/image usa a mesma autorização antes de ler storage.
 Retorna JPEG/PNG/WebP validado, até 5 MiB, no-store e nosniff. Ausência do objeto
 retorna 404 IMAGE_NOT_FOUND; provedor indisponível/conteúdo inválido retorna 502.
 Leitura R2 é limitada a 5 MiB + 1 byte e fecha o stream. A fotografia não torna
-bucket público nem remove EXIF; publicação e sanitização pertencem a R07.
+bucket público nem remove EXIF; leitura pública já serve originais, inclusive EXIF; sanitização segue pendente.
 
 PUT /api/occurrences/{id} usa multipart com todos os campos textuais obrigatórios
-do [cadastro](occurrence-registration.md), description opcional e image opcional.
+do [cadastro](occurrence-registration.md), description opcional e coleção de mídias com manifesto opcional.
+PUT legado image só substitui coleção singular; ausência de mídia preserva todas.
+Consulte [manifesto e leitura individual](multiple-photos.md).
 Imagem omitida mantém a atual; arquivo vazio é inválido. Repetições e arquivos
 extras são recusados. Autor/status/createdAt são controlados pelo servidor.
 200 retorna DTO atualizado após commit; cada edição incrementa version.
@@ -103,3 +105,5 @@ retornam projeções de todos os pontos elegíveis, sem depender da paginação 
 com contagens integrais de legado. Detalhes mostram ponto individual/ausência,
 sem editar localização. Contrato, sobreposição, navegação, isolamento de cache e
 roteiro: [mapas nas consultas](occurrence-maps.md).
+
+Detalhes próprio/público/admin exibem galeria; cards e mapas baixam só capa. V13 retira image_key; recuperação reconhece todas as mídias. [Contrato e deploy](multiple-photos.md).

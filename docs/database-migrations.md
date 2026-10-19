@@ -118,3 +118,5 @@ constraints de estado/reserva e índices parciais de pendências/leases, mais
 AFTER INSERT na central captura somente novas inserções na mesma transação,
 sem backfill ou comparação de timestamp. Histórico/outbox/central anteriores
 não são alterados. [Operação, estados e corte](notification-email.md).
+
+A V13 migra fotografias para `occurrence_media` e retira `occurrences.image_key`. É obrigatória a parada coordenada de todas as instâncias/workers antigos antes da migração; publicar API nova antes do frontend. Não há rollback binário para backend antigo. [Procedimento e limites multipart](multiple-photos.md).
