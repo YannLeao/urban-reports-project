@@ -62,7 +62,7 @@ do logger são isoladas para não converter aceite em falha nem impedir persist�
 | --- | --- |
 | `event` | `email.send.dispatched` ou `email.send.completed` |
 | `send_id` | UUID aleatório novo por tentativa, sem relação com dados do domínio |
-| `operation` | `ADMIN_INVITATION`, `ADMIN_RESEND`, `GENERIC` |
+| `operation` | `ADMIN_INVITATION`, `ADMIN_RESEND`, `OCCURRENCE_NOTIFICATION`, `GENERIC` |
 | `provider` | `brevo` |
 | `outcome` | Só terminal: `ACCEPTED`, `FAILED`, `UNCERTAIN` (este último continua FAILED na API) |
 | `category` | Só falha: `CONFIGURATION`, `PERMANENT`, `TRANSIENT`, `UNCERTAIN`; regras anteriores preservadas |
@@ -99,6 +99,7 @@ exceção: `ConnectException` é `connect_failed`; EOF comprovável é
 | `accepted` | 201 com messageId textual não vazio; somente DEBUG |
 | `configuration_missing`, `configuration_invalid` | Validação local da configuração, sem valores |
 | `activation_link_preparation_failed` | Falha ao preparar/validar origem/link |
+| `notification_link_preparation_failed` | Falha ao preparar link privado de notificação; não é convite |
 | `serialization_failed` | Falha local ao serializar/compor requisição |
 | `dns_resolution_failed` | UnknownHostException identificada |
 | `connect_timeout`, `connect_failed` | HttpConnectTimeoutException, ConnectException respectivamente |
@@ -133,6 +134,27 @@ Exemplos fictícios de linhas terminais (metadados nativos omitidos por brevidad
 {"event":"email.send.completed","send_id":"00000000-0000-4000-8000-000000000003","operation":"GENERIC","provider":"brevo","outcome":"FAILED","category":"TRANSIENT","stage":"DISPATCH","reason":"tls_handshake_failed","duration_ms":84,"attempts":1}
 {"event":"email.send.completed","send_id":"00000000-0000-4000-8000-000000000004","operation":"ADMIN_RESEND","provider":"brevo","outcome":"ACCEPTED","stage":"RESPONSE_VALIDATION","reason":"accepted","http_status":201,"duration_ms":210,"attempts":1}
 ```
+
+## Consumidor de notificações externas
+
+A operação `OCCURRENCE_NOTIFICATION` inicia o contexto após confirmar a reserva
+e antes de resolver elegibilidade/preparar link. Inclui essa consulta curta no
+tempo da tentativa, mas não reserva ou persistência final do resultado. O
+`send_id` gerado aleatoriamente também fica na entrega para correlação privada;
+não é ID do evento/conta. `reservation_attempts` na fila é outro contador e não
+altera o `attempts` 0/1 do transporte. Supressão não anuncia tentativa de rede.
+
+Além dos terminais de transporte, o mesmo logger emite o evento operacional
+`notification.email.operational`, com `condition` em allowlist:
+`CONFIGURATION`, `DATABASE`, `RESULT_NOT_SAVED`, `OWNERSHIP_LOST`, `LEASE_EXPIRED`,
+`SCHEDULER`. `send_id` é opcional quando houver tentativa conhecida. Não há
+Throwable, texto externo, ID da entrega ou outro dado de domínio. Configuração
+imutável emite uma vez por processo; demais condições, no máximo uma vez por
+cinco minutos por condição/processo, mesmo em polling repetido. São eventos
+próprios, sem segunda conclusão do transporte. `RESULT_NOT_SAVED` após aceite
+não comprova ACCEPTED persistido: consultar estado e seguir
+[recuperação operacional](notification-email.md). Ciclos vazios/sucesso continuam
+silenciosos em WARN, sem resumo INFO. Falha de logger não muda envio/estado.
 
 ## Triagem por evidência
 

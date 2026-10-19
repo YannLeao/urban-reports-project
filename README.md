@@ -28,6 +28,8 @@ O [relatório administrativo](docs/occurrence-report.md) em `/administracao/rela
 oferece contagens globais, média de resolução e proporção de rejeitadas para ADMIN ativo.
 A [central de notificações](docs/notifications.md) em `/notificacoes` permite ao
 cidadão acompanhar transições e marcar avisos como lidos, com contador no sino.
+Novos avisos também capturam [intenções de e-mail](docs/notification-email.md)
+para o mesmo autor, com consumidor desligado por padrão e recuperação operacional.
 O registro autenticado em `/registrar-ocorrencia` integra categorias, fotografia,
 [localização confirmada](docs/occurrence-location.md) e persistência. Consulte o [contrato de ocorrência](docs/occurrence-registration.md):
 a implementação não comprova, por si só, o aceite publicado ou a captura física.

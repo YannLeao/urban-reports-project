@@ -3,9 +3,10 @@
 Convites administrativos de Alô Cidade usam
 `ActivationMailSender → TransactionalActivationMailSender → TransactionalEmailSender → BrevoEmailSender`.
 O pacote compartilhado `email/` não conhece conta, sessão, papel ou token.
-Não há novos endpoints, migrations, SDK, envio assíncrono ou fallback SMTP.
-#20 (recuperação) e #42 (notificações externas) ainda precisam de implementação;
-o transporte comum não as entrega. Ver [ADR 0022](adr/0022-enviar-email-transacional-via-brevo.md).
+O transporte não cria endpoints, migrations, SDK ou fallback SMTP. Convites
+permanecem síncronos; a #42 reutiliza a mesma interface em um
+[consumidor com intenção persistida](notification-email.md), com operação própria.
+#20 (recuperação) continua pendente. Ver [ADR 0022](adr/0022-enviar-email-transacional-via-brevo.md).
 
 ## Contrato, rede e dados sensíveis
 

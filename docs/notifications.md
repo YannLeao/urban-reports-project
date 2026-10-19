@@ -3,11 +3,11 @@
 Cada transição válida de moderação cria exatamente uma notificação para o autor
 na mesma transação do estado e histórico. `event_id` único identifica a transição;
 conflitos, repetições e rollback não criam notificações adicionais. Rejeições
-incluem a explicação integral do ADMIN, renderizada como texto. Não há e-mail,
-push ou entrega em tempo real. A #50 disponibiliza o
-[transporte compartilhado Brevo](transactional-email.md), mas notificações externas
-da #42 ainda exigem implementação própria. Não reutilizar esta outbox como fila
-genérica de e-mail.
+incluem a explicação integral do ADMIN, renderizada como texto. A V12 captura
+novos avisos para [entrega externa por e-mail](notification-email.md), usando
+Brevo e conteúdo genérico, para o mesmo destinatário. O consumo vem desligado
+por padrão; não há push ou entrega em tempo real. A outbox interna permanece
+intacta, separada da tabela de entregas externas.
 
 ## Contrato HTTP
 
@@ -32,7 +32,7 @@ V10 cria tabela e trigger AFTER INSERT no histórico. V11 materializa intençõe
 antigas pelo outbox, deduplicadas por event_id, indexa não lidas e compartilha
 o template em português entre recuperação e novas transições. Mensagens já
 criadas pela V10 são preservadas. Mantém o
-outbox e histórico intactos, sem worker ou limpeza automática. Em instalações
+outbox e histórico intactos, sem worker de materialização interna ou limpeza automática. Em instalações
 existentes, avisos históricos recuperados começam não lidos, com o horário do
 evento. Não fabrica eventos para relatos sem histórico. Ver [ADR 0021](adr/0021-materializar-notificacoes-internas.md).
 

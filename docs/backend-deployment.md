@@ -224,3 +224,15 @@ O [guia administrativo](admin-provisioning.md)
 define bootstrap interativo pela mesma imagem, sem servidor HTTP ou senha em CLI.
 Não executar bootstrap/deploy implicitamente. Preparar frontend para novos papéis
 antes de emiti-los; não há prova de execução remota nesta alteração.
+
+## Notificações externas
+
+Publicar V12/código com `NOTIFICATIONS_EMAIL_ENABLED=false` para capturar novas
+intenções sem enviar. Legado não recebe backfill. Depois configurar origem Vercel
+em `NOTIFICATIONS_FRONTEND_ORIGIN`, conferir Brevo/remetente/tracking e ativar
+consumo com reinício. Defaults: poll 60000 ms, lote 3, lease 60000 ms; deadline de
+rede 10000 ms. [Guia completo](notification-email.md) contém faixas, estados,
+comandos da CLI privada, recuperação e roteiro Render. Não há retry automático;
+leases abandonadas tornam-se UNCERTAIN. A CLI roda fora do serviço web e não
+executa Flyway. Plano Render deve ser conferido; suspensão pausa o scheduler,
+mantendo intenções no Neon, sem promessa de prazo ou necessidade de keep-alive.
