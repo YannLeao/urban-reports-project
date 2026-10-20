@@ -30,6 +30,41 @@ test.each([
   else {
     expect(screen.getByRole('link', { name: /^Notificações/ })).toHaveAttribute('href', '/notificacoes')
   }
+  const main = within(screen.getByRole('main'))
+  if (role === 'SUPER_ADMIN') {
+    expect(main.getAllByRole('button')).toHaveLength(1)
+    expect(main.getByRole('button', { name: 'Sair' })).toBeVisible()
+    expect(main.queryAllByRole('link')).toHaveLength(0)
+    expect(nav.getByRole('link', { name: 'Administradores' })).toHaveAttribute('href', '/administracao/contas')
+  } else {
+    expect(main.getByRole('link', { name: 'Ver no mapa' })).toHaveAttribute('href', '/ocorrencias?visao=mapa')
+    if (role === 'ADMIN') expect(main.getByRole('link', { name: 'Abrir moderação' })).toHaveAttribute('href', '/administracao/relatos')
+  }
+})
+
+test.each([
+  ['USER', ['Notificações', 'Registrar problema', 'Meus relatos']],
+  ['ADMIN', ['Moderar relatos']],
+  ['SUPER_ADMIN', []],
+] as const)('account preserves data and exact shortcuts for %s', async (role, shortcuts) => {
+  mount('/minha-conta', role)
+  await screen.findByRole('heading', { name: 'Minha conta' })
+  const main = within(screen.getByRole('main'))
+  expect(main.getByText(user.name)).toBeVisible()
+  expect(main.getByText(user.email)).toBeVisible()
+  expect(main.getByRole('button', { name: 'Sair' })).toBeVisible()
+  expect(main.getAllByRole('term').map(item => item.textContent)).toEqual(['Nome', 'E-mail'])
+  expect(main.queryAllByRole('link').map(item => item.textContent)).toEqual(shortcuts)
+})
+
+test('SUPER_ADMIN reaches management and account through the navbar', async () => {
+  mount('/', 'SUPER_ADMIN')
+  const nav = within(screen.getByRole('navigation', { name: 'Navegação principal' }))
+  await userEvent.click(await nav.findByRole('link', { name: 'Administradores' }))
+  expect(await screen.findByRole('heading', { name: 'Administradores' })).toBeVisible()
+  await userEvent.click(nav.getByRole('link', { name: 'Conta' }))
+  expect(await screen.findByRole('heading', { name: 'Minha conta' })).toBeVisible()
+  expect(screen.queryByRole('link', { name: 'Gerenciar administradores' })).toBeNull()
 })
 test('visitor reporting intent survives login and uses the guarded registration route', async () => {
   mount()

@@ -1,36 +1,22 @@
-import { useRef, useState } from 'react'
 import { useAuth } from '../features/auth/auth'
-import { Button } from '../components/ui/Button'
-import { Alert } from '../components/ui/Feedback'
+import { LogoutActions } from '../features/auth/LogoutActions'
 import { Link } from 'react-router'
 import { buttonStyles } from '../components/ui/button-styles'
 
 export function AccountPage() {
   const auth = useAuth()
-  const [pending, setPending] = useState(false)
-  const [error, setError] = useState('')
-  const summary = useRef<HTMLDivElement>(null)
   if (auth.state.status !== 'authenticated') return null
-  async function logout() {
-    setPending(true); setError('')
-    try { await auth.logout() }
-    catch {
-      setError('Não foi possível confirmar o encerramento da sessão. Tente sair novamente.')
-      requestAnimationFrame(() => summary.current?.focus())
-    } finally { setPending(false) }
-  }
-  return <section className="py-8" aria-labelledby="account-title">
+  return <section className="min-w-0 py-8" aria-labelledby="account-title">
     <h1 id="account-title">Minha conta</h1>
-    <dl className="grid gap-2"><dt className="font-bold">Nome</dt><dd className="m-0">{auth.state.user.name}</dd>
-      <dt className="font-bold">E-mail</dt><dd className="m-0">{auth.state.user.email}</dd></dl>
-    <div className="mt-6 flex flex-wrap gap-3">
-      {auth.state.user.role === 'USER' && <Link className={buttonStyles('secondary')} to="/notificacoes">Notificações</Link>}
-      {auth.state.user.role === 'USER' && <><Link className={buttonStyles()} to="/registrar-ocorrencia">Registrar problema</Link>
-      <Link className={buttonStyles('secondary')} to="/meus-relatos">Meus relatos</Link></>}
-      {auth.state.user.role === 'ADMIN' && <Link className={buttonStyles()} to="/administracao/relatos">Moderar relatos</Link>}
-      {auth.state.user.role === 'SUPER_ADMIN' && <Link className={buttonStyles()} to="/administracao/contas">Gerenciar administradores</Link>}
+    <dl className="grid min-w-0 gap-2 wrap-anywhere"><dt className="font-bold">Nome</dt><dd className="m-0 min-w-0">{auth.state.user.name}</dd>
+      <dt className="font-bold">E-mail</dt><dd className="m-0 min-w-0">{auth.state.user.email}</dd></dl>
+    <div className="mt-6">
+      <LogoutActions>
+        {auth.state.user.role === 'USER' && <Link className={buttonStyles('secondary', 'w-full sm:w-auto')} to="/notificacoes">Notificações</Link>}
+        {auth.state.user.role === 'USER' && <><Link className={buttonStyles('primary', 'w-full sm:w-auto')} to="/registrar-ocorrencia">Registrar problema</Link>
+        <Link className={buttonStyles('secondary', 'w-full sm:w-auto')} to="/meus-relatos">Meus relatos</Link></>}
+        {auth.state.user.role === 'ADMIN' && <Link className={buttonStyles('primary', 'w-full sm:w-auto')} to="/administracao/relatos">Moderar relatos</Link>}
+      </LogoutActions>
     </div>
-    {error && <Alert tone="danger" role="alert" ref={summary} tabIndex={-1}>{error}</Alert>}
-    <Button className="mt-6" loading={pending} onClick={() => { void logout() }}>{pending ? 'Saindo…' : 'Sair'}</Button>
   </section>
 }
