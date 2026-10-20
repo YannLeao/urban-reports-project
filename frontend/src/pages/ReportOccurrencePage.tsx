@@ -11,7 +11,7 @@ import { Alert } from '../components/ui/Feedback'
 import { Button } from '../components/ui/Button'
 import { OccurrenceStatus } from '../features/occurrence/OccurrenceStatus'
 import { Input, Select, Textarea } from '../components/ui/Field'
-import { PhotoCollectionPicker } from '../features/image/PhotoCollectionPicker'
+import { MediaPicker, VIDEO_HELP } from '../features/image/MediaPicker'
 import { appendPhotoDraft, type PhotoDraft } from '../features/image/photo-draft'
 import { validateImageFile } from '../features/image/image-file'
 import { useAuth } from '../features/auth/auth'
@@ -42,6 +42,7 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
   const [neighborhood, setNeighborhood] = useState(existing?.neighborhood ?? '')
   const [reference, setReference] = useState(existing?.reference ?? '')
   const [location, setLocation] = useState<GeographicPoint | null>(existing?.latitude != null && existing.longitude != null ? { latitude: existing.latitude, longitude: existing.longitude } : null)
+  const [mode, setMode] = useState<'IMAGE' | 'VIDEO'>(existing?.media?.[0]?.type ?? 'IMAGE')
   const [photos, setPhotos] = useState<PhotoDraft[]>(() => existing?.media?.map(item => ({ key: item.id, id: item.id })) ?? [])
   const [errors, setErrors] = useState<Errors>({})
   const [notice, setNotice] = useState<string | null>(null)
@@ -78,8 +79,8 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
     if (!validOccurrenceText(neighborhood, 2, 100)) next.neighborhood = 'Use entre 2 e 100 caracteres.'
     if (!validOccurrenceText(reference, 5, 200)) next.reference = 'Use entre 5 e 200 caracteres.'
     if (!existing && !location) next.location = 'Confirme o local real do problema.'
-    if (photos.length < 1 || photos.length > 5) next.image = 'Escolha de 1 a 5 fotos.'
-    for (const item of photos) if (item.file) {
+    if (photos.length < 1 || photos.length > (mode === 'VIDEO' ? 1 : 5)) next.image = mode === 'VIDEO' ? 'Escolha um vídeo.' : 'Escolha de 1 a 5 fotos.'
+    for (const item of photos) if (item.file && mode === 'IMAGE') {
       const reason = validateImageFile(item.file)
       if (reason) next.image = reason
     }
@@ -103,7 +104,7 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
     body.append('neighborhood', cleanOccurrenceText(neighborhood))
     body.append('reference', cleanOccurrenceText(reference))
     if (location) { body.append('latitude', location.latitude.toString()); body.append('longitude', location.longitude.toString()) }
-    appendPhotoDraft(body, photos, !!existing)
+    appendPhotoDraft(body, photos, !!existing, mode)
     try {
       const response = await request(existing ? `/api/occurrences/${existing.id}` : '/api/occurrences', existing ? 'PUT' : 'POST', undefined, body, existing ? { 'If-Match': `"${existing.version}"` } : undefined)
       if (response.status !== (existing ? 200 : 201)) throw new Error('Unconfirmed response')
@@ -135,14 +136,16 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
           else if (key === 'description') mapped.description = 'Use no máximo 1000 caracteres.'
           else if (key === 'neighborhood') mapped.neighborhood = 'Use entre 2 e 100 caracteres.'
           else if (key === 'reference') mapped.reference = 'Use entre 5 e 200 caracteres.'
-          else if (['image', 'images', 'media'].includes(key)) mapped.image = 'Escolha uma foto estática JPEG, PNG ou WebP de até 5 MiB, com lados até 8192 pixels e até 25 milhões de pixels. A imagem deve estar completa e legível.'
+          else if (['image', 'images', 'media'].includes(key)) mapped.image = mode === 'VIDEO' ? VIDEO_HELP : 'Escolha uma foto estática JPEG, PNG ou WebP de até 5 MiB, com lados até 8192 pixels e até 25 milhões de pixels. A imagem deve estar completa e legível.'
         }
-        if (error.status === 412 || error.status === 428) setNotice('Este relato mudou. Atualize a página antes de continuar.')
+        if (error.code === 'INVALID_VIDEO') setNotice(VIDEO_HELP + ' O arquivo deve estar completo e legível.')
+        else if (error.code === 'VIDEO_VALIDATION_BUSY' || error.code === 'VIDEO_VALIDATION_UNAVAILABLE' || error.code === 'MEDIA_BUSY') setNotice('O serviço de mídia está indisponível ou ocupado. Seu rascunho foi mantido; tente novamente mais tarde.')
+        else if (error.status === 412 || error.status === 428) setNotice('Este relato mudou. Atualize a página antes de continuar.')
         else if (error.status === 409) setNotice('Este relato não pode mais ser alterado.')
         else if (error.status === 401) setNotice('Sua sessão terminou. Entre novamente para enviar o relato.')
-        else if (error.status === 413 || error.code === 'IMAGE_TOO_LARGE') setNotice('O envio excedeu o limite. Use até 5 fotos de 5 MiB cada, em até 26 MiB por requisição.')
+        else if (error.status === 413 || error.code === 'IMAGE_TOO_LARGE') setNotice('O envio excedeu o limite. Use até 5 fotos de 5 MiB cada ou um vídeo de 25 MiB, em até 26 MiB por requisição.')
         else if (error.code === 'IMAGE_STORAGE_UNAVAILABLE') setNotice('O serviço de fotos está indisponível. Seus dados foram mantidos; tente novamente mais tarde.')
-        else if (error.status === 400) setNotice('Não foi possível enviar. Confira os campos e a fotografia antes de tentar novamente.')
+        else if (error.status === 400) setNotice('Não foi possível enviar. Confira os campos e as fotos ou o vídeo antes de tentar novamente.')
         else setNotice(existing ? 'Não foi possível confirmar a edição. Consulte o relato novamente antes de tentar outra vez.' : 'O serviço não confirmou o registro. Seus dados foram mantidos. Tentar novamente pode criar um relato duplicado.')
       } else setNotice(existing ? 'Não foi possível confirmar a edição. Consulte o relato novamente antes de tentar outra vez.' : 'Não foi possível confirmar o registro. Confira sua conexão. Seus dados foram mantidos; reenviar pode criar um relato duplicado.')
       setErrors(mapped)
@@ -168,8 +171,8 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
       <div className="mt-6">
         <form ref={form} aria-busy={pending} className="grid min-w-0 gap-5" onSubmit={event => { void submit(event) }} noValidate>
           <section aria-labelledby="photo-title" className={errors.image ? 'rounded-control border border-feedback-danger-foreground p-3' : ''}>
-            <h2 id="photo-title" className="mb-2 text-title">1. Mostre o problema</h2><p className="text-small text-text-secondary">De uma a cinco fotos. A primeira é a capa.</p>
-            <PhotoCollectionPicker errorId={errors.image ? "report-photo-error" : undefined} value={photos} onChange={setPhotos} existing={existing} disabled={pending} onValidationChange={busy => {
+            <h2 id="photo-title" className="mb-2 text-title">1. Mostre o problema</h2><p className="text-small text-text-secondary">De uma a cinco fotos ou um vídeo.</p>
+            <MediaPicker mode={mode} onMode={setMode} errorId={errors.image ? "report-photo-error" : undefined} value={photos} onChange={setPhotos} existing={existing} disabled={pending} onValidationChange={busy => {
               validatingImage.current = busy
               setImageBusy(busy)
             }} />
@@ -188,7 +191,7 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
             {categories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
           </Select>
           <Input label="Título" value={title} error={errors.title} disabled={pending} onChange={event => setTitle(event.target.value)} />
-          <Textarea label="Detalhes (opcional)" description={`Se quiser, conte algo que a foto não mostra. ${Array.from(cleanOccurrenceText(description)).length}/1000`} value={description} error={errors.description} disabled={pending} onChange={event => setDescription(event.target.value)} />
+          <Textarea label="Detalhes (opcional)" description={`Se quiser, conte algo que as fotos ou o vídeo não mostram. ${Array.from(cleanOccurrenceText(description)).length}/1000`} value={description} error={errors.description} disabled={pending} onChange={event => setDescription(event.target.value)} />
           </section>
           <Button type="submit" loading={pending} disabled={loadingCategories || imageBusy || pending}>{pending ? 'Enviando…' : existing ? 'Salvar relato' : 'Enviar relato'}</Button>
           {existing && (pending ? <Button variant="quiet" disabled>Cancelar edição</Button> : <Link className={buttonStyles('quiet')} to={`/meus-relatos/${existing.id}`} state={{ from }}>Cancelar edição</Link>)}

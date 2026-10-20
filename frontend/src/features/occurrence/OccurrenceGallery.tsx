@@ -1,3 +1,4 @@
+import { OccurrenceVideo } from './OccurrenceVideo'
 import { useState } from 'react'
 import { Button } from '../../components/ui/Button'
 import type { Occurrence } from './occurrence'
@@ -8,6 +9,7 @@ import { PublicOccurrencePhoto } from './PublicOccurrencePhoto'
 export function OccurrenceGallery({ report, administrative = false, publicView = false }: {
   report: Occurrence | PublicOccurrence; administrative?: boolean; publicView?: boolean
 }) {
+  if (report.media?.[0]?.type === 'VIDEO') return <OccurrenceVideo report={report} administrative={administrative} publicView={publicView} />
   // Key the state to the collection to avoid carrying a position into another report/version.
   return <Gallery key={`${report.id}/${report.media?.map(item => item.id).join('/')}`} report={report} administrative={administrative} publicView={publicView} />
 }

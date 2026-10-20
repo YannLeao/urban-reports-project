@@ -1,8 +1,13 @@
+import { VideoPlaceholder } from './VideoPlaceholder'
 import { useState } from 'react'
 import { getApiUrl } from '../../lib/api'
 import type { PublicOccurrence } from './public-occurrence'
 
 export function PublicOccurrencePhoto({ report, full = false, thumbnail = false, flush = false, mediaId }: { report: PublicOccurrence; full?: boolean; thumbnail?: boolean; flush?: boolean; mediaId?: string }) {
+  if (report.media?.[0]?.type === 'VIDEO') return <VideoPlaceholder compact={thumbnail} flush={flush} duration={report.media[0].durationSeconds} />
+  return <Photo report={report} full={full} thumbnail={thumbnail} flush={flush} mediaId={mediaId} />
+}
+function Photo({ report, full = false, thumbnail = false, flush = false, mediaId }: { report: PublicOccurrence; full?: boolean; thumbnail?: boolean; flush?: boolean; mediaId?: string }) {
   const [failed, setFailed] = useState(false)
   let src: string | null = null
   try { src = `${getApiUrl()}/api/public/occurrences/${report.id}/${mediaId ? `media/${mediaId}` : "image"}` } catch { src = null }
