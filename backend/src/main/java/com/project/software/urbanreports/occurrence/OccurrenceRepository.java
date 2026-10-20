@@ -5,7 +5,13 @@ import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.domain.Sort;
 
-public interface OccurrenceRepository extends JpaRepository<Occurrence, UUID> {
+public interface OccurrenceRepository extends JpaRepository<Occurrence, UUID>, org.springframework.data.jpa.repository.JpaSpecificationExecutor<Occurrence> {
+    @Override
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = "category")
+    org.springframework.data.domain.Page<Occurrence> findAll(org.springframework.data.jpa.domain.Specification<Occurrence> spec, org.springframework.data.domain.Pageable page);
+    @Override
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = "category")
+    List<Occurrence> findAll(org.springframework.data.jpa.domain.Specification<Occurrence> spec, Sort sort);
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @org.springframework.data.jpa.repository.Query("select o from Occurrence o where o.id = :id")
     java.util.Optional<Occurrence> lockById(UUID id);

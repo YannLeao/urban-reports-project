@@ -115,9 +115,12 @@ public class OccurrenceService {
     }
 
     @Transactional(readOnly = true)
-    public List<OccurrenceResponse> findByAuthorId(UUID authorId) {
+    public List<OccurrenceResponse> findByAuthorId(UUID authorId) { return findByAuthorId(authorId, OccurrenceFilters.empty()); }
+
+    @Transactional(readOnly = true)
+    public List<OccurrenceResponse> findByAuthorId(UUID authorId, OccurrenceFilters filters) {
         Sort sort = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
-        return occurrences.findByAuthorId(authorId, sort).stream().map(OccurrenceResponse::from).toList();
+        return occurrences.findAll(filters.specification(OccurrenceFilters.Context.OWN, authorId), sort).stream().map(OccurrenceResponse::from).toList();
     }
 
     @Transactional(readOnly = true)

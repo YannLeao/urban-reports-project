@@ -16,6 +16,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 @Transactional(propagation = Propagation.NEVER)
 public class ModerationService {
+    private final OccurrenceFilterParser filters;
     private final OccurrenceRepository occurrences;
     private final AccountAccess access;
     private final JdbcTemplate jdbc;
@@ -23,18 +24,22 @@ public class ModerationService {
     private final Clock clock;
     private final TransactionTemplate transaction;
     public ModerationService(OccurrenceRepository occurrences, AccountAccess access, JdbcTemplate jdbc,
-            ImageStorageService images, Clock clock, PlatformTransactionManager manager) {
+            ImageStorageService images, Clock clock, PlatformTransactionManager manager, OccurrenceFilterParser filters) {
         this.occurrences = occurrences; this.access = access; this.jdbc = jdbc; this.images = images;
-        this.clock = clock; this.transaction = new TransactionTemplate(manager);
+        this.filters = filters; this.clock = clock; this.transaction = new TransactionTemplate(manager);
     }
     public record Event(UUID id, OccurrenceStatus previousStatus, OccurrenceStatus newStatus, Instant occurredAt, String reason, String responsible) {}
     public record Detail(OccurrenceResponse report, List<Event> history) {}
     public record Queue(List<OccurrenceResponse> items, int page, int size, long totalItems, int totalPages) {}
     public Queue list(AuthenticatedIdentity actor, int page, int size) {
+        return list(actor, page, size, new org.springframework.util.LinkedMultiValueMap<>());
+    }
+    public Queue list(AuthenticatedIdentity actor, int page, int size, org.springframework.util.MultiValueMap<String, String> params) {
         return transaction.execute(status -> {
             access.lock(actor, AccountRole.ADMIN);
             AdminProvisioningService.checkPage(page, size);
-            var result = occurrences.findByStatusIn(List.of(OccurrenceStatus.PENDING, OccurrenceStatus.IN_ANALYSIS),
+            var criteria = filters.parse(params, OccurrenceFilters.Context.ADMIN);
+            var result = occurrences.findAll(criteria.specification(OccurrenceFilters.Context.ADMIN, null),
                     PageRequest.of(page, size, Sort.by("createdAt", "id")));
             return new Queue(result.map(OccurrenceResponse::administrative).getContent(), page, size, result.getTotalElements(), result.getTotalPages());
         });

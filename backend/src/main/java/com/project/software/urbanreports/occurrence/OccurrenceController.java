@@ -21,24 +21,33 @@ import org.springframework.data.domain.Sort;
 @RestController
 @RequestMapping("/api")
 public class OccurrenceController {
+    private final OccurrenceFilterParser filters;
     private final OccurrenceCategoryRepository categories;
     private final OccurrenceService service;
 
-    public OccurrenceController(OccurrenceCategoryRepository categories, OccurrenceService service) {
+    public OccurrenceController(OccurrenceCategoryRepository categories, OccurrenceService service, OccurrenceFilterParser filters) {
         this.categories = categories;
-        this.service = service;
+        this.service = service; this.filters = filters;
     }
 
-    @GetMapping("/occurrence-categories")
+    @GetMapping({"/occurrence-categories", "/public/occurrence-categories"})
     public List<OccurrenceCategoryResponse> categories() {
         return categories.findAll(Sort.by(Sort.Direction.ASC, "id")).stream()
             .map(category -> new OccurrenceCategoryResponse(category.getId(), category.getName())).toList();
     }
 
+    @io.swagger.v3.oas.annotations.Operation(summary = "Consultar relatos com filtros de categoria e estado",
+        description = "Filtros opcionais combinados por AND antes de contagem/paginação. Valores vazios, repetidos, categoria inexistente ou estado não permitido retornam 400 sanitizado. Marcadores incluem todo o universo filtrado, inclusive legado sem ponto nas contagens.")
+    @io.swagger.v3.oas.annotations.Parameters({
+        @io.swagger.v3.oas.annotations.Parameter(name = "categoryId", in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
+            description = "ID existente do catálogo; ausência inclui todas as categorias", schema = @io.swagger.v3.oas.annotations.media.Schema(type = "integer")),
+        @io.swagger.v3.oas.annotations.Parameter(name = "status", in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
+            description = "Estado exato: PENDING, IN_ANALYSIS, RESOLVED, REJECTED; ausência inclui todos os estados permitidos", schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string"))
+    })
     @GetMapping("/occurrences")
-    public ResponseEntity<List<OccurrenceResponse>> mine(@AuthenticationPrincipal AuthenticatedIdentity identity) {
+    public ResponseEntity<List<OccurrenceResponse>> mine(@AuthenticationPrincipal AuthenticatedIdentity identity, @io.swagger.v3.oas.annotations.Parameter(hidden = true) @RequestParam org.springframework.util.MultiValueMap<String, String> params) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
-                .body(service.findByAuthorId(identity.userId()));
+                .body(service.findByAuthorId(identity.userId(), filters.parse(params, OccurrenceFilters.Context.OWN)));
     }
 
     @GetMapping("/occurrences/{id}")

@@ -23,13 +23,16 @@ public class PublicOccurrenceService {
     }
 
     @Transactional(readOnly = true)
-    public PublicOccurrencePage list(int page, int size) {
+    public PublicOccurrencePage list(int page, int size) { return list(page, size, OccurrenceFilters.empty()); }
+
+    @Transactional(readOnly = true)
+    public PublicOccurrencePage list(int page, int size, OccurrenceFilters filters) {
         Map<String, List<String>> fields = new LinkedHashMap<>();
         if (page < 0) fields.put("page", List.of("Page must be zero or greater"));
         if (size < 1 || size > MAX_SIZE) fields.put("size", List.of("Size must be between 1 and " + MAX_SIZE));
         if (!fields.isEmpty()) throw new OccurrenceValidationException(fields);
         var sort = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
-        var result = occurrences.findByStatusNot(OccurrenceStatus.REJECTED, PageRequest.of(page, size, sort));
+        var result = occurrences.findAll(filters.specification(OccurrenceFilters.Context.PUBLIC, null), PageRequest.of(page, size, sort));
         return new PublicOccurrencePage(
                 result.getContent().stream().map(PublicOccurrenceResponse::from).toList(),
                 result.getNumber(), result.getSize(), result.getTotalElements(), result.getTotalPages());
