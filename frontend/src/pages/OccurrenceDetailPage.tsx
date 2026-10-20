@@ -1,6 +1,6 @@
 import { OccurrenceStatus } from '../features/occurrence/OccurrenceStatus'
 import { OccurrenceLocation } from '../features/occurrence/OccurrenceLocation'
-import { queryReturn } from '../features/occurrence/map-navigation'
+import { queryMap, queryReturn } from '../features/occurrence/map-navigation'
 import { Dialog } from '../components/ui/Dialog'
 import { useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -50,8 +50,8 @@ export function OccurrenceDetailPage() {
       const returnParams = new URLSearchParams(from.split('?')[1]); returnParams.delete('selecionado')
       const returnPath = `/meus-relatos${returnParams.size ? `?${returnParams}` : ''}`
       navigate(returnPath, { replace: true, state: { deleted: true, deletedId: report.id } })
-      client.removeQueries({ queryKey: [...prefix, report.id], exact: true })
-      void client.invalidateQueries({ queryKey: prefix, exact: true })
+      client.removeQueries({ queryKey: [...prefix, 'detail', report.id], exact: true })
+      void client.invalidateQueries({ queryKey: prefix })
       void client.invalidateQueries({ queryKey: [...prefix, 'markers'] })
       void client.invalidateQueries({ queryKey: ['public', 'occurrences'] })
     } catch (error) {
@@ -83,7 +83,7 @@ export function OccurrenceDetailPage() {
         </div>}
         <OccurrenceHistory events={report.history ?? []} />
         <OccurrenceLocation report={report} />
-        <Link className={buttonStyles('quiet')} to={from.includes('visao=mapa') ? from : '/meus-relatos?visao=mapa'}>Ver mapa dos meus relatos</Link>
+        <Link className={buttonStyles('quiet')} to={queryMap(from, true)}>Ver mapa dos meus relatos</Link>
         <Dialog ref={dialog} aria-labelledby="delete-title" onClose={() => trigger.current?.focus()} onCancel={event => { if (pending) event.preventDefault() }} className="m-auto max-w-reading rounded-card border border-border-control bg-surface-raised p-6 text-text-primary backdrop:bg-text-primary/50">
           <h2 id="delete-title">Excluir relato</h2><p>{report.title}</p><p>Esta ação não pode ser desfeita.</p>
           <div className="flex flex-wrap gap-3">

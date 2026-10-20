@@ -20,7 +20,7 @@ const publicCalls = () => fetchMock.mock.calls.filter(([url]) => String(url).inc
 beforeEach(() => {
   sessionStorage.clear()
   fetchMock.mockReset()
-  vi.stubGlobal('fetch', fetchMock)
+  vi.stubGlobal('fetch', (url: Parameters<typeof fetch>[0], init?: RequestInit) => String(url).endsWith('/api/public/occurrence-categories') ? Promise.resolve(Response.json([{ id: 1, name: 'Iluminação pública' }, { id: 2, name: 'Buraco ou pavimentação' }])) : fetchMock(url, init))
   vi.stubEnv('VITE_API_URL', 'https://api.example.com')
 })
 function renderPage(path: string) {
@@ -33,7 +33,7 @@ test('lista pública carrega sem credenciais e liga ao detalhe', async () => {
   renderPage('/ocorrencias')
   expect(await screen.findByRole('heading', { name: item.title })).toBeVisible()
   expect(screen.getByText('Centro')).toBeVisible()
-  expect(screen.getByText('Pendente')).toBeVisible()
+  expect(screen.getByText('Pendente', { selector: 'span' })).toBeVisible()
   expect(screen.getByRole('link', { name: item.title })).toHaveAttribute('href', `/ocorrencias/${item.id}`)
   const [url, options] = publicCalls()[0]
   expect(String(url)).toBe('https://api.example.com/api/public/occurrences?page=0&size=20')

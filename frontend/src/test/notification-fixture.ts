@@ -2,6 +2,9 @@
 // by auth/report tests. The real bell and central are exercised together in NotificationsPage.test.tsx.
 export function withEmptyNotifications(fetchForFeature: typeof fetch): typeof fetch {
   return (input, init) => {
+    if (String(input).endsWith('/api/public/occurrence-categories')) {
+      return Promise.resolve(Response.json([{ id: 1, name: 'Iluminação pública' }, { id: 2, name: 'Buraco ou pavimentação' }]))
+    }
     if (new URL(String(input)).pathname === '/api/notifications') {
       return Promise.resolve(Response.json({ items: [], page: 0, size: 20, totalItems: 0, totalPages: 0, unreadCount: 0 }))
     }

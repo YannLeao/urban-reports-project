@@ -85,7 +85,7 @@ export class PrivateRequestError extends Error {
 
 // Relative API paths only. Redirects must never forward a credential to another endpoint.
 export async function privateRequest(path: string, token: string, signal: AbortSignal, method = 'GET', body?: BodyInit, headers?: Record<string, string>) {
-  if (!/^\/api\/[a-zA-Z0-9/_-]+(\?(?:page|size)=[0-9]+(?:&(?:page|size)=[0-9]+)*)?$/.test(path)) throw new Error('Caminho privado inválido.')
+  if (!validPrivatePath(path)) throw new Error('Caminho privado inválido.')
   const response = await fetch(`${getApiUrl()}${path}`, {
     method, signal, credentials: 'omit', redirect: 'error',
     headers: { ...headers, Authorization: `Bearer ${token}`, ...(!body && method === 'POST' ? { 'Content-Type': 'application/json' } : {}) },
@@ -110,8 +110,25 @@ export class PublicRequestError extends Error {
 
 // Leituras públicas: sem credenciais e sem seguir redirecionamentos.
 export async function publicRequest(path: string, signal: AbortSignal) {
-  if (!/^\/api\/public\/[a-zA-Z0-9/_-]+(\?[a-zA-Z0-9=&]+)?$/.test(path)) throw new Error('Caminho público inválido.')
+  if (!/^\/api\/public\/[a-zA-Z0-9/_-]+(\?[a-zA-Z0-9_=&]+)?$/.test(path)) throw new Error('Caminho público inválido.')
   const response = await fetch(`${getApiUrl()}${path}`, { signal, credentials: 'omit', redirect: 'error' })
   if (!response.ok) throw new PublicRequestError(response.status)
   return response
+}
+
+export function validPrivatePath(path: string) {
+  const [pathname, raw, ...extra] = path.split('?')
+  if (extra.length || !/^\/api\/[a-zA-Z0-9/_-]+$/.test(pathname)) return false
+  if (raw === undefined) return true
+  if (!raw || !/^[a-zA-Z0-9_=&]+$/.test(raw)) return false
+  const allowed = pathname === '/api/admin/occurrences' ? ['page', 'size', 'categoryId', 'status', 'scope']
+    : ['/api/occurrences', '/api/occurrences/markers'].includes(pathname) ? ['categoryId', 'status']
+      : ['/api/super-admin/admins', '/api/notifications'].includes(pathname) ? ['page', 'size'] : []
+  const params = new URLSearchParams(raw)
+  return [...params].every(([key, value]) => allowed.includes(key) && params.getAll(key).length === 1 && (
+    key === 'status' ? ['PENDING', 'IN_ANALYSIS', 'RESOLVED', 'REJECTED'].includes(value)
+      : key === 'scope' ? ['QUEUE', 'ALL'].includes(value)
+        : key === 'categoryId' ? /^[1-9][0-9]*$/.test(value)
+          : key === 'size' ? /^[0-9]+$/.test(value) && Number(value) >= 1 && Number(value) <= 50
+            : /^[0-9]+$/.test(value)))
 }

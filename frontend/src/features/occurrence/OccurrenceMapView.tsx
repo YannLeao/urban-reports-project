@@ -9,12 +9,13 @@ import { OccurrenceMap } from '../location/OccurrenceMap'
 import { occurrenceStatusLabel } from './occurrence'
 import type { OccurrenceMarker } from './markers'
 import { useOwnMarkers, usePublicMarkers } from './useMarkers'
+import { parseFilters, filterKey } from './filters'
 import { readView } from './map-navigation'
 import { CloseMapSelection, OwnMapSelection, PublicMapSelection } from './MapSelection'
 import { useMapStageHeight } from '../location/useMapStageHeight'
 
-export function PublicMapView() { const query = usePublicMarkers(); return <MarkerResults query={query} own={false} /> }
-export function OwnMapView() { const query = useOwnMarkers(); return <MarkerResults query={query} own /> }
+export function PublicMapView() { const [params] = useSearchParams(); const filters = parseFilters(params, 'public').filters; const query = usePublicMarkers(filters); return <MarkerResults key={JSON.stringify(filterKey(filters))} query={query} own={false} /> }
+export function OwnMapView() { const [params] = useSearchParams(); const filters = parseFilters(params, 'own').filters; const query = useOwnMarkers(filters); return <MarkerResults key={JSON.stringify(filterKey(filters))} query={query} own /> }
 function historyKey() {
   const state: unknown = window.history.state
   return state && typeof state === 'object' && 'key' in state && typeof state.key === 'string' ? state.key : undefined
@@ -71,6 +72,7 @@ function MarkerResults({ query, own }: { query: ReturnType<typeof usePublicMarke
     setNotice('Este relato não está mais disponível nesta consulta.')
     updateParams(next => next.delete('selecionado'))
     void client.invalidateQueries({ queryKey: own ? ['private', userId, 'occurrences', 'markers'] : ['public', 'occurrences', 'markers'] })
+    void client.invalidateQueries({ queryKey: own ? ['private', userId, 'occurrences', 'list'] : ['public', 'occurrences', 'list'] })
   }, [client, own, userId, updateParams])
   useEffect(() => {
     if (data && selected && !active && !query.isFetching) {
@@ -88,7 +90,8 @@ function MarkerResults({ query, own }: { query: ReturnType<typeof usePublicMarke
       {!data && <Button size="compact" className="mt-2" variant="secondary" loading={query.isFetching} onClick={() => { void query.refetch() }}>Atualizar mapa</Button>}
     </Alert>}
     {data && <>
-      {data.total === 0 ? <p role="status" className="mb-0 text-small">Ainda não há relatos nesta consulta. <Link to={own ? '/registrar-ocorrencia' : '/ocorrencias'}>{own ? 'Relatar um problema' : 'Ver relatos em lista'}</Link></p>
+      <p className="m-0 text-small">{data.total} relatos nesta consulta.</p>
+      {data.total === 0 ? <p role="status" className="mb-0 text-small">{params.has('categoria') || params.has('estado') ? 'Nenhum relato com estes filtros.' : 'Ainda não há relatos nesta consulta.'} <Link to={own ? '/registrar-ocorrencia' : '/ocorrencias'}>{own ? 'Relatar um problema' : 'Ver relatos em lista'}</Link></p>
         : data.located === 0 ? <p role="status" className="mb-0 text-small">Os relatos ainda não têm localização no mapa. <Link to={list}>Ver relatos em lista</Link></p>
           : data.unlocated > 0 && <p role="status" className="mb-0 text-small">{data.unlocated === 1 ? 'Há 1 relato sem ponto no mapa.' : `Há ${data.unlocated} relatos sem ponto no mapa.`} <Link to={list}>Ver relatos em lista</Link></p>}
       <div ref={stage} style={availableHeight === undefined ? undefined : { height: availableHeight }} className="grid h-[calc(100vh-18rem-env(safe-area-inset-bottom))] min-h-[26rem] min-w-0 grid-rows-[minmax(12rem,1fr)_auto] gap-2 supports-[height:100svh]:h-[calc(100svh-18rem-env(safe-area-inset-bottom))] md:h-[calc(100vh-15rem)] md:supports-[height:100svh]:h-[calc(100svh-15rem)]">

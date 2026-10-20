@@ -199,7 +199,7 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
       void client.invalidateQueries({ queryKey: ['public', 'occurrences'] })
       if (existing) {
         const updated = fullOccurrenceSchema.parse(payload)
-        client.setQueryData([...prefix, existing.id], updated)
+        client.setQueryData([...prefix, 'detail', existing.id], updated)
         navigate(`/meus-relatos/${existing.id}`, { state: { from } })
         return
       }

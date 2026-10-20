@@ -34,6 +34,16 @@ export default function DesignSystemPage() {
     <section className="pt-12 pb-8 md:pt-16"><p className="mb-3 text-small font-bold text-brand-default">Referência de desenvolvimento</p>
       <h1>Design system Alô Cidade</h1><p className="mb-0 text-lead text-text-secondary">Exemplos demonstrativos. Nenhum dado é enviado ao serviço.</p></section>
     <div className="grid gap-8 pb-8">
+      <Card><h2>Filtros de consultas</h2>
+        <p>Categoria e estado combinam-se imediatamente. Limpar preserva visão e escopo. Exemplo estático, sem consulta.</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Select label="Categoria"><option>Todas as categorias</option><option>Iluminação pública</option></Select>
+          <Select label="Estado"><option>Todos os estados permitidos</option><option>Pendente</option><option>Em análise</option><option>Resolvida</option></Select>
+        </div>
+        <p>Todas as categorias · Todos os estados permitidos</p>
+        <Button variant="quiet" disabled>Limpar filtros — exemplo</Button>
+        <Alert>Na administração, Todos os relatos inclui Resolvida/Rejeitada. Ao voltar à fila, estado final é removido com aviso.</Alert>
+      </Card>
       <Card><h2>Registro em quatro etapas</h2>
         <ol className="grid gap-2"><li>Foto ou vídeo — primeira seleção válida avança cadastro uma vez.</li><li>Localização — mapa e sugestão GPS confirmada.</li><li>Informações — categoria, título e detalhes opcionais.</li><li>Revisão — resumo e sugestões próximas, única confirmação final.</li></ol>
         <p>Etapas visitadas permanecem montadas, com foco no título/erro e estado preservado. Voltar não descarta. Sem entrada numérica de coordenadas ou autosave.</p>

@@ -26,7 +26,7 @@ const set = { items: markers, total: 63, located: 61, unlocated: 2 }
 beforeEach(() => {
   sessionStorage.clear(); fetchMock.mockReset()
   window.history.replaceState(null, '', '/')
-  vi.stubGlobal('fetch', fetchMock)
+  vi.stubGlobal('fetch', (url: Parameters<typeof fetch>[0], init?: RequestInit) => String(url).endsWith('/api/public/occurrence-categories') ? Promise.resolve(Response.json([{ id: 1, name: 'Iluminação pública' }, { id: 2, name: 'Buraco ou pavimentação' }])) : fetchMock(url, init))
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} })
   vi.stubEnv('VITE_API_URL', 'https://api.example.com')
 })
@@ -101,7 +101,7 @@ test('private map uses session identity, user-scoped cache and clears it on sess
   fetchMock.mockImplementation(async url => String(url).endsWith('/auth/me') ? Response.json(person) : Response.json(set))
   const { client } = renderPage('/meus-relatos?visao=mapa')
   await screen.findByText('Há 2 relatos sem ponto no mapa.')
-  expect(client.getQueryData(['private', person.id, 'occurrences', 'markers'])).toMatchObject(set)
+  expect(client.getQueryData(['private', person.id, 'occurrences', 'markers', { categoryId: null, status: null }])).toMatchObject(set)
   const call = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/api/occurrences/markers'))!
   expect(call[1]?.headers).toEqual({ Authorization: 'Bearer synthetic-token' })
   fetchMock.mockResolvedValueOnce(Response.json({ code: 'UNAUTHORIZED' }, { status: 401 }))
@@ -184,7 +184,7 @@ test('private selection reads only its own detail/photo with Bearer and releases
   const imageCall = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/image'))!
   expect(imageCall[0]).toBe(`https://api.example.com/api/occurrences/${markers[0].id}/image`)
   expect(imageCall[1]?.headers).toEqual({ Authorization: 'Bearer synthetic-token' })
-  expect(client.getQueryData(['private', person.id, 'occurrences', markers[0].id])).toMatchObject({ title: 'Relato 0' })
+  expect(client.getQueryData(['private', person.id, 'occurrences', 'detail', markers[0].id])).toMatchObject({ title: 'Relato 0' })
   fetchMock.mockResolvedValueOnce(new Response(null, { status: 401 }))
   await userEvent.click(screen.getByRole('button', { name: 'Atualizar mapa' }))
   await screen.findByRole('heading', { name: 'Entrar' })
@@ -219,4 +219,23 @@ test('BrowserRouter viewport updates cannot overwrite a navigation whose history
   act(() => window.dispatchEvent(new PopStateEvent('popstate')))
   expect(await screen.findByRole('heading', { name: 'Entrar' })).toBeVisible()
   expect(window.location.pathname).toBe('/entrar')
+})
+
+test('map filter changes use complete criteria without paging, clear selection/group and reject stale moves', async () => {
+  fetchMock.mockImplementation(async url => String(url).includes('categoryId=2')
+    ? Response.json({ items: [], total: 0, located: 0, unlocated: 0 }) : Response.json(set))
+  renderPage('/ocorrencias?visao=mapa&pagina=3&lat=0&lng=0&zoom=12')
+  await screen.findByRole('button', { name: 'Pino Relato 60' })
+  await userEvent.click(screen.getByRole('button', { name: 'Abrir grupo simulado' }))
+  const lateMove = mapCallbacks.move!
+  await userEvent.selectOptions(screen.getByLabelText('Categoria'), '2')
+  await screen.findByText('Nenhum relato com estes filtros.')
+  act(() => lateMove({ latitude: 10, longitude: 20, zoom: 5 }))
+  expect(screen.queryByRole('region', { name: 'Relatos do grupo' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Pino Relato 60' })).not.toBeInTheDocument()
+  const markerCalls = fetchMock.mock.calls.filter(([url]) => String(url).includes('/markers'))
+  expect(markerCalls.at(-1)?.[0]).toBe('https://api.example.com/api/public/occurrences/markers?categoryId=2')
+  expect(markerCalls.every(([url]) => !String(url).includes('page=') && !String(url).includes('size='))).toBe(true)
+  expect(screen.getByRole('link', { name: 'Lista' }).getAttribute('href')).toContain('lat=0&lng=0&zoom=12')
+  expect(screen.getByRole('link', { name: 'Lista' }).getAttribute('href')).toContain('categoria=2')
 })
