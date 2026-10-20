@@ -1,3 +1,4 @@
+import { SimilarOccurrencesReview } from '../features/occurrence/SimilarOccurrencesReview'
 import { queryReturn } from '../features/occurrence/map-navigation'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { LocationPicker } from '../features/location/LocationPicker'
@@ -36,12 +37,20 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
   const { request, state } = useAuth()
   const [categories, setCategories] = useState<z.infer<typeof categoriesSchema>>([])
   const [loadingCategories, setLoadingCategories] = useState(true)
-  const [categoryId, setCategoryId] = useState(existing?.categoryId.toString() ?? '')
+  const [categoryId, updateCategoryId] = useState(existing?.categoryId.toString() ?? '')
   const [title, setTitle] = useState(existing?.title ?? '')
   const [description, setDescription] = useState(existing?.description ?? '')
   const [neighborhood, setNeighborhood] = useState(existing?.neighborhood ?? '')
   const [reference, setReference] = useState(existing?.reference ?? '')
-  const [location, setLocation] = useState<GeographicPoint | null>(existing?.latitude != null && existing.longitude != null ? { latitude: existing.latitude, longitude: existing.longitude } : null)
+  const [location, updateLocation] = useState<GeographicPoint | null>(existing?.latitude != null && existing.longitude != null ? { latitude: existing.latitude, longitude: existing.longitude } : null)
+  const [review, setReview] = useState<{ key: string; visible: boolean } | null>(null)
+  const criteria = location ? { categoryId: Number(categoryId), ...location, ...(existing ? { excludeOccurrenceId: existing.id } : {}) } : null
+  const criteriaKey = JSON.stringify([state.status === 'authenticated' ? state.user.id : null, categoryId, criteria])
+  function setCategoryId(value: string) { if (value !== categoryId) setReview(null); updateCategoryId(value) }
+  function setLocation(value: GeographicPoint | null) {
+    if (value?.latitude !== location?.latitude || value?.longitude !== location?.longitude) setReview(null)
+    updateLocation(value)
+  }
   const [mode, setMode] = useState<'IMAGE' | 'VIDEO'>(existing?.media?.[0]?.type ?? 'IMAGE')
   const [photos, setPhotos] = useState<PhotoDraft[]>(() => existing?.media?.map(item => ({ key: item.id, id: item.id })) ?? [])
   const [errors, setErrors] = useState<Errors>({})
@@ -87,8 +96,18 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
     return next
   }
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (submitting.current || validatingImage.current || loadingCategories) return
+    const next = validate()
+    setErrors(next)
+    if (Object.keys(next).length) { setReview(null); return }
+    // Enter can only open review, never confirm a write.
+    setReview({ key: criteriaKey, visible: true })
+  }
+
+  async function confirm() {
+    if (!review?.visible || review.key !== criteriaKey || state.status !== 'authenticated') return
     if (submitting.current || validatingImage.current || loadingCategories) return
     setNotice(null)
     setSuccess(false)
@@ -96,6 +115,7 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
     setErrors(next)
     if (Object.keys(next).length) return
     submitting.current = true
+    setReview(null)
     setPending(true)
     const body = new FormData()
     body.append('categoryId', categoryId)
@@ -193,6 +213,8 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
           <Input label="Título" value={title} error={errors.title} disabled={pending} onChange={event => setTitle(event.target.value)} />
           <Textarea label="Detalhes (opcional)" description={`Se quiser, conte algo que as fotos ou o vídeo não mostram. ${Array.from(cleanOccurrenceText(description)).length}/1000`} value={description} error={errors.description} disabled={pending} onChange={event => setDescription(event.target.value)} />
           </section>
+          {review?.key === criteriaKey && <SimilarOccurrencesReview key={criteriaKey} criteria={criteria} visible={review.visible}
+            busy={pending || imageBusy} onReview={() => setReview({ key: criteriaKey, visible: false })} onConfirm={() => { void confirm() }} />}
           <Button type="submit" loading={pending} disabled={loadingCategories || imageBusy || pending}>{pending ? 'Enviando…' : existing ? 'Salvar relato' : 'Enviar relato'}</Button>
           {existing && (pending ? <Button variant="quiet" disabled>Cancelar edição</Button> : <Link className={buttonStyles('quiet')} to={`/meus-relatos/${existing.id}`} state={{ from }}>Cancelar edição</Link>)}
           {existing && notice && <Link to={`/meus-relatos/${existing.id}`}>Consultar relato novamente</Link>}

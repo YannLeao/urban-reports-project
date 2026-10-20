@@ -21,12 +21,15 @@ const report = {
   latitude: null, longitude: null, version: 0, createdAt: '2026-09-28T12:00:00Z',
 }
 const fetchMock = vi.fn<typeof fetch>()
+const similarFetch = vi.fn<typeof fetch>()
 beforeEach(() => {
   sessionStorage.clear()
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ accessToken: 'synthetic-token', expiresAt: new Date(Date.now() + 1800000).toISOString() }))
+  similarFetch.mockReset().mockImplementation(() => Promise.resolve(Response.json({ radiusMeters: 100, limit: 5, items: [] })))
   fetchMock.mockReset().mockResolvedValueOnce(Response.json(person))
   vi.stubGlobal('IntersectionObserver', class { observe() {} disconnect() {} })
-  vi.stubGlobal('fetch', withEmptyNotifications(fetchMock))
+  vi.stubGlobal('fetch', withEmptyNotifications((url, options) => String(url).endsWith('/occurrences/similar')
+    ? similarFetch(url, options) : fetchMock(url, options)))
   vi.stubEnv('VITE_API_URL', 'https://api.example.com')
 })
 function renderPage(path = '/meus-relatos') {
@@ -129,6 +132,7 @@ test.each(['IN_ANALYSIS', 'RESOLVED', 'REJECTED'])('author reads %s history with
 function mockFlow(initial: Occurrence = { ...report, status: 'PENDING' }) {
   let current = { ...initial }
   let removed = false
+  similarFetch.mockReset().mockImplementation(() => Promise.resolve(Response.json({ radiusMeters: 100, limit: 5, items: [] })))
   fetchMock.mockReset().mockImplementation(async (url, options) => {
     const path = String(url)
     if (path.endsWith('/api/auth/me')) return Response.json(person)
@@ -173,12 +177,14 @@ test('editing starts with existing fields, keeps photo and invalidates list afte
   fireEvent.change(screen.getByLabelText('Título'), { target: { value: title } })
   fireEvent.change(screen.getByLabelText('Detalhes (opcional)'), { target: { value: '' } })
   await userEvent.click(screen.getByRole('button', { name: 'Salvar relato' }))
+  await userEvent.click(await screen.findByRole('button', { name: 'Confirmar envio' }))
   expect(await screen.findByRole('heading', { name: title })).toBeVisible()
   const put = fetchMock.mock.calls.find(([, options]) => options?.method === 'PUT')!
   expect(put[1]?.headers).toMatchObject({ 'If-Match': '"0"', Authorization: 'Bearer synthetic-token' })
   expect((put[1]?.body as FormData).has('image')).toBe(false)
   expect((put[1]?.body as FormData).has('latitude')).toBe(false)
   expect((put[1]?.body as FormData).has('longitude')).toBe(false)
+  expect(similarFetch).not.toHaveBeenCalled()
   expect((put[1]?.body as FormData).get('description')).toBe('')
   expect(client.getQueryData(['private', person.id, 'occurrences', report.id])).toMatchObject({ title, version: 1 })
   expect(client.getQueryData(['private', person.id, 'occurrences', 'markers'])).toBeUndefined()
@@ -260,6 +266,8 @@ test('replacement selection uses ImagePicker and one PUT while upload controls s
   fetchMock.mockImplementationOnce(() => new Promise<Response>(done => { resolve = done }))
   const form = screen.getByRole('button', { name: 'Salvar relato' }).closest('form')!
   fireEvent.submit(form); fireEvent.submit(form)
+  const confirm = await screen.findByRole('button', { name: 'Confirmar envio' })
+  fireEvent.click(confirm); fireEvent.click(confirm)
   expect(fetchMock.mock.calls.filter(([, options]) => options?.method === 'PUT')).toHaveLength(1)
   expect(screen.getByLabelText('Título')).toBeDisabled()
   expect(screen.getByLabelText('Arquivo de imagem')).toBeDisabled()
@@ -276,6 +284,7 @@ test('edit conflict preserves draft and offers a fresh consultation without retr
   fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Meu rascunho preservado' } })
   fetchMock.mockResolvedValueOnce(Response.json({ code: 'VERSION_CHANGED' }, { status: 412 }))
   await userEvent.click(screen.getByRole('button', { name: 'Salvar relato' }))
+  await userEvent.click(await screen.findByRole('button', { name: 'Confirmar envio' }))
   expect(await screen.findByRole('alert')).toHaveTextContent('Este relato mudou')
   expect(screen.getByLabelText('Título')).toHaveValue('Meu rascunho preservado')
   expect(screen.getByRole('link', { name: 'Consultar relato novamente' })).toBeVisible()
@@ -312,6 +321,7 @@ test('empty list to registration to private detail refreshes cache in the same s
   await waitFor(() => expect(decode).not.toBeNull())
   await act(async () => decode?.())
   await userEvent.click(screen.getByRole('button', { name: 'Enviar relato' }))
+  await userEvent.click(await screen.findByRole('button', { name: 'Confirmar envio' }))
   await screen.findByRole('heading', { name: 'Relato registrado' })
   expect(screen.queryByText(report.id)).not.toBeInTheDocument()
   await userEvent.click(within(screen.getByRole('main')).getByRole('link', { name: 'Meus relatos' }))
@@ -330,6 +340,7 @@ test('a background detail read cannot upgrade the version of an existing draft',
   await act(async () => { client.setQueryData(['private', person.id, 'occurrences', report.id], { ...report, title: 'Alteração de outra aba', version: 1 }) })
   fetchMock.mockResolvedValueOnce(Response.json({ code: 'VERSION_CHANGED' }, { status: 412 }))
   await userEvent.click(screen.getByRole('button', { name: 'Salvar relato' }))
+  await userEvent.click(await screen.findByRole('button', { name: 'Confirmar envio' }))
   expect(await screen.findByRole('alert')).toHaveTextContent('Este relato mudou')
   const put = fetchMock.mock.calls.find(([, options]) => options?.method === 'PUT')!
   expect(put[1]?.headers).toMatchObject({ 'If-Match': '"0"' })
@@ -345,9 +356,11 @@ test('editing restores and resends a confirmed zero-axis point; changing drafts 
   expect(screen.getByLabelText('Longitude')).toHaveValue('123.123456789')
   fireEvent.change(screen.getByLabelText('Longitude'), { target: { value: '50' } })
   await userEvent.click(screen.getByRole('button', { name: 'Salvar relato' }))
+  await userEvent.click(await screen.findByRole('button', { name: 'Confirmar envio' }))
   const put = fetchMock.mock.calls.find(([, options]) => options?.method === 'PUT')!
   expect((put[1]?.body as FormData).get('latitude')).toBe('0')
   expect((put[1]?.body as FormData).get('longitude')).toBe('123.123456789')
+  expect(JSON.parse(similarFetch.mock.calls[0][1]?.body as string)).toEqual({ categoryId: 1, latitude: 0, longitude: 123.123456789, excludeOccurrenceId: report.id })
 })
 test('pending legacy can voluntarily confirm its first point', async () => {
   mockFlow(); renderPage(`/meus-relatos/${report.id}/editar`)
@@ -358,6 +371,7 @@ test('pending legacy can voluntarily confirm its first point', async () => {
   fireEvent.change(screen.getByLabelText('Longitude'), { target: { value: '45.67' } })
   await userEvent.click(screen.getByRole('button', { name: 'Confirmar coordenadas' }))
   await userEvent.click(screen.getByRole('button', { name: 'Salvar relato' }))
+  await userEvent.click(await screen.findByRole('button', { name: 'Confirmar envio' }))
   const put = fetchMock.mock.calls.find(([, options]) => options?.method === 'PUT')!
   expect((put[1]?.body as FormData).get('latitude')).toBe('-12.34')
   expect((put[1]?.body as FormData).get('longitude')).toBe('45.67')

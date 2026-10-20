@@ -118,3 +118,11 @@ retorna 404. Cada request de mídia revalida acesso antes de HEAD/GET do storage
 encerra transação antes da cópia. Bucket permanece privado e bytes/metadados são
 preservados. V14/runtime/worker atualizado precedem frontend; versões antigas
 exigem parada coordenada, com recuperação por avanço em vez de desfazer migration.
+
+## Sugestões por proximidade
+
+O formulário de cadastro/edição oferece revisão informativa antes da gravação.
+`POST /api/occurrences/similar` é consulta JSON exclusiva de USER ativo, sem upload,
+com 100 m/mesma categoria/ativos/até cinco e exclusão própria na edição.
+Contrato, minimização, falhas, integração futura e roteiro em
+[sugestões de relatos próximos](similar-occurrences.md).

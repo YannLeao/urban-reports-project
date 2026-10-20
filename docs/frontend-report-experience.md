@@ -91,3 +91,11 @@ Seleção de fotografias no produto usa `PhotoCollectionPicker` (1–5, ordenaç
 novas. A troca de tipo pede confirmação e só persiste com sucesso do envio.
 `OccurrenceGallery` discrimina VIDEO para player sob demanda; cards/mapas mostram
 placeholder e duração, sem foto fictícia. [Contrato e operação](occurrence-video.md).
+
+## Sugestões por proximidade
+
+O formulário de cadastro/edição oferece revisão informativa antes da gravação.
+`POST /api/occurrences/similar` é consulta JSON exclusiva de USER ativo, sem upload,
+com 100 m/mesma categoria/ativos/até cinco e exclusão própria na edição.
+Contrato, minimização, falhas, integração futura e roteiro em
+[sugestões de relatos próximos](similar-occurrences.md).

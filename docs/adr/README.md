@@ -50,3 +50,5 @@ um novo ADR que substitui o anterior.
 - [0024 — Coleção de mídias e recuperação](0024-colecionar-midias-de-ocorrencias.md)
 
 - [0025 — Vídeo limitado e reprodução por superfície](0025-validar-e-reproduzir-video-limitado.md)
+
+- [0026 — Alertas por categoria e proximidade](0026-alertar-relatos-por-proximidade.md)

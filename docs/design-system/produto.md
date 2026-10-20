@@ -55,9 +55,11 @@ no mobile. Rejeição oferece motivo sugerido opcional; a explicação humana de
 10–500 caracteres Unicode após trim continua necessária. A sugestão não altera
 a API nem substitui texto digitado.
 
-Aviso de duplicidade é informativo: ação principal “Enviar mesmo assim”,
-secundária “Revisar relato”. Não exigir afirmar que é outro problema, nem prometer
-prioridade maior por repetição. A regra de prioridade depende de alinhamento.
+O [aviso de proximidade](../similar-occurrences.md) é informativo: mesma categoria,
+até 100 m, somente Pendente/Em análise, até cinco sugestões sem mídia/autoria.
+Oferece “É outro relato, continuar” e “Revisar meu relato”, sem checkbox obrigatório
+ou justificativa. Falha auxiliar oferece “Enviar mesmo assim” e retry manual.
+Não altera prioridade ou status. A regra geográfica substitui RN-20 textual.
 
 Detalhe administrativo começa com “Voltar para a fila”, antes do identificador.
 Mapa na fila administrativa aguarda priorização; mapas públicos/próprios não
