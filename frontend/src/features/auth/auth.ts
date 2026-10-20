@@ -11,6 +11,7 @@ export type AuthState =
   | { status: 'initializing' | 'anonymous' | 'unavailable'; message?: string }
   | { status: 'authenticated'; user: User }
 export interface AuthContextValue {
+  sessionSignal: AbortSignal
   state: AuthState
   login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>

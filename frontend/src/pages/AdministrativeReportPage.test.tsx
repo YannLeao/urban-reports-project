@@ -163,3 +163,95 @@ test('schema rejects missing fields, wrong nullable metrics, impossible counts a
     expect(occurrenceReportSchema.safeParse(bad).success).toBe(false)
   }
 })
+
+const validPdf = () => new Response('%PDF-1.7\n1 0 obj\n<<>>\nendobj\n%%EOF\n', { headers: { 'Content-Type': 'application/pdf' } })
+function mockDownload() {
+  const create = vi.fn(() => 'blob:report-pdf')
+  const revoke = vi.fn()
+  Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: create })
+  Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: revoke })
+  const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+  return { create, revoke, click }
+}
+
+test('PDF export uses a new authenticated request, blocks repeated Enter and leaves dashboard/cache unchanged', async () => {
+  const { create, revoke, click } = mockDownload()
+  respond(); const { client, unmount } = mount(); await screen.findByText('4 h')
+  const snapshot = client.getQueryData(reportKey(user.id))
+  let resolve!: (response: Response) => void
+  fetchMock.mockImplementationOnce(() => new Promise<Response>(done => { resolve = done }))
+  const button = screen.getByRole('button', { name: 'Baixar PDF' }); button.focus()
+  await userEvent.keyboard('{Enter}{Enter}')
+  expect(button).toHaveFocus(); expect(button).toHaveAttribute('aria-busy', 'true')
+  expect(screen.getByRole('status')).toHaveTextContent('Gerando PDF')
+  expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/pdf'))).toHaveLength(1)
+  await act(async () => resolve(validPdf()))
+  await waitFor(() => expect(click).toHaveBeenCalledTimes(1))
+  expect(create).toHaveBeenCalledTimes(1); expect(revoke).not.toHaveBeenCalled()
+  expect(client.getQueryData(reportKey(user.id))).toBe(snapshot)
+  expect(screen.getByText('4 h')).toBeVisible()
+  expect(screen.getByText('O PDF consulta os dados atuais; a referência consta no documento.')).toBeVisible()
+  const [, options] = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/pdf'))!
+  expect(options?.headers).toMatchObject({ Authorization: 'Bearer synthetic-session' })
+  expect(options?.signal).toBeInstanceOf(AbortSignal)
+  expect(document.querySelector('a[download]')).toHaveAttribute('download', expect.stringMatching(/^alo-cidade-relatorio-\d{8}-\d{6}Z.pdf$/))
+  unmount(); expect(revoke).toHaveBeenCalledWith('blob:report-pdf'); expect(document.querySelector('a[download]')).toBeNull()
+})
+
+test.each(['mime', 'empty', 'json', 'html', 'broken', 'large', 'network', '500', '503'])('PDF failure %s preserves indicators, does not download and retries only on click', async mode => {
+  const { create } = mockDownload()
+  respond(); mount(); await screen.findByText('4 h')
+  fetchMock.mockImplementationOnce(async () => {
+    if (mode === 'network') throw new TypeError('network')
+    if (mode === '500' || mode === '503') return Response.json({ code: 'INTERNAL_ERROR' }, { status: Number(mode) })
+    if (mode === 'mime') return new Response('%PDF-1.7\n%%EOF', { headers: { 'Content-Type': 'text/plain' } })
+    return new Response(mode === 'empty' ? '' : mode === 'json' ? '{}' : mode === 'html' ? '<html></html>' : '%PDF-1.7 broken',
+      { headers: { 'Content-Type': 'application/pdf', ...(mode === 'large' ? { 'Content-Length': String(17 * 1024 * 1024) } : {}) } })
+  })
+  await userEvent.click(screen.getByRole('button', { name: 'Baixar PDF' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível gerar o PDF. Tente novamente')
+  expect(create).not.toHaveBeenCalled(); expect(screen.getByText('4 h')).toBeVisible()
+  expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/pdf'))).toHaveLength(1)
+  fetchMock.mockResolvedValueOnce(validPdf())
+  await userEvent.click(screen.getByRole('button', { name: 'Baixar PDF' }))
+  await waitFor(() => expect(create).toHaveBeenCalledTimes(1))
+})
+
+test.each([401, 403])('PDF %s follows session policy and hides private report', async status => {
+  const { create } = mockDownload()
+  respond(); const { client } = mount(); await screen.findByText('4 h')
+  fetchMock.mockResolvedValueOnce(Response.json({ code: 'ACCESS_DENIED' }, { status }))
+  await userEvent.click(screen.getByRole('button', { name: 'Baixar PDF' }))
+  if (status === 401) {
+    expect(await screen.findByRole('heading', { name: 'Entrar' })).toBeVisible()
+    expect(sessionStorage.getItem(STORAGE_KEY)).toBeNull()
+  } else {
+    expect(await screen.findByRole('alert')).toHaveTextContent('Acesso negado ao relatório')
+    expect(sessionStorage.getItem(STORAGE_KEY)).not.toBeNull()
+  }
+  expect(screen.queryByText('4 h')).not.toBeInTheDocument()
+  expect(client.getQueryData(reportKey(user.id))).toBeUndefined(); expect(create).not.toHaveBeenCalled()
+})
+
+test('unmount before headers cancels PDF and ignores late response', async () => {
+  const { create } = mockDownload()
+  respond(); const { unmount } = mount(); await screen.findByText('4 h')
+  let resolve!: (response: Response) => void
+  fetchMock.mockImplementationOnce(() => new Promise<Response>(done => { resolve = done }))
+  await userEvent.click(screen.getByRole('button', { name: 'Baixar PDF' }))
+  const [, options] = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/pdf'))!
+  unmount(); expect(options?.signal?.aborted).toBe(true)
+  await act(async () => resolve(validPdf()))
+  expect(create).not.toHaveBeenCalled()
+})
+
+test('leaving after headers cancels a pending PDF body and prevents a late download', async () => {
+  const { create } = mockDownload()
+  respond(); const { unmount } = mount(); await screen.findByText('4 h')
+  const cancel = vi.fn()
+  fetchMock.mockResolvedValueOnce(new Response(new ReadableStream({ cancel }), { headers: { 'Content-Type': 'application/pdf' } }))
+  await userEvent.click(screen.getByRole('button', { name: 'Baixar PDF' }))
+  unmount()
+  await waitFor(() => expect(cancel).toHaveBeenCalled())
+  expect(create).not.toHaveBeenCalled()
+})

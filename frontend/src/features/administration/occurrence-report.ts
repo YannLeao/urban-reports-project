@@ -32,12 +32,12 @@ export const occurrenceReportSchema = z.object({
 export type OccurrenceReport = z.infer<typeof occurrenceReportSchema>
 export const reportKey = (userId: string | null) => ['private', userId, 'occurrence-report'] as const
 
-export function useOccurrenceReport() {
+export function useOccurrenceReport(enabled = true) {
   const { state, request } = useAuth()
   const client = useQueryClient()
   const userId = state.status === 'authenticated' ? state.user.id : null
   const query = useQuery({
-    queryKey: reportKey(userId), enabled: state.status === 'authenticated' && state.user.role === 'ADMIN',
+    queryKey: reportKey(userId), enabled: enabled && state.status === 'authenticated' && state.user.role === 'ADMIN',
     queryFn: async ({ signal }) => {
       return occurrenceReportSchema.parse(await (await request('/api/admin/reports/occurrences', 'GET', signal)).json())
     },
