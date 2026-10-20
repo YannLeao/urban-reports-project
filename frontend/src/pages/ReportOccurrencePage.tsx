@@ -1,6 +1,7 @@
 import { SimilarOccurrencesReview } from '../features/occurrence/SimilarOccurrencesReview'
 import { queryReturn } from '../features/occurrence/map-navigation'
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { VideoPlaceholder } from '../features/occurrence/VideoPlaceholder'
 import { LocationPicker } from '../features/location/LocationPicker'
 import type { GeographicPoint } from '../features/location/point'
 import { z } from 'zod'
@@ -20,6 +21,8 @@ import { PrivateRequestError } from '../lib/api'
 import { cleanOccurrenceText, validOccurrenceText } from '../features/occurrence/occurrence-text'
 
 const categoriesSchema = z.array(z.object({ id: z.number(), name: z.string() }))
+const stepNames = ['Foto ou vídeo', 'Localização', 'Informações', 'Revisão'] as const
+const fieldStep = (key: string) => key === 'image' ? 1 : ['location', 'neighborhood', 'reference'].includes(key) ? 2 : 3
 const occurrenceSchema = z.object({ id: z.uuid(), status: z.literal('PENDING') })
 type FieldName = 'categoryId' | 'title' | 'description' | 'neighborhood' | 'reference' | 'image' | 'location'
 type Errors = Partial<Record<FieldName, string>>
@@ -35,6 +38,16 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
   const navigation = useLocation()
   const from = queryReturn(navigation.state?.from, true)
   const { request, state } = useAuth()
+  const [step, setStep] = useState(1)
+  const [visited, setVisited] = useState(1)
+  const [previews, setPreviews] = useState<Record<string, string>>({})
+  const previewChanged = useCallback((key: string, url: string | null) => setPreviews(current => {
+    const next = { ...current }; if (url) next[key] = url; else delete next[key]; return next
+  }), [])
+  const autoAdvanced = useRef(!!existing)
+  const stepTitle = useRef<HTMLHeadingElement>(null)
+  const [categoriesAttempt, setCategoriesAttempt] = useState(0)
+  const [categoriesFailed, setCategoriesFailed] = useState(false)
   const [categories, setCategories] = useState<z.infer<typeof categoriesSchema>>([])
   const [loadingCategories, setLoadingCategories] = useState(true)
   const [categoryId, updateCategoryId] = useState(existing?.categoryId.toString() ?? '')
@@ -64,21 +77,27 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
   const [success, setSuccess] = useState(false)
   const [registered, setRegistered] = useState<{ id: string; title: string } | null>(null)
 
+  useEffect(() => { stepTitle.current?.focus() }, [step])
   useEffect(() => {
-    if (notice) feedback.current?.focus()
-    else if (errors.image) form.current?.querySelector<HTMLElement>('[aria-label="Selecionar fotografia"] button')?.focus()
-    else if (Object.keys(errors).length) form.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
-  }, [notice, errors])
+    if (notice && !Object.keys(errors).length) feedback.current?.focus()
+    else if (step === 1 && errors.image) form.current?.querySelector<HTMLElement>('[aria-label="Selecionar fotografia"] button')?.focus()
+    else if (step === 2 && errors.location) {
+      const control = form.current?.querySelector<HTMLButtonElement>('[aria-label="Usar minha localização"]')
+      if (control && !control.disabled) control.focus(); else stepTitle.current?.focus()
+    }
+    else if (Object.keys(errors).length) form.current?.querySelector<HTMLElement>('section:not([hidden]) [aria-invalid="true"]')?.focus()
+  }, [notice, errors, step])
 
   useEffect(() => {
     const controller = new AbortController()
+    setLoadingCategories(true); setCategoriesFailed(false)
     void request('/api/occurrence-categories', 'GET', controller.signal)
       .then(response => response.json())
       .then(payload => setCategories(categoriesSchema.parse(payload)))
-      .catch(() => { if (!controller.signal.aborted) setErrors({ categoryId: 'Não foi possível carregar as categorias.' }) })
+      .catch(() => { if (!controller.signal.aborted) setCategoriesFailed(true) })
       .finally(() => { if (!controller.signal.aborted) setLoadingCategories(false) })
     return () => controller.abort()
-  }, [request])
+  }, [request, categoriesAttempt])
 
   function validate(): Errors {
     const next: Errors = {}
@@ -96,26 +115,68 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
     return next
   }
 
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (submitting.current || validatingImage.current || loadingCategories) return
-    const next = validate()
-    setErrors(next)
-    if (Object.keys(next).length) { setReview(null); return }
-    // Enter can only open review, never confirm a write.
-    setReview({ key: criteriaKey, visible: true })
+  const dirty = !registered && (existing
+    ? title !== existing.title || description !== (existing.description ?? '') || categoryId !== String(existing.categoryId)
+      || neighborhood !== existing.neighborhood || reference !== existing.reference || mode !== existing.media?.[0]?.type
+      || location?.latitude !== (existing.latitude ?? undefined) || location?.longitude !== (existing.longitude ?? undefined)
+      || photos.map(item => item.id ?? item.key).join() !== existing.media?.map(item => item.id).join()
+    : !!(photos.length || categoryId || title || description || neighborhood || reference || location))
+  useEffect(() => {
+    if (!dirty) return
+    const unload = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = '' }
+    const leave = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0) return
+      const link = event.target instanceof Element ? event.target.closest('a') : null
+      if (!link || link.target === '_blank' || link.hasAttribute('download')) return
+      const url = new URL(link.href, window.location.href)
+      if (url.pathname === window.location.pathname && url.search === window.location.search) return
+      if (submitting.current || !window.confirm('Sair e descartar as alterações deste relato?')) { event.preventDefault(); event.stopPropagation() }
+    }
+    window.addEventListener('beforeunload', unload)
+    document.addEventListener('click', leave, true)
+    return () => { window.removeEventListener('beforeunload', unload); document.removeEventListener('click', leave, true) }
+  }, [dirty])
+
+  function go(next: number) {
+    if (submitting.current || validatingImage.current) return
+    setStep(next); setVisited(current => Math.max(current, next))
+    setReview(current => current && { ...current, visible: next === 4 })
   }
+  function showErrors(next: Errors) {
+    setErrors(next)
+    const first = Object.keys(next).sort((a, b) => fieldStep(a) - fieldStep(b))[0]
+    if (first) go(fieldStep(first))
+  }
+  function reviewDraft() {
+    if (submitting.current || validatingImage.current) return
+    const next = validate()
+    if (categoriesFailed || loadingCategories) next.categoryId = 'Carregue as categorias para revisar o relato.'
+    if (Object.keys(next).length) { showErrors(next); return }
+    setErrors({}); go(4); setReview({ key: criteriaKey, visible: true })
+  }
+  function advance() {
+    if (submitting.current || validatingImage.current) return
+    if (step === 3) { reviewDraft(); return }
+    const next = Object.fromEntries(Object.entries(validate()).filter(([key]) => fieldStep(key) === step)) as Errors
+    setErrors(current => ({ ...Object.fromEntries(Object.entries(current).filter(([key]) => fieldStep(key) !== step)), ...next }))
+    if (!Object.keys(next).length) go(step + 1)
+  }
+  useEffect(() => {
+    if (existing || autoAdvanced.current || step !== 1 || imageBusy || !photos.some(item => item.file)) return
+    // Validation callbacks complete before this effect; a ref makes the one-time advance Strict Mode safe.
+    autoAdvanced.current = true; setStep(2); setVisited(current => Math.max(current, 2))
+  }, [existing, step, imageBusy, photos])
+  function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault() }
 
   async function confirm() {
-    if (!review?.visible || review.key !== criteriaKey || state.status !== 'authenticated') return
+    if (step !== 4 || !review?.visible || review.key !== criteriaKey || state.status !== 'authenticated') return
     if (submitting.current || validatingImage.current || loadingCategories) return
     setNotice(null)
     setSuccess(false)
     const next = validate()
     setErrors(next)
-    if (Object.keys(next).length) return
+    if (Object.keys(next).length) { showErrors(next); return }
     submitting.current = true
-    setReview(null)
     setPending(true)
     const body = new FormData()
     body.append('categoryId', categoryId)
@@ -142,6 +203,7 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
         navigate(`/meus-relatos/${existing.id}`, { state: { from } })
         return
       }
+      autoAdvanced.current = false; setStep(1); setVisited(1); setReview(null)
       setRegistered({ id: result.id, title })
       setSuccess(true)
       setNotice(null)
@@ -158,16 +220,20 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
           else if (key === 'reference') mapped.reference = 'Use entre 5 e 200 caracteres.'
           else if (['image', 'images', 'media'].includes(key)) mapped.image = mode === 'VIDEO' ? VIDEO_HELP : 'Escolha uma foto estática JPEG, PNG ou WebP de até 5 MiB, com lados até 8192 pixels e até 25 milhões de pixels. A imagem deve estar completa e legível.'
         }
-        if (error.code === 'INVALID_VIDEO') setNotice(VIDEO_HELP + ' O arquivo deve estar completo e legível.')
+        if (error.code === 'INVALID_VIDEO') { mapped.image = VIDEO_HELP; setNotice(VIDEO_HELP + ' O arquivo deve estar completo e legível.') }
         else if (error.code === 'VIDEO_VALIDATION_BUSY' || error.code === 'VIDEO_VALIDATION_UNAVAILABLE' || error.code === 'MEDIA_BUSY') setNotice('O serviço de mídia está indisponível ou ocupado. Seu rascunho foi mantido; tente novamente mais tarde.')
         else if (error.status === 412 || error.status === 428) setNotice('Este relato mudou. Atualize a página antes de continuar.')
         else if (error.status === 409) setNotice('Este relato não pode mais ser alterado.')
         else if (error.status === 401) setNotice('Sua sessão terminou. Entre novamente para enviar o relato.')
-        else if (error.status === 413 || error.code === 'IMAGE_TOO_LARGE') setNotice('O envio excedeu o limite. Use até 5 fotos de 5 MiB cada ou um vídeo de 25 MiB, em até 26 MiB por requisição.')
+        else if (error.status === 413 || error.code === 'IMAGE_TOO_LARGE') { mapped.image = 'O envio excedeu o limite de mídia.'; setNotice('O envio excedeu o limite. Use até 5 fotos de 5 MiB cada ou um vídeo de 25 MiB, em até 26 MiB por requisição.') }
         else if (error.code === 'IMAGE_STORAGE_UNAVAILABLE') setNotice('O serviço de fotos está indisponível. Seus dados foram mantidos; tente novamente mais tarde.')
         else if (error.status === 400) setNotice('Não foi possível enviar. Confira os campos e as fotos ou o vídeo antes de tentar novamente.')
         else setNotice(existing ? 'Não foi possível confirmar a edição. Consulte o relato novamente antes de tentar outra vez.' : 'O serviço não confirmou o registro. Seus dados foram mantidos. Tentar novamente pode criar um relato duplicado.')
       } else setNotice(existing ? 'Não foi possível confirmar a edição. Consulte o relato novamente antes de tentar outra vez.' : 'Não foi possível confirmar o registro. Confira sua conexão. Seus dados foram mantidos; reenviar pode criar um relato duplicado.')
+      if (Object.keys(mapped).length) {
+        const first = Object.keys(mapped).sort((a, b) => fieldStep(a) - fieldStep(b))[0]
+        setStep(fieldStep(first)); setReview(current => current && { ...current, visible: false })
+      }
       setErrors(mapped)
     } finally { submitting.current = false; setPending(false) }
   }
@@ -190,33 +256,58 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
       {notice && <Alert ref={feedback} tabIndex={-1} className="mt-6" tone={success ? 'success' : 'danger'} role={success ? 'status' : 'alert'}>{notice}</Alert>}
       <div className="mt-6">
         <form ref={form} aria-busy={pending} className="grid min-w-0 gap-5" onSubmit={event => { void submit(event) }} noValidate>
-          <section aria-labelledby="photo-title" className={errors.image ? 'rounded-control border border-feedback-danger-foreground p-3' : ''}>
-            <h2 id="photo-title" className="mb-2 text-title">1. Mostre o problema</h2><p className="text-small text-text-secondary">De uma a cinco fotos ou um vídeo.</p>
-            <MediaPicker mode={mode} onMode={setMode} errorId={errors.image ? "report-photo-error" : undefined} value={photos} onChange={setPhotos} existing={existing} disabled={pending} onValidationChange={busy => {
-              validatingImage.current = busy
-              setImageBusy(busy)
-            }} />
+          <nav aria-label="Etapas do relato" className="flex flex-wrap gap-2">
+            {stepNames.map((name, index) => <Button key={name} type="button" size="compact" variant="quiet" aria-current={step === index + 1 ? 'step' : undefined}
+              disabled={pending || imageBusy || index + 1 > step} onClick={() => go(index + 1)}>{index + 1}. {name}</Button>)}
+          </nav>
+          <p role="status" className="mb-0 text-small">Etapa {step} de 4</p>
+          <h2 ref={stepTitle} tabIndex={-1} className="text-title">{stepNames[step - 1]}</h2>
+          <section hidden={step !== 1} inert={step !== 1} aria-label="Foto ou vídeo">
+            <p className="text-small text-text-secondary">De uma a cinco fotos ou um vídeo. Após a primeira seleção válida, você segue para o local. Pode voltar aqui para adicionar fotos e escolher a capa.</p>
+            <MediaPicker mode={mode} onMode={setMode} active={step === 1} onPreview={previewChanged} errorId={errors.image ? 'report-photo-error' : undefined}
+              value={photos} onChange={setPhotos} existing={existing} disabled={pending || imageBusy || step !== 1} onValidationChange={busy => {
+                validatingImage.current = busy; setImageBusy(busy)
+              }} />
             {errors.image && <p id="report-photo-error" className="mt-2 text-small text-feedback-danger-foreground" role="alert">{errors.image}</p>}
           </section>
-          <section aria-labelledby="location-title" className="grid min-w-0 gap-4 border-t border-border-subtle pt-6">
-            <h2 id="location-title" className="mb-0 text-title">2. Onde fica?</h2>
-          <LocationPicker value={location} onChange={setLocation} disabled={pending} error={errors.location} focusError={!errors.image} />
-          <Input label="Bairro" value={neighborhood} error={errors.neighborhood} disabled={pending} onChange={event => setNeighborhood(event.target.value)} />
-          <Input label="Ponto de referência" description="Informe rua, número, esquina ou outro detalhe que ajude a encontrar o local." value={reference} error={errors.reference} disabled={pending} onChange={event => setReference(event.target.value)} />
-          </section>
-          <section aria-labelledby="information-title" className="grid min-w-0 gap-4 border-t border-border-subtle pt-6">
-            <h2 id="information-title" className="mb-0 text-title">3. Conte o essencial</h2>
-          <Select label="Categoria" value={categoryId} error={errors.categoryId} disabled={loadingCategories || pending} onChange={event => setCategoryId(event.target.value)}>
-            <option value="">Selecione uma categoria</option>
-            {categories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
-          </Select>
-          <Input label="Título" value={title} error={errors.title} disabled={pending} onChange={event => setTitle(event.target.value)} />
-          <Textarea label="Detalhes (opcional)" description={`Se quiser, conte algo que as fotos ou o vídeo não mostram. ${Array.from(cleanOccurrenceText(description)).length}/1000`} value={description} error={errors.description} disabled={pending} onChange={event => setDescription(event.target.value)} />
-          </section>
-          {review?.key === criteriaKey && <SimilarOccurrencesReview key={criteriaKey} criteria={criteria} visible={review.visible}
-            busy={pending || imageBusy} onReview={() => setReview({ key: criteriaKey, visible: false })} onConfirm={() => { void confirm() }} />}
-          <Button type="submit" loading={pending} disabled={loadingCategories || imageBusy || pending}>{pending ? 'Enviando…' : existing ? 'Salvar relato' : 'Enviar relato'}</Button>
-          {existing && (pending ? <Button variant="quiet" disabled>Cancelar edição</Button> : <Link className={buttonStyles('quiet')} to={`/meus-relatos/${existing.id}`} state={{ from }}>Cancelar edição</Link>)}
+          {visited >= 2 && <section hidden={step !== 2} inert={step !== 2} aria-label="Localização" className={step === 2 ? 'grid min-w-0 gap-4' : ''}>
+            <LocationPicker value={location} onChange={setLocation} disabled={pending} active={step === 2} autoLocate={!existing} error={errors.location} />
+            <Input label="Bairro" value={neighborhood} error={errors.neighborhood} disabled={pending} onChange={event => setNeighborhood(event.target.value)} />
+            <Input label="Ponto de referência" description="Informe rua, número, esquina ou outro detalhe que ajude a encontrar o local." value={reference} error={errors.reference} disabled={pending} onChange={event => setReference(event.target.value)} />
+          </section>}
+          {visited >= 3 && <section hidden={step !== 3} inert={step !== 3} aria-label="Informações" className={step === 3 ? 'grid min-w-0 gap-4' : ''}>
+            {categoriesFailed && <Alert tone="danger" role="alert">Não foi possível carregar as categorias. <Button variant="secondary" disabled={pending || loadingCategories} onClick={() => setCategoriesAttempt(value => value + 1)}>Carregar categorias novamente</Button></Alert>}
+            <Select label="Categoria" value={categoryId} error={errors.categoryId} disabled={loadingCategories || pending} onChange={event => setCategoryId(event.target.value)}>
+              <option value="">Selecione uma categoria</option>
+              {categories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
+            </Select>
+            <Input label="Título" value={title} error={errors.title} disabled={pending} onChange={event => setTitle(event.target.value)} />
+            <Textarea label="Detalhes (opcional)" description={`Se quiser, conte algo que as fotos ou o vídeo não mostram. ${Array.from(cleanOccurrenceText(description)).length}/1000`} value={description} error={errors.description} disabled={pending} onChange={event => setDescription(event.target.value)} />
+          </section>}
+          {visited >= 4 && <section hidden={step !== 4} inert={step !== 4} aria-label="Revisão" className={step === 4 ? 'grid min-w-0 gap-4' : ''}>
+            <div className="min-w-0 break-words rounded-card border border-border-subtle bg-surface-raised p-4">
+              <h3 className="text-title">{title}</h3>
+              <p>{categories.find(item => item.id === Number(categoryId))?.name}</p>
+              {cleanOccurrenceText(description) && <p className="whitespace-pre-wrap">{description}</p>}
+              <p>{neighborhood} · {reference}</p><p>{location ? 'Local confirmado no mapa.' : 'Relato legado sem ponto confirmado.'}</p>
+              <p>{mode === 'VIDEO' ? 'Um vídeo' : `${photos.length} ${photos.length === 1 ? 'foto' : 'fotos'} · primeira foto como capa`}</p>
+              {mode === 'VIDEO' ? <VideoPlaceholder /> : previews[photos[0]?.key] ? <img src={previews[photos[0].key]} alt="Capa do relato em revisão" className="max-h-60 w-full object-contain" /> : <p>Prévia da capa indisponível. A mídia selecionada foi mantida.</p>}
+              <div className="flex flex-wrap gap-2">
+                <Button variant="quiet" disabled={pending} onClick={() => go(1)}>Editar mídia</Button>
+                <Button variant="quiet" disabled={pending} onClick={() => go(2)}>Editar local</Button>
+                <Button variant="quiet" disabled={pending} onClick={() => go(3)}>Editar informações</Button>
+              </div>
+            </div>
+            {review?.key === criteriaKey && <SimilarOccurrencesReview key={criteriaKey} criteria={criteria} visible={step === 4} wizard editing={!!existing}
+              busy={pending || imageBusy} onReview={() => go(3)} onConfirm={() => { void confirm() }} />}
+            {pending && <p role="status">{existing ? 'Salvando…' : 'Enviando…'}</p>}
+          </section>}
+          <div className="flex flex-wrap gap-3 border-t border-border-subtle pt-4">
+            {step > 1 && <Button variant="secondary" disabled={pending || imageBusy} onClick={() => go(step - 1)}>Voltar</Button>}
+            {step < 4 && <Button disabled={pending || imageBusy} onClick={advance}>{step === 3 ? 'Revisar relato' : 'Continuar'}</Button>}
+            {visited === 4 && step < 3 && <Button variant="secondary" disabled={pending || imageBusy} onClick={reviewDraft}>Voltar à revisão</Button>}
+            <Link aria-disabled={pending || undefined} className={buttonStyles('quiet')} to={existing ? `/meus-relatos/${existing.id}` : '/meus-relatos'} state={{ from }}>{existing ? 'Cancelar edição' : 'Cancelar relato'}</Link>
+          </div>
           {existing && notice && <Link to={`/meus-relatos/${existing.id}`}>Consultar relato novamente</Link>}
         </form>
       </div>

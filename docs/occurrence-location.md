@@ -44,35 +44,31 @@ vigente. Relatos finais legados não ganham autorização especial.
 
 ## Interação, acessibilidade e falhas
 
-`features/location/LocationPicker` recebe `value: GeographicPoint | null`,
-`onChange`, `disabled`, `error` e `focusError` (padrão true). Abrir ou mover o mapa não altera o valor.
-Clique confirma explicitamente o local; a expansão “Informar coordenadas” contém campos Latitude/Longitude para
-ajustar por teclado e o botão “Confirmar coordenadas” valida o par. O resumo
-identifica o local efetivamente confirmado. Rascunhos textuais/GPS permanecem
-separados: sem confirmação, o envio continua usando somente o ponto confirmado
-anterior, quando houver. Cadastro sem ponto foca Latitude e não envia a foto.
+`features/location/LocationPicker` recebe ponto confirmado, onChange, disabled,
+active, autoLocate, error e focusError. No [Wizard](report-wizard.md), monta na
+primeira visita e fica inativo nas demais etapas. Toque no mapa ou setas + Enter
+no centro confirmam o ponto. Mover/arrastar/recentralizar não confirma. Não existem
+inputs ou expansão de latitude/longitude no cadastro/edição; resumo não mostra
+coordenadas brutas. API e mapas de detalhe preservam seus contratos numéricos.
 
-GPS só usa `getCurrentPosition` após “Usar minha localização”, em contexto seguro
-(HTTPS ou localhost). Não há solicitação inicial, watchPosition, geocodificação
-ou coleta contínua. Resposta válida centraliza o mapa e mostra um círculo tracejado de sugestão,
-com precisão estimada em metros e ações “Confirmar este local”/“Descartar sugestão”.
-Somente confirmação substitui o ponto. Campos numéricos recebem o rascunho,
-sem atualizar o valor confirmado. Negação, timeout, indisponibilidade e
-falta de suporte preservam o ponto anterior e a seleção manual. Resposta tardia
-após desmontagem/bloqueio é ignorada. Ao centralizar uma sugestão, o provedor de tiles recebe seu enquadramento antes
-da confirmação; não recebe a credencial da API nem o conteúdo do relato.
+Na primeira entrada visível de cadastro sem ponto, tenta GPS uma vez com contexto
+seguro, alta precisão, timeout de 10 segundos e cache zero. Edição, inclusive legado,
+usa apenas acionamento voluntário. Controle de ícone dentro do mapa, rotulado
+“Usar minha localização”, oferece retry em todos os breakpoints, alvo de 44×44,
+foco/tooltip e estado busy, sem propagar clique como seleção de ponto.
 
-`LocationMap` importa Leaflet e seu CSS sob demanda. O marcador usa imagens do
-próprio pacote, empacotadas pelo Vite; não usa CDN nem os SVGs locais de docs.
-`ResizeObserver` ajusta o mapa a mudanças de layout. O mapa permite setas e +/-;
-zoom por roda fica desabilitado para permitir rolar o formulário. A alternativa
-textual independe de tiles e de gestos. Todos os controles próprios são botões
-sem submit e são bloqueados durante upload.
+Resultado GPS é sugestão em círculo tracejado com precisão estimada e ações
+Confirmar este local/Descartar sugestão, distinto do pino confirmado. Não preenche
+bairro/referência nem avança etapa. Negação, timeout e indisponibilidade têm mensagens
+próprias, sem apagar ponto. Respostas tardias após seleção manual, saída/desativação
+ou unmount são ignoradas por geração; não há watchPosition ou cancelamento nativo.
+Ao visualizar sugestão, provedor de tiles recebe o enquadramento antes da confirmação.
 
-Falhas de importação, configuração ou tiles apresentam mensagem e tentativa
-manual de recarregar; timeout de carregamento também produz erro. Dados, foto e
-ponto confirmado ficam no formulário. Confirmar coordenadas válidas por texto
-continua possível sem tiles; não há preenchimento automático em falhas.
+MapCanvas carrega Leaflet/configuração/tiles sob demanda, mantém retry e ResizeObserver;
+ao reaparecer, invalida o tamanho. Falha mantém rascunho e permite confirmar sugestão
+GPS disponível sem tiles. Sem mapa ou sugestão, cadastro novo aguarda recuperação,
+sem ponto fabricado. Legado continua editável sem ponto. [ADR 0027](adr/0027-organizar-registro-em-etapas.md)
+evolui a interação do ADR 0018, sem alterar banco ou mapa de exploração.
 
 ## Biblioteca, provedor e configuração
 
@@ -82,7 +78,7 @@ com React 19, TypeScript strict e Vite 6, sem wrapper com dependências de React
 O componente converte explicitamente `{latitude, longitude}` para
 `[latitude, longitude]` na borda Leaflet. Não usa GeoJSON (que inverteria eixos).
 O contrato global aceita polos; o mapa base usa projeção Web Mercator, que não
-representa os polos. Use os campos textuais para extremos fora da projeção.
+representa os polos. O cadastro por mapa não oferece entrada textual para extremos fora da projeção; as faixas globais da API permanecem.
 
 `frontend/public/map-config.json` é JSON público validado com Zod em runtime:
 
@@ -165,38 +161,8 @@ tratamento de ausência: [mapas nas consultas](occurrence-maps.md).
 
 ## Roteiro de teste local
 
-Use JDK 21, Node 22.23.2 e pnpm 10.34.5 conforme os guias vigentes. Com Docker
-ativo, execute `cd backend && ./mvnw verify` (PostgreSQL Testcontainers descartável).
-Em frontend/: `pnpm install --frozen-lockfile`, `pnpm run lint`,
-`pnpm run typecheck`, `pnpm test`, `pnpm run build`.
-
-Para navegador com API real, configure banco, RSA e storage conforme
-[registro](occurrence-registration.md), [segurança](security.md) e
-[imagens](image-storage.md); inicie backend em backend/ com
-`./mvnw spring-boot:run -Dspring-boot.run.profiles=dev` e frontend com
-`pnpm run dev`. Nunca usar chave de teste em produção.
-
-1. Entre como cidadão, abra diretamente `/registrar-ocorrencia` e recarregue.
-   Preencha categoria/título/bairro/referência, selecione foto válida. Envie sem
-   ponto: erro em Latitude com foco, sem upload; foto/texto permanecem.
-2. Clique no local real; confira atribuição, marcador e resumo. Ajuste por
-   Latitude/Longitude e confirme por teclado. Envie; inspecione multipart e
-   resposta (eixos corretos), abra o detalhe privado e depois Editar.
-3. Confira ponto restaurado; mova somente o mapa, salve e verifique que o ponto
-   persistido permanece. Confirme novo ponto e salve: posição/versão mudam.
-4. Em uma base local com relato anterior à V9, abra a edição: sem marcador e sem
-   posição. Salve só texto: ambos null. Confirme voluntariamente um ponto: par
-   passa a existir. Não alterar banco remoto nem preencher legado em lote.
-5. Negue GPS e tente novamente; simule timeout/indisponibilidade e GPS com posição
-   de teste no DevTools. Só a confirmação modifica o resumo; seleção manual
-   continua disponível e a estimativa de precisão não é exatidão garantida.
-6. Bloqueie tiles e recarregue: mensagem de falha/retry e coordenadas textuais
-   funcionam. Simule falha do POST/PUT: foto, texto e ponto confirmado permanecem.
-   Desbloqueie e use retry; não automatizar varredura/download de tiles OSM.
-7. Abra a edição em duas abas; salve uma e tente outra: 412, rascunho preservado,
-   consulta nova exigida. Como ADMIN, inicie análise; cidadão não pode mais editar
-   (409 em formulário aberto; controles ausentes no detalhe atualizado).
-8. Confira teclado (Tab, setas, +/-, confirmação), largura 360px, zoom 200% e
-   rolagem do formulário. Verifique também build servido e reload direto das
-   rotas. Mocks/jsdom e tiles sintéticos não validam o provedor real, a precisão
-   do dispositivo, captura física da foto ou deploy remoto.
+O [roteiro do Wizard](report-wizard.md#roteiro-de-homologação) cobre GPS automático
+único, retries voluntários, pontos/sugestões, falhas de tiles, escolha por mapa e
+teclado, navegação preservada e publicação. Usar posições/mídias fictícias localmente,
+sem consumo de provedor remoto nos testes. Contratos backend WGS84 permanecem
+verificados por suas suítes; esta evolução é frontend, sem migration nova.

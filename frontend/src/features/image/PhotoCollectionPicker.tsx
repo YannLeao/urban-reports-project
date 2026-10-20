@@ -7,19 +7,21 @@ import type { Occurrence } from '../occurrence/occurrence'
 
 import type { PhotoDraft } from './photo-draft'
 
-function LocalPreview({ file, position }: { file: File; position: number }) {
+function LocalPreview({ file, position, onPreview }: { file: File; position: number; onPreview?: (url: string | null) => void }) {
+  const listener = useRef(onPreview)
+  listener.current = onPreview
   const [preview, setPreview] = useState<{ file: File; url: string } | null>(null)
   useEffect(() => {
     const url = URL.createObjectURL(file)
-    setPreview({ file, url })
-    return () => URL.revokeObjectURL(url)
+    setPreview({ file, url }); listener.current?.(url)
+    return () => { listener.current?.(null); URL.revokeObjectURL(url) }
   }, [file])
   return preview?.file === file ? <img src={preview.url} alt={`Prévia da foto ${position + 1}`} className="aspect-[4/3] w-full object-contain" /> : null
 }
 
-export function PhotoCollectionPicker({ value, onChange, existing, disabled = false, onValidationChange, errorId }: {
+export function PhotoCollectionPicker({ value, onChange, existing, disabled = false, onValidationChange, errorId, active = true, onPreview }: {
   value: PhotoDraft[]; onChange: (items: PhotoDraft[]) => void; existing?: Occurrence
-  disabled?: boolean; errorId?: string; onValidationChange?: (busy: boolean) => void
+  disabled?: boolean; errorId?: string; onValidationChange?: (busy: boolean) => void; active?: boolean; onPreview?: (key: string, url: string | null) => void
 }) {
   const helpId = useId()
   const gallery = useRef<HTMLInputElement>(null)
@@ -70,7 +72,7 @@ export function PhotoCollectionPicker({ value, onChange, existing, disabled = fa
     <ol className="m-0 grid min-w-0 list-none gap-4 p-0 sm:grid-cols-2">
       {value.map((item, index) => <li key={item.key} className="min-w-0 rounded-card border border-border-subtle p-3">
         <p className="font-bold">Foto {index + 1}{index === 0 ? ' · Capa' : ''}</p>
-        {item.file ? <LocalPreview file={item.file} position={index} /> : existing && <OccurrencePhoto report={existing} mediaId={item.id} full />}
+        {item.file ? <LocalPreview file={item.file} position={index} onPreview={url => onPreview?.(item.key, url)} /> : existing && <OccurrencePhoto report={existing} mediaId={item.id} full active={active} onPreview={url => onPreview?.(item.key, url)} />}
         <div className="flex flex-wrap gap-2">
           {index > 0 && <Button variant="quiet" disabled={disabled || busy} aria-label={`Definir foto ${index + 1} como capa`} onClick={() => move(index, 0)}>Usar como capa</Button>}
           <Button variant="quiet" disabled={disabled || busy || index === 0} aria-label={`Mover foto ${index + 1} para antes`} onClick={() => move(index, index - 1)}>Anterior</Button>

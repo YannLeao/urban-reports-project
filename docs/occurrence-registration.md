@@ -187,3 +187,12 @@ O formulário de cadastro/edição oferece revisão informativa antes da gravaç
 com 100 m/mesma categoria/ativos/até cinco e exclusão própria na edição.
 Contrato, minimização, falhas, integração futura e roteiro em
 [sugestões de relatos próximos](similar-occurrences.md).
+
+## Experiência em etapas
+
+O cadastro/edição real usa o [Wizard de quatro etapas](report-wizard.md), com
+primeira mídia válida avançando cadastro uma vez. Localização é escolhida no mapa,
+com sugestão GPS automática única na primeira entrada do cadastro e confirmação
+explícita. Inputs numéricos foram removidos da UI; multipart/WGS84 permanecem.
+Revisão integra semelhantes antes da única ação final de escrita; etapas e erros
+preservam mídias/texto/ponto/versão em memória.

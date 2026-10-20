@@ -92,7 +92,7 @@ CDN ou instalação para apresentação. A fonte está embutida; sua licença es
 
 O preview orienta design e interação; o código funcional e os guias de cada
 contrato definem o comportamento disponível. Exemplos de recuperação, avisos,
-duplicidade e etapas de cadastro não comprovam sua entrega na aplicação.
+pendentes não comprovam sua entrega. O [Wizard real](../report-wizard.md) integra mídia, localização, informações e semelhantes na revisão.
 
 `pnpm tokens:generate` também atualiza os blocos demarcados do HTML com tokens,
 WOFF2 locais e snapshots gerados de `OccurrencePin.tsx` via Vite/React. Não edite

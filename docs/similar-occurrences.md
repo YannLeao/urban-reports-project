@@ -1,9 +1,9 @@
 # Sugestões de relatos próximos
 
 A [decisão 0026](adr/0026-alertar-relatos-por-proximidade.md) substitui RN-20 textual
-por categoria + proximidade. No cadastro e na edição, “Enviar relato”/“Salvar relato”
-valida o formulário completo e abre uma revisão. Nenhum multipart/upload é iniciado
-até uma confirmação adicional explícita. Não há etapas de Wizard.
+por categoria + proximidade. No cadastro e na edição, “Revisar relato” valida o formulário completo
+e abre a quarta etapa do [Wizard](report-wizard.md). Nenhum multipart/upload é iniciado
+até uma confirmação adicional explícita. Não há revisão adicional depois dessa etapa.
 
 ## Contrato
 
@@ -39,11 +39,11 @@ ou escrita de domínio. Índice atual de categoria permanece. Plano reproduzíve
 com 20 mil relatos sintéticos em `SimilarOccurrenceIntegrationTests`, saída em
 `backend/target/similar-query-plan.txt`; o limite não evita cálculo dos candidatos.
 
-## Revisão e integração futura
+## Revisão no Wizard
 
 `similar-occurrences.ts` define cliente/schema dedicado; `useSimilarOccurrences`
-recebe categoria, coordenadas exatas e exclusão opcional. Montagem sob ação de
-revisar inicia consulta autenticada cancelável. Chave Query privada inclui usuário
+recebe categoria, coordenadas exatas e exclusão opcional. Entrada explícita na etapa de
+revisão inicia consulta autenticada cancelável. Chave Query privada inclui usuário
 e todos os critérios, sem arredondar. Cache em memória é removido ao desmontar,
 sem persistência. Timeout de 10 s cobre inclusive leitura cancelável do JSON (resposta limitada a 32 KiB no cliente). Sem retries
 automáticos, polling ou refetch por foco/reconexão. Voltar sem mudar critérios
@@ -51,8 +51,8 @@ reutiliza a revisão atual; mudar categoria/ponto/usuário descarta resultado e 
 
 `SimilarOccurrencesReview` apresenta carregamento, sucesso vazio, sugestões,
 indisponibilidade e legado sem ponto. Oferece “Revisar meu relato” e confirmação
-explícita; com sugestões, “É outro relato, continuar”. Falha auxiliar oferece
-“Consultar novamente” e “Enviar mesmo assim”. Durante carregamento, confirmação
+explícita; com sugestões, “É outro relato, enviar”/“É outro relato, salvar”. Falha auxiliar oferece
+“Consultar novamente” e “Enviar mesmo assim”/“Salvar mesmo assim”. Atualização manual também é oferecida após sucesso. Durante carregamento, confirmação
 fica indisponível. 403 informa falta de acesso, sem bypass; 401 encerra sessão.
 Enter apenas abre revisão. Guarda síncrona impede dupla gravação; handler final
 revalida campos, mídia pronta e critérios. Textos, File/ordem/capa, ponto e versão
@@ -63,8 +63,8 @@ Cartões textuais não buscam mídia. Links constroem `/ocorrencias/:id`, abrem 
 aba com aviso e `noopener noreferrer`. Rejeição/exclusão posteriores tornam detalhe
 e mídia indisponíveis conforme autorização pública atual. Não há flag global de
 privacidade no domínio. Legado sem ponto não consulta nem fabrica (0,0), podendo
-salvar conforme contrato vigente. #51 deve mover hook/painel para sua revisão,
-preservando o estado do formulário, sem reproduzir lógica de busca ou upload.
+salvar conforme contrato vigente. O Wizard integra hook/painel na etapa 4, preservando estado do formulário
+e cancelando consultas pendentes ao sair da revisão, sem reproduzir busca/upload.
 
 ## Roteiro local
 
@@ -85,7 +85,7 @@ storage de teste conforme guias de registro/segurança. Não apontar para produ�
    somente POST JSON de consulta, até cinco ativos ordenados, nenhum upload,
    autoria ou fetch de mídia no alerta. Vazio deve dizer “nesta consulta”.
 3. Abrir candidato em nova aba, voltar, revisar texto/fotos e reabrir revisão:
-   preservar rascunho. “É outro relato, continuar” deve realizar um único multipart,
+   preservar rascunho. “É outro relato, enviar” deve realizar um único multipart,
    sem flag de duplicidade e sem modificar status por causa da sugestão.
 4. Alterar categoria/ponto durante consulta lenta: cancelar/inutilizar resultado
    anterior. Enter não grava. Na edição, excluir próprio relato e preservar If-Match

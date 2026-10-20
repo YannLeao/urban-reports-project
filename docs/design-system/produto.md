@@ -29,8 +29,9 @@ textual, uma coleção de 1–5 fotos ou um vídeo obrigatório e um ponto geogr
   Evitar uma cor por categoria; não depender somente de cor.
 - Cartão/detalhe: foto, título, categoria, localização resumida e status textual.
   Quando faltar foto, comunicar a ausência, sem imagem que pareça evidência real.
-- Registro: etapa única com ponto obrigatório confirmado no mapa ou por
-  coordenadas e GPS opcional mediante ação, sem geocodificação. Edição de Pendente
+- Registro: [quatro etapas](../report-wizard.md), mídia → localização → informações
+  → revisão. Ponto confirmado pelo mapa; GPS sugerido uma vez na primeira visita
+  do cadastro, com confirmação explícita. Sem inputs numéricos ou geocodificação. Edição de Pendente
   permite ajuste; legado não é preenchido automaticamente. Veja [localização](../occurrence-location.md).
 - Estados atuais: PENDING/Pendente, IN_ANALYSIS/Em análise, RESOLVED/Resolvida
   e REJECTED/Rejeitada. O relato nasce PENDING; transições e histórico seguem
