@@ -20,8 +20,9 @@ pessoais e as capturas da referência de feedback, mantida em pasta temporária.
 
 - Categorias: oito IDs/rótulos de `V4__create_occurrences.sql`, sem renumeração.
 - Descrição opcional, até 1000 caracteres; localização confirmada manualmente,
-  GPS opcional; sem sugestão de EXIF. O formulário real usa etapa única; as três
-  figuras do preview apenas exploram a apresentação do conteúdo.
+  GPS sugerido uma vez na primeira visita à localização do cadastro, com confirmação
+  explícita e controle integrado ao mapa; edição usa tentativa voluntária. O formulário
+  real tem quatro etapas, com semelhantes na revisão e sem inputs de coordenadas.
 - Convite administrativo de 24 horas, uso único. Recuperação de senha é uma
   integração futura; seus exemplos não comprovam rota funcional ou envio de e-mail.
 - Histórico contém transições de moderação. Criação é um dado do relato, sem

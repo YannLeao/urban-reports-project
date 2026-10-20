@@ -263,3 +263,11 @@ status textual, lista com quebra de linhas e links de detalhe em nova aba com av
 Foco inicial no painel ao abrir/reabrir, sem novo foco por chegada de resposta.
 `SimilarOccurrencesReview` conecta o hook autenticado; o catálogo usa o painel
 puro com fixture sintética, sem request. [Contrato e roteiro](../similar-occurrences.md).
+
+## Registro em etapas
+
+[Wizard](../report-wizard.md) usa progresso textual “Etapa X de 4”, navegação
+de retorno por botões sem semântica de tabs, título focável e hidden/inert para
+etapas inativas. Ações finais de semelhantes usam enviar/salvar conforme modo,
+com retry manual. Controle de localização com Icon location dentro do mapa usa
+alvo mínimo de 44×44, nome/tooltip e estado busy; clique não confirma pino.

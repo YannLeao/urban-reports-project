@@ -31,7 +31,7 @@ cidadão acompanhar transições e marcar avisos como lidos, com contador no sin
 Novos avisos também capturam [intenções de e-mail](docs/notification-email.md)
 para o mesmo autor, com consumidor desligado por padrão e recuperação operacional.
 O registro autenticado em `/registrar-ocorrencia` integra categorias, [uma a cinco fotografias ordenadas](docs/multiple-photos.md) ou [um vídeo MP4 limitado](docs/occurrence-video.md),
-[localização confirmada](docs/occurrence-location.md) e persistência. Consulte o [contrato de ocorrência](docs/occurrence-registration.md):
+[localização confirmada](docs/occurrence-location.md) e persistência em um [Wizard de quatro etapas](docs/report-wizard.md). Consulte o [contrato de ocorrência](docs/occurrence-registration.md):
 o formulário oferece [sugestões próximas antes da confirmação](docs/similar-occurrences.md), sem bloqueio de negócio;
 a implementação não comprova, por si só, o aceite publicado ou a captura física.
 

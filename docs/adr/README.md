@@ -52,3 +52,5 @@ um novo ADR que substitui o anterior.
 - [0025 — Vídeo limitado e reprodução por superfície](0025-validar-e-reproduzir-video-limitado.md)
 
 - [0026 — Alertas por categoria e proximidade](0026-alertar-relatos-por-proximidade.md)
+
+- [0027 — Wizard e sugestão de localização na primeira visita](0027-organizar-registro-em-etapas.md)

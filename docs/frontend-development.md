@@ -270,7 +270,7 @@ compartilha a primeira página e lê `unreadCount` global do servidor. Marcar co
 lida invalida todas as páginas do usuário, incluindo o sino, sem retry de POST.
 Contrato e limitações: [notificações](notifications.md).
 
-Seleção de fotografias no produto usa `PhotoCollectionPicker` (1–5, ordenação/capa), reutilizável no futuro Wizard; detalhes usam `OccurrenceGallery`. Prova singular permanece independente. [Contrato, roteiro e limites](multiple-photos.md).
+Seleção de fotografias no produto usa `PhotoCollectionPicker` (1–5, ordenação/capa), reutilizado no Wizard; detalhes usam `OccurrenceGallery`. Prova singular permanece independente. [Contrato, roteiro e limites](multiple-photos.md).
 
 ## Mídia de vídeo
 
@@ -282,3 +282,10 @@ retorna 404. Cada request de mídia revalida acesso antes de HEAD/GET do storage
 encerra transação antes da cópia. Bucket permanece privado e bytes/metadados são
 preservados. V14/runtime/worker atualizado precedem frontend; versões antigas
 exigem parada coordenada, com recuperação por avanço em vez de desfazer migration.
+
+## Wizard de relatos
+
+Cadastro/edição usam [quatro etapas](report-wizard.md), com rascunho estável em
+memória, mídia inicial com avanço único, GPS sugerido na primeira visita de cadastro
+à localização, mapa sem entrada numérica e semelhantes integrados à revisão final.
+Erros direcionam à etapa; If-Match e mídia mantêm contratos.

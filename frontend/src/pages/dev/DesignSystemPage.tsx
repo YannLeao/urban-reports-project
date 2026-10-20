@@ -34,9 +34,13 @@ export default function DesignSystemPage() {
     <section className="pt-12 pb-8 md:pt-16"><p className="mb-3 text-small font-bold text-brand-default">Referência de desenvolvimento</p>
       <h1>Design system Alô Cidade</h1><p className="mb-0 text-lead text-text-secondary">Exemplos demonstrativos. Nenhum dado é enviado ao serviço.</p></section>
     <div className="grid gap-8 pb-8">
+      <Card><h2>Registro em quatro etapas</h2>
+        <ol className="grid gap-2"><li>Foto ou vídeo — primeira seleção válida avança cadastro uma vez.</li><li>Localização — mapa e sugestão GPS confirmada.</li><li>Informações — categoria, título e detalhes opcionais.</li><li>Revisão — resumo e sugestões próximas, única confirmação final.</li></ol>
+        <p>Etapas visitadas permanecem montadas, com foco no título/erro e estado preservado. Voltar não descarta. Sem entrada numérica de coordenadas ou autosave.</p>
+      </Card>
       <Card><h2>Sugestões de relatos próximos</h2>
         <p>Revisão informativa antes do envio: até cinco ativos da mesma categoria em 100 m, sem mídia ou autoria. Exemplo estático sem consulta; ações abaixo são demonstrativas.</p>
-        <SimilarOccurrencesPanel visible busy={false} status="candidates" onReview={() => {}} onConfirm={() => {}} onRetry={() => {}}
+        <SimilarOccurrencesPanel visible wizard busy={false} status="candidates" onReview={() => {}} onConfirm={() => {}} onRetry={() => {}}
           result={{ radiusMeters: 100, limit: 5, items: [{ id: '00000000-0000-4000-8000-000000000002', categoryId: 2,
             categoryName: 'Buraco ou pavimentação', title: 'Buraco na esquina (exemplo)', neighborhood: 'Centro', reference: 'Praça de exemplo',
             status: 'PENDING', createdAt: '2026-10-20T12:00:00Z', distanceMeters: 32.4 }] }} />

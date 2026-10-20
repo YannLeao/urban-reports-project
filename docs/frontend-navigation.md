@@ -87,7 +87,7 @@ servidor novamente. Contrato: [notificações](notifications.md).
 `PasswordRecoveryAccess`, após a senha do login, continua como texto auxiliar
 “Recuperação de senha em breve”, sem href, submit ou e-mail simulado.
 
-Seleção de fotografias no produto usa `PhotoCollectionPicker` (1–5, ordenação/capa), reutilizável no futuro Wizard; detalhes usam `OccurrenceGallery`. Prova singular permanece independente. [Contrato, roteiro e limites](multiple-photos.md).
+Seleção de fotografias no produto usa `PhotoCollectionPicker` (1–5, ordenação/capa), reutilizado no Wizard; detalhes usam `OccurrenceGallery`. Prova singular permanece independente. [Contrato, roteiro e limites](multiple-photos.md).
 
 ## Mídia de vídeo
 
@@ -99,3 +99,11 @@ retorna 404. Cada request de mídia revalida acesso antes de HEAD/GET do storage
 encerra transação antes da cópia. Bucket permanece privado e bytes/metadados são
 preservados. V14/runtime/worker atualizado precedem frontend; versões antigas
 exigem parada coordenada, com recuperação por avanço em vez de desfazer migration.
+
+## Cadastro e edição em etapas
+
+O [Wizard](report-wizard.md) mantém as rotas atuais e um único rascunho para mídia,
+localização, informações e revisão. Navegação entre etapas não altera histórico/URL.
+Links de saída com alterações pedem confirmação; beforeunload protege reload quando
+suportado. Histórico nativo do navegador não é bloqueado pelo Router declarativo.
+Sem autosave ou promessa de recuperação após sair/encerrar sessão.

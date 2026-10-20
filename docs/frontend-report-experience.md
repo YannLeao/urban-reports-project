@@ -7,8 +7,10 @@ continuam definidos nos guias de cada domínio.
 ## Registro e fotografia
 
 `ReportOccurrencePage` mantém um único formulário e o mesmo estado durante
-registro/edição. A ordem é foto, localização/bairro/referência e categoria/título/
-descrição opcional. Não há wizard nem persistência adicional do rascunho.
+registro/edição, em [quatro etapas](report-wizard.md): mídia, localização, informações
+e revisão. A primeira mídia local válida avança cadastro uma vez; retorno/edição
+usam Continuar. Etapas visitadas ficam montadas e ocultas/inativas ao sair.
+Não há persistência adicional do rascunho.
 A fotografia e o ponto existentes são restaurados na edição; trocar fotografia
 é opcional. Confirmação do servidor, If-Match, conflito, incerteza e journal
 seguem [registro](occurrence-registration.md) e [consulta privada](occurrence-query.md).
@@ -25,18 +27,12 @@ nativa. `ImagePicker` singular continua na prova independente `/prova-imagem`.
 
 ## Localização e acesso
 
-GPS é solicitado somente por ação explícita. Uma sugestão válida centraliza o
-mapa e aparece como círculo tracejado, separado do pino confirmado. Confirmar
-ou tocar/clicar no mapa constitui escolha humana; descartar ou falhar não apaga
-o ponto anterior. Mover a visualização não confirma posição. Ao visualizar a
-sugestão, o provedor de tiles recebe o novo enquadramento, antes da confirmação;
-não recebe texto, foto ou Bearer da API.
-
-“Informar coordenadas” é alternativa expansível, independente dos tiles, com
-eixos, unidade, faixas e confirmação. Erro abre a seção e foca o input; erro de
-foto no início do formulário tem prioridade de foco. `LocationPicker` aceita
-`focusError` (padrão true) para coordenar essa prioridade sem esconder o erro.
-O centro de Belo Jardim nunca preenche o payload. Veja [localização](occurrence-location.md).
+Na primeira entrada na localização de cadastro sem ponto, GPS é tentado uma vez
+como sugestão, com confirmação explícita. Edição usa GPS voluntário. Controle com
+ícone dentro do mapa fica disponível no celular/desktop. Toque ou setas + Enter
+confirmam; arrastar/recentralizar não altera o ponto. Sem entrada numérica no
+cadastro/edição, nem coordenadas brutas na revisão. Falhas e callbacks tardios
+preservam escolhas anteriores; veja [localização](occurrence-location.md).
 
 Login, cadastro e ativação usam o [PasswordField compartilhado](design-system/componentes.md#passwordfield).
 Cada campo tem controle independente. A política de criação continua de 15 a
@@ -82,7 +78,7 @@ abre seção com foco no nome; fechar preserva o rascunho, sucesso fecha a seç�
 renova a lista. Falhas/incerteza de e-mail e confirmação de desativação seguem
 [provisionamento](admin-provisioning.md). Não há promoção ou herança de ADMIN.
 
-Seleção de fotografias no produto usa `PhotoCollectionPicker` (1–5, ordenação/capa), reutilizável no futuro Wizard; detalhes usam `OccurrenceGallery`. Prova singular permanece independente. [Contrato, roteiro e limites](multiple-photos.md).
+Seleção de fotografias no produto usa `PhotoCollectionPicker` (1–5, ordenação/capa), reutilizado no Wizard; detalhes usam `OccurrenceGallery`. Prova singular permanece independente. [Contrato, roteiro e limites](multiple-photos.md).
 
 
 ## Alternativa de vídeo
