@@ -71,8 +71,10 @@
   use cliente Query novo por caso e fetch controlado, sem API real.
 - Publicação frontend usa Vercel CLI fixada no lockfile, artefato Build Output
   API v3 e job manual `frontend:deploy` da branch padrão protegida. Preserve
-  `needs` de build/lint/testes, rastreabilidade do pipeline e roteamento na saída
-  prebuilt. Não habilite previews ou deploy paralelo pela integração Git.
+  `needs` obrigatório do build e seus artefatos no deploy; o job de lint/tipos/testes
+  fica no MR conforme a [política temporária de CI](docs/ci-pipelines.md). Preserve
+  rastreabilidade e roteamento prebuilt. Não habilite previews ou deploy paralelo
+  pela integração Git.
 - `VITE_API_URL` é incorporada no build. Valores `VITE_*` são públicos no bundle:
   nunca inclua credenciais. Alterar a URL exige recompilar o frontend.
 

@@ -3,9 +3,9 @@
 ## Fluxo e artefato
 
 ```text
-frontend:build → frontend:lint → frontend:deploy (manual)
-     ↓                              ↑
-.vercel/output/ + artifact.json ─────┘
+MR: frontend:build → frontend:lint (lint, typecheck e testes)
+push na branch padrão:
+  frontend:build → .vercel/output/ + artifact.json → frontend:deploy (manual)
 ```
 
 GitLab CI valida e publica; Vercel hospeda somente arquivos estáticos. Backend,
@@ -34,17 +34,21 @@ Revise também o conteúdo de `public/`: seus arquivos entram no bundle público
 Nunca inclua segredos em `VITE_*`.
 
 O GitLab arquiva somente output e metadados por sete dias. Não arquiva `.vercel/`
-inteira nem o vínculo local. Se o artefato expirou, inicie **novo pipeline** da
-branch padrão e execute todas as verificações novamente.
+inteira nem o vínculo local. Se o artefato expirou, faça retry de `frontend:build`
+no pipeline original antes de repetir o deploy, conforme a
+[política temporária de CI](ci-pipelines.md#deploy-e-repetição).
 
-`frontend:lint` executa lint, typecheck e testes Node/Vitest. O deploy tem `needs`
-explícitos para build e lint, portanto aguarda todas essas verificações. Publica
-com `pnpm exec vercel deploy --prebuilt --prod`, sem build remoto ou recompilação
+`frontend:lint` executa lint, typecheck e testes Node/Vitest somente no MR.
+Na branch padrão, o deploy tem `needs` obrigatório para build e seus artefatos.
+O build mantém a checagem TypeScript embutida. Antes do deploy, confira as
+validações do MR revisado; elas não se repetem em um job separado na branch padrão.
+Publica com `pnpm exec vercel deploy --prebuilt --prod`, sem build remoto ou recompilação
 no job de deploy. Antes da CLI, o script valida variáveis, branch protegida e
 correspondência do SHA/ref/pipeline do artefato. A CLI recebe esses identificadores
 como metadados; a URL específica do deployment aparece no log do job.
 
-MRs e outras branches somente validam. A branch padrão protegida oferece o job
+MRs validam conforme os caminhos abaixo; pushes em branches de trabalho não
+geram pipeline de branch. O push na branch padrão protegida oferece o job
 manual, com `allow_failure: false`; falta de configuração falha explicitamente.
 Os jobs ficam em `infrastructure/gitlab-ci/frontend.yml`, incluído pela raiz.
 Mudanças nesse arquivo, em `frontend/`, `docs/design-system/`, `.dockerignore`,
@@ -159,9 +163,10 @@ local e revisão de `needs` não substituem o CI Lint nem um pipeline remoto.
 
 Depois de revisão e merge normal (sem merge automático):
 
-1. Confirme build/lint/testes verdes no pipeline da branch padrão. Registre SHA
-   e link do pipeline; acione `frontend:deploy` e registre link do job e URL/ID
-   do deployment retornado. Confirme os metadados na Vercel.
+1. Confirme build/lint/testes verdes no MR revisado e build verde no pipeline de
+   push da branch padrão. MR convencional não comprova o resultado exato do merge.
+   Registre SHA e links dos pipelines; acione `frontend:deploy` e registre link
+   do job e URL/ID do deployment retornado. Confirme os metadados na Vercel.
 2. Abra `FRONTEND_PRODUCTION_URL` em janela sem sessão Vercel: deve estar pública
    por HTTPS. Abra `/ocorrencias?visao=mapa` diretamente e atualize. Confira JS/CSS, seus tipos
    e ausência de erros no console/Network.

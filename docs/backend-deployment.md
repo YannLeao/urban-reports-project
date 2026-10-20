@@ -6,13 +6,15 @@ pelo GitLab CI/CD. O frontend não é publicado por esta esteira.
 ## Visão do fluxo
 
 ```text
-commit na branch padrão
+MR com alterações de backend
         ↓
 backend:build + backend:test
         ↓
+revisão e merge → push na branch padrão (sem repetir build/testes)
+        ↓
 backend:deploy (ação manual)
         ↓
-Render Deploy Hook com o SHA testado
+Render Deploy Hook com o SHA do pipeline da branch padrão
         ↓
 Render constrói backend/Dockerfile
         ↓
@@ -30,7 +32,7 @@ deployment solicitado pelo hook.
 Os jobs ficam em `infrastructure/gitlab-ci/backend.yml`, incluído por
 `.gitlab-ci.yml`. A configuração compartilhada permanece na raiz.
 
-| Caminho alterado | Jobs executados |
+| Caminho alterado | Validações no MR |
 |---|---|
 | `backend/**/*` ou `infrastructure/gitlab-ci/backend.yml` | `backend:build`, `backend:test` |
 | `frontend/**/*`, `docs/design-system/**/*`, `.dockerignore`, `docker-compose.yml` ou `infrastructure/gitlab-ci/frontend.yml` | `frontend:build`, `frontend:lint` (inclui tipos e testes) |
@@ -41,19 +43,21 @@ Testcontainers e publicando os relatórios JUnit. O repositório Maven foi
 direcionado a `backend/.m2/repository`, tornando efetivo o caminho armazenado no
 cache do GitLab.
 
-Merge Requests continuam recebendo pipeline. Quando uma MR está aberta, o
-pipeline de push redundante da mesma branch é descartado por
-`CI_OPEN_MERGE_REQUESTS`. Branches sem MR continuam recebendo pipeline normal.
+Somente eventos de MR executam build/testes conforme os caminhos acima.
+Push em branch de trabalho não gera pipeline de branch, mesmo sem MR.
+A branch padrão oferece deploy sem repetir compile/testes. Confira a
+[política temporária de CI](ci-pipelines.md), inclusive governança e reversão.
 
 O deploy aparece apenas quando todas as condições são verdadeiras:
 
-- pipeline da branch padrão;
+- pipeline de push da branch padrão;
 - alteração em `backend/**/*`, `infrastructure/gitlab-ci/backend.yml` ou `.gitlab-ci.yml`;
-- `backend:build` e `backend:test` concluídos com sucesso;
 - acionamento manual por uma pessoa autorizada.
 
 Uma mudança exclusiva de frontend ou documentação não disponibiliza deploy do
-backend.
+backend. Antes de acionar o deploy, confira a validação do MR e sua revisão:
+o job não depende mais de build/testes na branch padrão. MR convencional não
+garante teste do resultado exato do merge.
 
 ## Variáveis do GitLab
 
@@ -108,8 +112,8 @@ pendentes; não existe job de migration no GitLab.
 
 Depois do merge de uma alteração de backend:
 
-1. Abra o pipeline da branch padrão e confirme `backend:build` e
-   `backend:test` verdes.
+1. Confira `backend:build` e `backend:test` verdes no MR revisado e abra o
+   pipeline de push da branch padrão correspondente ao merge.
 2. Acione manualmente `backend:deploy`.
 3. Confirme que o job terminou com sucesso e que o GitLab registrou o deployment
    no environment `production` com a URL correta.
@@ -174,7 +178,8 @@ Render antes de habilitar cadastro/login.
 ## Redeploy e limitações
 
 Para repetir uma publicação do mesmo commit, execute novamente o job manual se
-o GitLab permitir o retry, ou inicie um novo pipeline da branch padrão. O job
+o GitLab permitir o retry no pipeline original. **New pipeline** fica bloqueado
+pela [política temporária](ci-pipelines.md#deploy-e-repetição). O job
 confirma que o Render aceitou o hook; ele não faz polling até o término do build.
 O status definitivo, logs e eventuais limitações de inicialização do plano usado
 devem ser acompanhados no Render.

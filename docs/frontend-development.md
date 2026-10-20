@@ -127,8 +127,10 @@ O Vitest descobre somente `src/**/*.test.{ts,tsx}`; a suíte `node:test` em
 `scripts/*.test.ts` roda separadamente no mesmo `pnpm test`. Falha em
 qualquer suíte devolve saída não zero. Não há E2E ou meta de cobertura.
 
-O job `frontend:build` compila pelo script de CI; `frontend:lint` executa lint,
-typecheck e ambas as suítes. O build também preserva sua checagem TypeScript.
+O job `frontend:build` compila pelo script de CI em MRs e pushes da branch padrão;
+`frontend:lint` executa lint, typecheck e ambas as suítes somente em MRs.
+O build também preserva sua checagem TypeScript. Push em branch de trabalho não
+gera pipeline de branch. Consulte a [política temporária de CI](ci-pipelines.md).
 Ambos instalam com frozen lockfile e cacheiam apenas `.pnpm-store/`, com chave
 baseada no lockfile. Cache vazio deve funcionar. Mudanças em `frontend/`,
 `docs/design-system/`, `.dockerignore`, `docker-compose.yml`, `.gitlab-ci.yml`
