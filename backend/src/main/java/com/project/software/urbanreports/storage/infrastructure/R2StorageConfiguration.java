@@ -17,6 +17,9 @@ public class R2StorageConfiguration {
     @Bean
     S3Client imageStorageS3Client(R2StorageProperties properties) {
         return S3Client.builder()
+                .httpClientBuilder(software.amazon.awssdk.http.apache.ApacheHttpClient.builder()
+                    .maxConnections(8).connectionAcquisitionTimeout(java.time.Duration.ofSeconds(2))
+                    .connectionTimeout(java.time.Duration.ofSeconds(5)).socketTimeout(java.time.Duration.ofSeconds(5)))
                 .endpointOverride(properties.endpoint())
                 .region(Region.of(properties.region()))
                 .credentialsProvider(StaticCredentialsProvider.create(

@@ -30,6 +30,11 @@ backend:test:
       - backend/.m2/repository
   needs:
     - backend:build
+  before_script:
+    - apt-get update
+    - apt-get install --yes --no-install-recommends ffmpeg
+    - ffmpeg -version
+    - ffprobe -version
   script:
     - cd backend
     - ./mvnw -B test

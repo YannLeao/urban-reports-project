@@ -44,9 +44,13 @@ class NotificationEmailIntegrationTests {
         return new NotificationEmailWorker(store, sender, settings(true), diagnostics, clock);
     }
     UUID fixture() {
+        return new TransactionTemplate(manager).execute(tx -> fixtureInTransaction());
+    }
+    UUID fixtureInTransaction() {
         UUID account = UUID.randomUUID(), report = UUID.randomUUID(), event = UUID.randomUUID();
         jdbc.update("INSERT INTO user_accounts(id,name,email,password_hash,role,created_at,updated_at) VALUES (?, 'secret-person', ?, 'hash', 'USER', now(), now())", account, account + "@example.com");
         jdbc.update("INSERT INTO occurrences(id,author_id,category_id,title,neighborhood,reference,created_at) VALUES (?, ?, 1, 'secret-title', 'secret-place', 'secret-reference', now())", report, account);
+        jdbc.update("INSERT INTO occurrence_media(id,occurrence_id,object_key,kind,position) VALUES (?,?,?,'IMAGE',0)", UUID.randomUUID(), report, "occurrences/" + UUID.randomUUID() + ".png");
         jdbc.update("INSERT INTO occurrence_history VALUES (?, ?, 'PENDING', 'REJECTED', ?, ?, 'secret-rejection-marker', 1)", event, report, account, java.sql.Timestamp.from(NOW.minusSeconds(100000)));
         return jdbc.queryForObject("SELECT id FROM occurrence_notification_email_deliveries WHERE notification_id = ?", UUID.class, event);
     }
@@ -80,7 +84,7 @@ class NotificationEmailIntegrationTests {
             jdbc.update("INSERT INTO occurrence_history VALUES (?, ?, 'PENDING', 'IN_ANALYSIS', ?, '2020-01-01', NULL, 1)", old, report, account);
         });
         var upgrade = org.flywaydb.core.Flyway.configure().dataSource(source).schemas(schema).defaultSchema(schema).load();
-        assertThat(upgrade.migrate().migrationsExecuted).isEqualTo(2);
+        assertThat(upgrade.migrate().migrationsExecuted).isEqualTo(3);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema + ".occurrence_notification_email_deliveries", Integer.class)).isZero();
         new TransactionTemplate(manager).executeWithoutResult(tx -> {
             jdbc.execute("SET LOCAL search_path TO " + schema);

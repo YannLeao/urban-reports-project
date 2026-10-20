@@ -101,7 +101,7 @@ class NotificationIntegrationTests {
         UUID newEvent = UUID.randomUUID();
         upgradeEvent(schema, newEvent, report, author, true);
         var upgraded = org.flywaydb.core.Flyway.configure().dataSource(source).schemas(schema).defaultSchema(schema).load();
-        assertThat(upgraded.migrate().migrationsExecuted).isEqualTo(3);
+        assertThat(upgraded.migrate().migrationsExecuted).isEqualTo(4);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema + ".occurrence_notifications", Integer.class)).isEqualTo(2);
         assertThat(jdbc.queryForObject("SELECT message FROM " + schema + ".occurrence_notifications WHERE event_id = ?", String.class, event)).endsWith("Explicação anterior");
         assertThat(upgraded.migrate().migrationsExecuted).isZero();

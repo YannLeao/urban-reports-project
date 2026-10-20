@@ -27,7 +27,7 @@ public class Occurrence {
         return media.stream().map(item -> item.response(base + id)).toList();
     }
     void replaceMedia(java.util.List<OccurrenceMedia> items) {
-        if (items.isEmpty() || items.size() > 5) throw new IllegalArgumentException("Invalid media count");
+        if (items.isEmpty() || items.size() > 5 || items.stream().anyMatch(item -> item.kind().equals("VIDEO")) && items.size() != 1) throw new IllegalArgumentException("Invalid media count");
         media.removeIf(item -> !items.contains(item));
         for (int i = 0; i < items.size(); i++) {
             var item = items.get(i); item.position(i);
@@ -83,7 +83,10 @@ public class Occurrence {
     public String getDescription() { return description; }
     public String getNeighborhood() { return neighborhood; }
     public String getLocationReference() { return locationReference; }
-    public String getImageKey() { return media.getFirst().getObjectKey(); }
+    public String getImageKey() {
+        if (media.isEmpty() || !media.getFirst().kind().equals("IMAGE")) throw new com.project.software.urbanreports.storage.application.ImageNotFoundException("missing");
+        return media.getFirst().getObjectKey();
+    }
     public OccurrenceStatus getStatus() { return status; }
     public Instant getCreatedAt() { return createdAt; }
 }

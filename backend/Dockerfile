@@ -1,4 +1,4 @@
-FROM eclipse-temurin:21-jdk-alpine-3.22 AS build
+FROM eclipse-temurin:21-jdk-alpine-3.24 AS build
 
 WORKDIR /workspace
 
@@ -12,9 +12,10 @@ COPY src/ src/
 RUN ./mvnw --batch-mode package -DskipTests \
     && cp target/urban-reports-*.jar target/app.jar
 
-FROM eclipse-temurin:21-jre-alpine-3.22 AS runtime
+FROM eclipse-temurin:21-jre-alpine-3.24 AS runtime
 
-RUN addgroup --system app \
+RUN apk add --no-cache ffmpeg \
+    && addgroup --system app \
     && adduser --system --ingroup app app
 
 WORKDIR /app

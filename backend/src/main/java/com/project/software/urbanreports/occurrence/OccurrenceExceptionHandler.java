@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
-@RestControllerAdvice(assignableTypes = OccurrenceController.class)
+@RestControllerAdvice(assignableTypes = {OccurrenceController.class, OccurrenceMediaController.class})
 public class OccurrenceExceptionHandler {
     @ExceptionHandler(OccurrenceWriteException.class)
     ResponseEntity<ApiErrorResponse> write(OccurrenceWriteException exception, HttpServletRequest request) {

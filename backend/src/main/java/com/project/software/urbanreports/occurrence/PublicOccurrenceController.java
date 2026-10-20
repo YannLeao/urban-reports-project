@@ -30,12 +30,6 @@ public class PublicOccurrenceController {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.find(id));
     }
 
-    @GetMapping("/{id}/media/{mediaId}")
-    public ResponseEntity<byte[]> media(@PathVariable UUID id, @PathVariable UUID mediaId) {
-        var image = service.media(id, mediaId);
-        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).header("X-Content-Type-Options", "nosniff")
-                .contentType(MediaType.parseMediaType(image.contentType())).body(image.content());
-    }
     @GetMapping("/{id}/image")
     public ResponseEntity<byte[]> image(@PathVariable UUID id) {
         var image = service.image(id);

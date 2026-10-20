@@ -21,12 +21,14 @@ public class OccurrenceService {
     private final Clock clock;
     private final UploadJournal journal;
     private final OccurrenceHistoryRepository history;
+    private final VideoValidator videos;
     private final com.project.software.urbanreports.identity.UserAccountRepository accounts;
 
     public OccurrenceService(OccurrenceRepository occurrences, OccurrenceCategoryRepository categories,
             ImageStorageService images, Clock clock, UploadJournal journal, OccurrenceHistoryRepository history,
             com.project.software.urbanreports.identity.UserAccountRepository accounts,
-            com.project.software.urbanreports.administration.AccountAccess access) {
+            com.project.software.urbanreports.administration.AccountAccess access, VideoValidator videos) {
+        this.videos = videos;
         this.access = access;
         this.occurrences = occurrences;
         this.categories = categories;
@@ -43,13 +45,13 @@ public class OccurrenceService {
 
     public OccurrenceResponse createPhotos(com.project.software.urbanreports.auth.AuthenticatedIdentity actor,
             OccurrenceRequest request, List<MultipartFile> files) {
-        return createPhotos(actor.userId(), request, files, actor);
+        return createPhotos(actor.userId(), request, files, actor, false);
     }
     public OccurrenceResponse createPhotos(UUID authorId, OccurrenceRequest request, List<MultipartFile> files) {
-        return createPhotos(authorId, request, files, null);
+        return createPhotos(authorId, request, files, null, false);
     }
     private OccurrenceResponse createPhotos(UUID authorId, OccurrenceRequest request, List<MultipartFile> files,
-            com.project.software.urbanreports.auth.AuthenticatedIdentity actor) {
+            com.project.software.urbanreports.auth.AuthenticatedIdentity actor, boolean video) {
         accounts.findById(authorId).filter(account -> account.isActive()
                 && account.getRole() == com.project.software.urbanreports.identity.AccountRole.USER)
                 .orElseThrow(() -> new org.springframework.security.access.AccessDeniedException("Access denied"));
@@ -58,31 +60,59 @@ public class OccurrenceService {
         if (!fields.isEmpty()) throw new OccurrenceValidationException(fields);
         var category = categories.findById(request.categoryId()).orElseThrow(() ->
                 new OccurrenceValidationException(Map.of("categoryId", List.of("Choose a valid category"))));
-        var prepared = prepare(files);
+        try (var batch = prepare(files, video)) {
+        var prepared = batch.uploads();
         for (var upload : prepared) journal.record(upload.key());
         return journal.link(prepared.stream().map(Upload::key).toList(), () -> authorize(actor), () -> {
             for (var upload : prepared) upload(upload);
             var occurrence = new Occurrence(authorId, category, clean(request.title()), description(request.description()),
                     clean(request.neighborhood()), clean(request.reference()), null, clock.instant());
             occurrence.locate(point);
-            occurrence.replaceMedia(prepared.stream().map(upload -> new OccurrenceMedia(occurrence, upload.key(),
-                    upload.contentType(), upload.file().getSize(), 0)).toList());
+            occurrence.replaceMedia(prepared.stream().map(upload -> upload.media(occurrence)).toList());
             return OccurrenceResponse.from(occurrences.saveAndFlush(occurrence));
         });
+        }
+    }
+    public OccurrenceResponse createPhotos(com.project.software.urbanreports.auth.AuthenticatedIdentity actor,
+            OccurrenceRequest request, List<MultipartFile> files, boolean video) {
+        return createPhotos(actor.userId(), request, files, actor, video);
     }
 
     // Validate sequentially; retain multipart handles and metadata, never five byte arrays/pixel buffers.
-    private record Upload(String key, String contentType, MultipartFile file) {}
-    private List<Upload> prepare(List<MultipartFile> files) {
+    private record Upload(String key, String contentType, MultipartFile file, VideoValidator.Prepared video) {
+        OccurrenceMedia media(Occurrence report) {
+            return video == null ? new OccurrenceMedia(report, key, contentType, file.getSize(), 0)
+                    : new OccurrenceMedia(report, key, video.size(), video.metadata());
+        }
+    }
+    private record Batch(List<Upload> uploads) implements AutoCloseable {
+        public void close() { for (var upload : uploads) if (upload.video() != null) upload.video().close(); }
+    }
+    private Batch prepare(List<MultipartFile> files, boolean video) {
         if (files.isEmpty() || files.size() > 5) throw MediaManifest.invalid();
         var uploads = new java.util.ArrayList<Upload>();
-        for (var file : files) {
-            var validated = images.prepareOccurrence(file);
-            uploads.add(new Upload(validated.key(), validated.contentType(), file));
+        if (video) {
+            if (files.size() != 1) throw MediaManifest.invalid();
+            images.checkAvailable();
+            var prepared = videos.prepare(files.getFirst());
+            return new Batch(List.of(new Upload("occurrences/" + UUID.randomUUID() + ".mp4", "video/mp4", null, prepared)));
         }
-        return uploads;
+        for (var file : files) {
+            if (file.getSize() > 5242880) throw new OccurrenceWriteException(org.springframework.http.HttpStatus.CONTENT_TOO_LARGE, "IMAGE_TOO_LARGE");
+            var validated = images.prepareOccurrence(file);
+            uploads.add(new Upload(validated.key(), validated.contentType(), file, null));
+        }
+        return new Batch(uploads);
     }
-    private void upload(Upload upload) { images.uploadAt(upload.key(), upload.contentType(), upload.file()); }
+    private void upload(Upload upload) {
+        if (upload.video() == null) images.uploadAt(upload.key(), upload.contentType(), upload.file());
+        else {
+            images.uploadStream(upload.key(), upload.video().size(), "video/mp4", () -> {
+                try { return upload.video().open(); }
+                catch (java.io.IOException failure) { throw VideoException.unavailable(); }
+            });
+        }
+    }
 
     @Transactional(readOnly = true)
     public List<OccurrenceResponse> findByAuthorId(UUID authorId) {
@@ -143,18 +173,25 @@ public class OccurrenceService {
 
     public OccurrenceResponse updatePhotos(com.project.software.urbanreports.auth.AuthenticatedIdentity actor,
             UUID id, String match, OccurrenceRequest request, List<MultipartFile> files, MediaManifest manifest, boolean legacy) {
-        return updatePhotos(actor.userId(), id, match, request, files, manifest, legacy, actor);
+        return updatePhotos(actor.userId(), id, match, request, files, manifest, legacy, actor, false);
     }
     public OccurrenceResponse updatePhotos(UUID authorId, UUID id, String match, OccurrenceRequest request,
             List<MultipartFile> files, MediaManifest manifest, boolean legacy) {
-        return updatePhotos(authorId, id, match, request, files, manifest, legacy, null);
+        return updatePhotos(authorId, id, match, request, files, manifest, legacy, null, false);
+    }
+    public OccurrenceResponse updatePhotos(com.project.software.urbanreports.auth.AuthenticatedIdentity actor,
+            UUID id, String match, OccurrenceRequest request, List<MultipartFile> files, MediaManifest manifest, boolean legacy, boolean video) {
+        return updatePhotos(actor.userId(), id, match, request, files, manifest, legacy, actor, video);
     }
     private OccurrenceResponse updatePhotos(UUID authorId, UUID id, String match, OccurrenceRequest request,
             List<MultipartFile> files, MediaManifest manifest, boolean legacy,
-            com.project.software.urbanreports.auth.AuthenticatedIdentity actor) {
+            com.project.software.urbanreports.auth.AuthenticatedIdentity actor, boolean video) {
         var snapshot = journal.write(() -> {
-            if (actor != null) access.check(actor, com.project.software.urbanreports.identity.AccountRole.USER);
-            return findById(authorId, id);
+            // Keep entity and collection in one short, locked snapshot. A concurrent delete
+            // must produce 404, rather than a transient empty collection/manifest error.
+            authorize(actor);
+            var occurrence = occurrences.lockOwned(id, authorId).orElseThrow(() -> new OccurrenceNotFoundException(id));
+            return OccurrenceResponse.from(occurrence);
         });
         checkWritable(snapshot.status(), snapshot.version(), match);
         var fields = validate(request, null); fields.remove("image");
@@ -163,13 +200,20 @@ public class OccurrenceService {
         var category = categories.findById(request.categoryId()).orElseThrow(() ->
                 new OccurrenceValidationException(Map.of("categoryId", List.of("Choose a valid category"))));
         if (legacy) {
-            if (snapshot.media().size() != 1 || files.size() != 1 || manifest != null) throw MediaManifest.invalid();
+            if (snapshot.media().size() != 1 || !snapshot.media().getFirst().type().equals("IMAGE") || files.size() != 1 || manifest != null) throw MediaManifest.invalid();
             manifest = new MediaManifest(List.of(new MediaManifest.Item(null, 0)));
         }
         if (manifest == null && !files.isEmpty()) throw MediaManifest.invalid();
         if (manifest != null) manifest.validate(snapshot.media().stream().map(OccurrenceMedia.Response::id).toList(), files.size());
         final var finalManifest = manifest;
-        var prepared = files.isEmpty() ? List.<Upload>of() : prepare(files);
+        if (manifest != null) {
+            var kinds = new java.util.HashSet<String>();
+            for (var item : manifest.items()) kinds.add(item.id() == null ? video ? "VIDEO" : "IMAGE"
+                : snapshot.media().stream().filter(m -> m.id().equals(item.id())).findFirst().orElseThrow(MediaManifest::invalid).type());
+            if (kinds.size() != 1 || kinds.contains("VIDEO") && manifest.items().size() != 1) throw MediaManifest.invalid();
+        }
+        try (var batch = files.isEmpty() ? new Batch(List.of()) : prepare(files, video)) {
+        var prepared = batch.uploads();
         for (var upload : prepared) journal.record(upload.key());
         // Globally sorted new journal keys -> occurrence; existing keys are retired only under occurrence lock.
         // Recovery never locks occurrences and only performs a nonlocking reference check.
@@ -184,7 +228,7 @@ public class OccurrenceService {
                 var selected = finalManifest.items().stream().map(item -> {
                     if (item.id() != null) return byId.get(item.id());
                     var upload = prepared.get(item.uploadIndex());
-                    return new OccurrenceMedia(occurrence, upload.key(), upload.contentType(), upload.file().getSize(), 0);
+                    return upload.media(occurrence);
                 }).toList();
                 occurrence.getMedia().stream().filter(item -> !selected.contains(item))
                         .sorted(java.util.Comparator.comparing(OccurrenceMedia::getObjectKey))
@@ -195,6 +239,7 @@ public class OccurrenceService {
                     clean(request.neighborhood()), clean(request.reference()));
             return OccurrenceResponse.from(occurrences.saveAndFlush(occurrence));
         });
+        }
     }
 
     private void authorize(com.project.software.urbanreports.auth.AuthenticatedIdentity actor) {

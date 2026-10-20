@@ -14,7 +14,15 @@ public class OccurrenceMedia {
     @Column(name = "content_type", length = 32) private String contentType;
     @Column(name = "size_bytes") private Long sizeBytes;
     @Column(nullable = false) private int position;
+    @Column(name = "duration_seconds") private Double durationSeconds;
+    @Column private Integer width;
+    @Column private Integer height;
+    String kind() { return kind; }
     protected OccurrenceMedia() {}
+    OccurrenceMedia(Occurrence occurrence, String key, long size, VideoValidator.Metadata metadata) {
+        this(occurrence, key, "video/mp4", size, 0);
+        kind = "VIDEO"; durationSeconds = metadata.durationSeconds(); width = metadata.width(); height = metadata.height();
+    }
     OccurrenceMedia(Occurrence occurrence, String key, String contentType, Long sizeBytes, int position) {
         this.id = UUID.randomUUID(); this.occurrence = occurrence; this.objectKey = key;
         this.contentType = contentType; this.sizeBytes = sizeBytes; this.position = position;
@@ -22,6 +30,6 @@ public class OccurrenceMedia {
     public UUID getId() { return id; }
     public String getObjectKey() { return objectKey; }
     void position(int value) { position = value; }
-    public record Response(UUID id, String type, String mime, Long sizeBytes, int position, String endpoint) {}
-    Response response(String base) { return new Response(id, kind, contentType, sizeBytes, position, base + "/media/" + id); }
+    public record Response(UUID id, String type, String mime, Long sizeBytes, int position, String endpoint, Double durationSeconds, Integer width, Integer height) {}
+    Response response(String base) { return new Response(id, kind, contentType, sizeBytes, position, base + "/media/" + id, durationSeconds, width, height); }
 }

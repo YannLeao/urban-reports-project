@@ -53,6 +53,12 @@ public class ImageStorageService {
         } catch (IOException failure) { throw new ImageStorageException("Upload could not be read"); }
     }
 
+    public void checkAvailable() { storage(); }
+
+    public void uploadStream(String key, long size, String type, java.util.function.Supplier<java.io.InputStream> source) {
+        storage().storeAt(key, size, type, source);
+    }
+
     public void delete(String key) {
         if (key == null || !(key.startsWith("proofs/") || key.startsWith("occurrences/"))) {
             throw new ImageStorageException("Storage returned an invalid image key");
@@ -88,6 +94,15 @@ public class ImageStorageService {
             LOGGER.error("Technical image upload failed: {}", exception.getClass().getSimpleName());
             throw exception;
         }
+    }
+
+    public ImageStorage.Metadata headOccurrenceImage(String key) {
+        if (key == null || !key.matches("occurrences/[0-9a-f-]{36}\\.(jpg|png|webp)")) throw new ImageStorageException("Invalid image association");
+        var metadata = storage().head(key);
+        if (metadata.size() < 1 || metadata.size() > MAX_IMAGE_SIZE) throw new ImageStorageException("Invalid image metadata");
+        try { ImageFormat.fromDeclaredContentType(metadata.contentType()); }
+        catch (InvalidImageException failure) { throw new ImageStorageException("Invalid image metadata"); }
+        return metadata;
     }
 
     public StoredImageContent loadOccurrence(String key) {
