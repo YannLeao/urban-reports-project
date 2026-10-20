@@ -263,18 +263,23 @@ local pela IDE ou por `./mvnw spring-boot:run`.
 
 ## CI/CD e produção
 
-O GitLab CI valida apenas os serviços afetados por cada alteração. Mudanças em
-`backend/` executam compile e testes do backend; mudanças em `frontend/`
+O GitLab CI valida nos MRs apenas os serviços afetados por cada alteração.
+Mudanças em `backend/` executam compile e testes do backend; mudanças em `frontend/`
 executam build, lint, typecheck e testes do frontend. Mudanças em
 `docker-compose.yml` também acionam a validação frontend. Alterações no próprio
 `.gitlab-ci.yml` validam as duas esteiras. Cada arquivo em
-`infrastructure/gitlab-ci/` aciona somente a aplicação correspondente. Quando
-existe uma Merge Request aberta, o pipeline de MR substitui o pipeline redundante
-da branch.
+`infrastructure/gitlab-ci/` aciona somente a aplicação correspondente. Push em
+branch de trabalho não cria pipeline de branch, com ou sem MR. Na branch padrão,
+o push oferece deploy backend manual e build/deploy frontend, conforme os
+caminhos alterados, sem repetir os jobs de teste/lint. A checagem de tipos
+embutida no build frontend permanece. Consulte a
+[política temporária de economia de CI](docs/ci-pipelines.md) para eventos,
+governança, redeploy e reversão.
 
 O fluxo configurado publica o frontend estático na Vercel por um job manual da
-branch padrão protegida, após build, lint, typecheck e testes. O GitLab converte
-`BACKEND_PRODUCTION_URL` em `VITE_API_URL`, empacota o bundle na Build Output API
+branch padrão protegida, após build de produção e conferência das validações do
+MR revisado. O GitLab converte `BACKEND_PRODUCTION_URL` em `VITE_API_URL`,
+empacota o bundle na Build Output API
 v3 e publica o mesmo artefato com `--prebuilt --prod`, sem recompilar. Não há
 previews automáticos nem publicação paralela pela integração Git da Vercel.
 Configure a origem canônica exata em `FRONTEND_ALLOWED_ORIGINS` no Render.
@@ -289,10 +294,12 @@ descreve a prova local sem upload; o formulário real permanece no produto.
 Os roteiros de deploy orientam a validação pública de cada nova versão.
 A identidade e os componentes compartilhados seguem o [design system Alô Cidade](docs/design-system/README.md).
 
-Depois que uma alteração de backend chega à branch padrão com os jobs verdes, o
-job manual `backend:deploy` fica disponível. Ele registra o environment
-`production` no GitLab e solicita ao Render o deploy do mesmo commit validado
-pelo pipeline. O Auto-Deploy do Render deve permanecer desligado.
+Depois que uma alteração pertinente de backend chega à branch padrão, o job
+manual `backend:deploy` fica disponível sem repetir build/testes no GitLab.
+Confira os jobs verdes do MR revisado antes de acioná-lo. Ele registra o
+environment `production` no GitLab e solicita ao Render o deploy do SHA do
+pipeline da branch padrão. MR convencional não garante validação do resultado
+exato do merge. O Auto-Deploy do Render deve permanecer desligado.
 
 O Render constrói `backend/Dockerfile`, conecta ao PostgreSQL externo no Neon
 pela variável `DB_URL` e executa o Flyway durante a inicialização do Spring Boot.

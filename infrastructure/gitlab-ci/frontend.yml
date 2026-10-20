@@ -12,7 +12,8 @@
     - pnpm config set store-dir .pnpm-store
     - pnpm install --frozen-lockfile
   rules:
-    - changes:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || ($CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH)'
+      changes: &frontend_changes
         - frontend/**/*
         - docs/design-system/**/*
         - .dockerignore
@@ -35,6 +36,9 @@ frontend:build:
 frontend:lint:
   extends: .frontend
   stage: test
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes: *frontend_changes
   needs:
     - frontend:build
   script:
@@ -50,21 +54,13 @@ frontend:deploy:
   needs:
     - job: frontend:build
       artifacts: true
-    - job: frontend:lint
-      artifacts: false
   script:
     - node scripts/deploy-vercel.ts
   environment:
     name: production/frontend
     url: $FRONTEND_PRODUCTION_URL
   rules:
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_REF_PROTECTED == "true"'
-      changes:
-        - frontend/**/*
-        - docs/design-system/**/*
-        - .dockerignore
-        - docker-compose.yml
-        - .gitlab-ci.yml
-        - infrastructure/gitlab-ci/frontend.yml
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_REF_PROTECTED == "true"'
+      changes: *frontend_changes
       when: manual
       allow_failure: false

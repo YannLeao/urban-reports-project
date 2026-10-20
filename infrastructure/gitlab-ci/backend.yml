@@ -9,7 +9,8 @@ backend:build:
     - cd backend
     - ./mvnw -B compile
   rules:
-    - changes:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
         - backend/**/*
         - .gitlab-ci.yml
         - infrastructure/gitlab-ci/backend.yml
@@ -39,7 +40,8 @@ backend:test:
     reports:
       junit: backend/target/surefire-reports/TEST-*.xml
   rules:
-    - changes:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
         - backend/**/*
         - .gitlab-ci.yml
         - infrastructure/gitlab-ci/backend.yml
@@ -47,16 +49,14 @@ backend:test:
 backend:deploy:
   stage: deploy
   image: curlimages/curl:8.22.0
-  needs:
-    - backend:build
-    - backend:test
+  needs: []
   script:
     - curl --fail --show-error --silent --get --data-urlencode "ref=$CI_COMMIT_SHA" --output /dev/null "$RENDER_DEPLOY_HOOK"
   environment:
     name: production
     url: $BACKEND_PRODUCTION_URL
   rules:
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
       changes:
         - backend/**/*
         - .gitlab-ci.yml
