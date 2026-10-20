@@ -254,3 +254,12 @@ nem GET automático. `OccurrenceVideo` oferece Carregar vídeo e player responsi
 com controls/playsinline/preload=none, sem autoplay; privado informa download
 integral antes de tocar. Erro oferece nova tentativa. Catálogo DEV demonstra o
 seletor exclusivo; [contrato e roteiro](../occurrence-video.md).
+
+## Revisão de relatos próximos
+
+`SimilarOccurrencesPanel` apresenta carregamento, sugestões textuais sem mídia,
+vazio, falha, autorização negada e consulta não executada. Usa botões existentes,
+status textual, lista com quebra de linhas e links de detalhe em nova aba com aviso.
+Foco inicial no painel ao abrir/reabrir, sem novo foco por chegada de resposta.
+`SimilarOccurrencesReview` conecta o hook autenticado; o catálogo usa o painel
+puro com fixture sintética, sem request. [Contrato e roteiro](../similar-occurrences.md).

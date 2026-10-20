@@ -8,7 +8,7 @@ pessoais e as capturas da referência de feedback, mantida em pasta temporária.
 | --- | --- | --- |
 | Rolagem horizontal em filtros | Selects independentes, rotulados; índice/tabelas viram linhas identificadas, painel empilha colunas no mobile | Relatos públicos, Mapa público, fila, índice; 360 px e zoom 200% |
 | Ajuda na nova senha | Critério real de 15–128 caracteres Unicode, espaços aceitos, sem mistura obrigatória | Nova senha, cadastro e ativação; mostrar/ocultar inclusive confirmação |
-| Continuidade no aviso de duplicidade | Principal “Enviar mesmo assim”; secundária “Revisar relato” | Possíveis duplicatas; navegação para envio/revisão |
+| Continuidade no aviso de proximidade | “É outro relato, continuar” e “Revisar meu relato”; indisponibilidade permite envio explícito | Até cinco ativos da mesma categoria em 100 m; revisão antes de upload, conforme ADR 0026 |
 | Prioridade por repetição | Ponto de alinhamento; sem enum ou cálculo novo | Definir regra com produto antes de prometer criticidade |
 | Voltar no detalhe administrativo | Link antes do identificador, incluindo variação de rejeição | Detalhe e ações / Rejeitar com explicação → fila |
 | Motivos de rejeição horizontais | Select opcional; não preenche nem substitui a explicação humana de 10–500 caracteres | Rejeitar com explicação; digitar texto e trocar motivo |
