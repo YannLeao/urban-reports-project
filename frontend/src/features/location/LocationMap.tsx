@@ -6,8 +6,8 @@ import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 import { MapCanvas, type MapInitializer } from './MapCanvas'
 import type { GeographicPoint } from './point'
 
-export function LocationMap({ point, suggestion = null, disabled, onSelect }: {
-  point: GeographicPoint | null; suggestion?: GeographicPoint | null; disabled: boolean; onSelect: (point: GeographicPoint) => void
+export function LocationMap({ point, suggestion = null, disabled, active = true, onSelect }: {
+  point: GeographicPoint | null; suggestion?: GeographicPoint | null; disabled: boolean; active?: boolean; onSelect: (point: GeographicPoint) => void
 }) {
   const map = useRef<LeafletMap | null>(null)
   const marker = useRef<Marker | null>(null)
@@ -47,12 +47,19 @@ export function LocationMap({ point, suggestion = null, disabled, onSelect }: {
       proposed.setLatLng([next.latitude, next.longitude]).addTo(instance)
       instance.panTo([next.latitude, next.longitude], { animate: false })
     }
+    instance.getContainer().addEventListener('keydown', chooseCenter)
+    function chooseCenter(event: KeyboardEvent) {
+      if (event.key !== 'Enter' || event.target !== instance.getContainer() || latest.current.disabled) return
+      event.preventDefault()
+      const point = instance.getCenter().wrap()
+      if (point.lat >= -90 && point.lat <= 90) latest.current.onSelect({ latitude: point.lat, longitude: point.lng })
+    }
     instance.on('click', (event: L.LeafletMouseEvent) => {
       const position = event.latlng.wrap()
       if (!latest.current.disabled && position.lat >= -90 && position.lat <= 90)
         latest.current.onSelect({ latitude: position.lat, longitude: position.lng })
     })
-    return () => { map.current = null; marker.current = null; suggestedMarker.current = null }
+    return () => { instance.getContainer().removeEventListener('keydown', chooseCenter); map.current = null; marker.current = null; suggestedMarker.current = null }
   }
-  return <MapCanvas initialize={initialize} disabled={disabled} selecting />
+  return <MapCanvas initialize={initialize} disabled={disabled} active={active} selecting />
 }

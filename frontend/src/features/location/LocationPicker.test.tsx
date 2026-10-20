@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { useState } from 'react'
+import { StrictMode, useState } from 'react'
 import { beforeEach, expect, test, vi } from 'vitest'
 import { LocationPicker } from './LocationPicker'
 import type { GeographicPoint } from './point'
@@ -7,109 +7,96 @@ import type { GeographicPoint } from './point'
 vi.mock('./LocationMap', () => ({ LocationMap: ({ onSelect, disabled, point, suggestion }: { onSelect: (point: GeographicPoint) => void; disabled: boolean; point: GeographicPoint | null; suggestion: GeographicPoint | null }) =>
   <><output aria-label="Ponto confirmado no mapa">{JSON.stringify(point)}</output><output aria-label="Sugestão no mapa">{JSON.stringify(suggestion)}</output><button type="button" disabled={disabled} onClick={() => onSelect({ latitude: -23.55052, longitude: -46.633308 })}>Escolher no mapa</button></> }))
 const changed = vi.fn()
-function Harness({ initial = null }: { initial?: GeographicPoint | null }) {
+function Harness({ initial = null, active = true, automatic = false }: { initial?: GeographicPoint | null; active?: boolean; automatic?: boolean }) {
   const [point, setPoint] = useState(initial)
-  return <LocationPicker value={point} onChange={value => { changed(value); setPoint(value) }} />
+  return <LocationPicker active={active} autoLocate={automatic} value={point} onChange={value => { changed(value); setPoint(value) }} />
 }
 const gps = vi.fn<Geolocation['getCurrentPosition']>()
+const position = { coords: { latitude: 0, longitude: 0, accuracy: 21.3 } } as GeolocationPosition
 beforeEach(() => {
   changed.mockReset(); gps.mockReset()
   vi.stubGlobal('isSecureContext', true)
   Object.defineProperty(navigator, 'geolocation', { configurable: true, value: { getCurrentPosition: gps } })
 })
-test('manual map selection explicitly confirms and allows another adjustment', () => {
+test('map explicitly confirms a point; no coordinate entry or raw coordinates', () => {
   render(<Harness />)
-  expect(screen.getByText('Nenhum local confirmado.')).toBeVisible()
+  expect(screen.queryByLabelText('Latitude')).not.toBeInTheDocument()
+  expect(screen.queryByText('Informar coordenadas')).not.toBeInTheDocument()
   fireEvent.click(screen.getByText('Escolher no mapa'))
   expect(changed).toHaveBeenLastCalledWith({ latitude: -23.55052, longitude: -46.633308 })
   expect(screen.getByText('Local confirmado.')).toBeVisible()
-  fireEvent.click(screen.getByText('Informar coordenadas'))
-  fireEvent.change(screen.getByLabelText('Latitude'), { target: { value: '0' } })
-  fireEvent.change(screen.getByLabelText('Longitude'), { target: { value: '0' } })
-  expect(changed).toHaveBeenCalledTimes(1)
-  fireEvent.click(screen.getByText('Confirmar coordenadas'))
-  expect(changed).toHaveBeenLastCalledWith({ latitude: 0, longitude: 0 })
 })
-test('loads a persisted point and leaves legacy without a default marker', () => {
-  const view = render(<Harness initial={{ latitude: 0, longitude: 12.123456789 }} />)
-  expect(screen.getByLabelText('Latitude')).toHaveValue('0')
-  expect(screen.getByLabelText('Longitude')).toHaveValue('12.123456789')
-  view.unmount()
-  render(<Harness />)
-  expect(screen.getByLabelText('Latitude')).toHaveValue('')
+test('strict automatic first entry suggests once; leaving and returning never requests again', async () => {
+  const view = render(<StrictMode><Harness automatic /></StrictMode>)
+  await waitFor(() => expect(gps).toHaveBeenCalledTimes(1))
+  act(() => gps.mock.calls[0][0](position))
   expect(changed).not.toHaveBeenCalled()
-})
-test.each([['', ''], ['91', '0'], ['0', '-181'], ['NaN', '0'], ['Infinity', '0'], ['0', ''], ['1,5', '2']])('rejects textual pair %s / %s without replacing confirmed point', async (latitude, longitude) => {
-  render(<Harness initial={{ latitude: 1, longitude: 2 }} />)
-  fireEvent.click(screen.getByText('Informar coordenadas'))
-  fireEvent.change(screen.getByLabelText('Latitude'), { target: { value: latitude } })
-  fireEvent.change(screen.getByLabelText('Longitude'), { target: { value: longitude } })
-  fireEvent.click(screen.getByText('Confirmar coordenadas'))
-  expect(changed).not.toHaveBeenCalled()
-  expect(screen.getByLabelText('Latitude')).toHaveAttribute('aria-invalid', 'true')
-  await waitFor(() => expect(screen.getByLabelText('Latitude')).toHaveFocus())
-  expect(screen.getByText(/Local confirmado: latitude 1.000000/)).toBeVisible()
-})
-test('GPS is opt-in, reports estimated accuracy and requires explicit confirmation', () => {
-  render(<Harness />)
-  expect(gps).not.toHaveBeenCalled()
-  fireEvent.click(screen.getByText('Usar minha localização'))
-  expect(gps).toHaveBeenCalledWith(expect.any(Function), expect.any(Function), { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 })
-  act(() => gps.mock.calls[0][0]({ coords: { latitude: 0, longitude: 0, accuracy: 21.3 } } as GeolocationPosition))
   expect(screen.getByText(/precisão estimada de 22 m/)).toBeVisible()
-  expect(screen.getByText('Nenhum local confirmado.')).toBeVisible()
-  expect(changed).not.toHaveBeenCalled()
-  expect(screen.getByLabelText('Sugestão no mapa')).toHaveTextContent('{"latitude":0,"longitude":0}')
-  expect(screen.getByLabelText('Ponto confirmado no mapa')).toHaveTextContent('null')
-  fireEvent.click(screen.getByText('Confirmar este local'))
+  view.rerender(<StrictMode><Harness automatic active={false} /></StrictMode>)
+  view.rerender(<StrictMode><Harness automatic /></StrictMode>)
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 10)) })
+  expect(gps).toHaveBeenCalledTimes(1)
+  fireEvent.click(screen.getByRole('button', { name: 'Confirmar este local' }))
   expect(changed).toHaveBeenCalledWith({ latitude: 0, longitude: 0 })
-  expect(screen.getByLabelText('Sugestão no mapa')).toHaveTextContent('null')
 })
-test('discarding a GPS suggestion keeps the persisted point and restores numeric drafts', () => {
-  render(<Harness initial={{ latitude: 3, longitude: 4 }} />)
-  fireEvent.click(screen.getByText('Usar minha localização'))
-  act(() => gps.mock.calls[0][0]({ coords: { latitude: 10, longitude: 20, accuracy: 30 } } as GeolocationPosition))
-  expect(screen.getByLabelText('Sugestão no mapa')).toHaveTextContent('{"latitude":10,"longitude":20}')
-  expect(screen.getByLabelText('Ponto confirmado no mapa')).toHaveTextContent('{"latitude":3,"longitude":4}')
-  fireEvent.click(screen.getByText('Descartar sugestão'))
-  expect(screen.getByLabelText('Sugestão no mapa')).toHaveTextContent('null')
-  expect(screen.getByLabelText('Latitude')).toHaveValue('3')
-  expect(changed).not.toHaveBeenCalled()
+test('inactive step and existing point never request automatic GPS', async () => {
+  const view = render(<Harness automatic active={false} />)
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 10)) })
+  expect(gps).not.toHaveBeenCalled()
+  view.unmount()
+  render(<Harness automatic initial={{ latitude: 0, longitude: 0 }} />)
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 10)) })
+  expect(gps).not.toHaveBeenCalled()
 })
-test.each([[1, 'Permissão de localização negada'], [2, 'Posição indisponível'], [3, 'Tempo de localização esgotado']])('GPS failure %s preserves prior confirmed point and manual selection', (code, message) => {
+test.each([[1, 'Permissão de localização negada'], [2, 'Posição indisponível'], [3, 'Tempo de localização esgotado']])('GPS error %s preserves point and permits manual retry', (code, message) => {
   render(<Harness initial={{ latitude: 3, longitude: 4 }} />)
-  fireEvent.click(screen.getByText('Usar minha localização'))
+  fireEvent.click(screen.getByRole('button', { name: 'Usar minha localização' }))
   act(() => gps.mock.calls[0][1]?.({ code } as GeolocationPositionError))
   expect(screen.getByText(new RegExp(message))).toBeVisible()
   expect(screen.getByText('Local confirmado.')).toBeVisible()
-  fireEvent.click(screen.getByText('Escolher no mapa'))
-  expect(changed).toHaveBeenCalledTimes(1)
+  fireEvent.click(screen.getByRole('button', { name: 'Usar minha localização' }))
+  expect(gps).toHaveBeenCalledTimes(2)
 })
-test('unsupported or insecure GPS leaves manual confirmation available', () => {
+test('insecure GPS offers map, without fabricated point or numerical fallback', () => {
   vi.stubGlobal('isSecureContext', false)
   render(<Harness />)
-  fireEvent.click(screen.getByText('Usar minha localização'))
+  fireEvent.click(screen.getByRole('button', { name: 'Usar minha localização' }))
   expect(screen.getByText(/Localização indisponível neste navegador/)).toBeVisible()
   expect(gps).not.toHaveBeenCalled()
-  fireEvent.click(screen.getByText('Informar coordenadas'))
-  expect(screen.getByText('Confirmar coordenadas')).toBeEnabled()
+  expect(changed).not.toHaveBeenCalled()
+  expect(screen.getByText('Escolher no mapa')).toBeEnabled()
 })
-test('late GPS response after disabling is ignored and controls unlock for retry', () => {
-  const view = render(<LocationPicker value={null} onChange={changed} />)
-  fireEvent.click(screen.getByText('Usar minha localização'))
-  view.rerender(<LocationPicker value={null} onChange={changed} disabled />)
-  act(() => gps.mock.calls[0][0]({ coords: { latitude: 10, longitude: 20, accuracy: 30 } } as GeolocationPosition))
-  expect(screen.getByLabelText('Latitude')).toHaveValue('')
-  view.rerender(<LocationPicker value={null} onChange={changed} />)
-  expect(screen.getByText('Usar minha localização')).toBeEnabled()
+test('manual point supersedes pending GPS without recentering', () => {
+  render(<Harness />)
+  fireEvent.click(screen.getByRole('button', { name: 'Usar minha localização' }))
+  fireEvent.click(screen.getByText('Escolher no mapa'))
+  act(() => gps.mock.calls[0][0](position))
+  expect(screen.getByLabelText('Sugestão no mapa')).toHaveTextContent('null')
+  expect(changed).toHaveBeenCalledTimes(1)
+})
+test('late response after leaving or disabling is ignored, but voluntary retry works', () => {
+  const view = render(<LocationPicker active value={null} onChange={changed} />)
+  fireEvent.click(screen.getByRole('button', { name: 'Usar minha localização' }))
+  view.rerender(<LocationPicker active={false} value={null} onChange={changed} />)
+  act(() => gps.mock.calls[0][0](position))
+  view.rerender(<LocationPicker active value={null} onChange={changed} />)
+  expect(screen.getByLabelText('Sugestão no mapa')).toHaveTextContent('null')
+  fireEvent.click(screen.getByRole('button', { name: 'Usar minha localização' }))
+  expect(gps).toHaveBeenCalledTimes(2)
+})
+test('suggestion can be confirmed without tiles and discarded without losing prior point', () => {
+  render(<Harness initial={{ latitude: 3, longitude: 4 }} />)
+  fireEvent.click(screen.getByRole('button', { name: 'Usar minha localização' }))
+  act(() => gps.mock.calls[0][0](position))
+  fireEvent.click(screen.getByRole('button', { name: 'Descartar sugestão' }))
+  expect(screen.getByText('Local confirmado.')).toBeVisible()
+  expect(changed).not.toHaveBeenCalled()
 })
 
-test('manual confirmation supersedes an outstanding GPS suggestion', () => {
-  render(<Harness />)
-  fireEvent.click(screen.getByText('Usar minha localização'))
-  fireEvent.click(screen.getByText('Escolher no mapa'))
-  act(() => gps.mock.calls[0][0]({ coords: { latitude: 10, longitude: 20, accuracy: 30 } } as GeolocationPosition))
-  expect(screen.getByLabelText('Latitude')).toHaveValue('-23.55052')
-  expect(screen.getByText('Usar minha localização')).toBeEnabled()
-  expect(changed).toHaveBeenCalledTimes(1)
+test('missing geolocation API reports unavailability and leaves map usable',async()=>{
+  Object.defineProperty(navigator,'geolocation',{configurable:true,value:undefined})
+  render(<Harness automatic />)
+  await screen.findByText(/Localização indisponível neste navegador/)
+  expect(screen.getByText('Escolher no mapa')).toBeEnabled()
+  expect(changed).not.toHaveBeenCalled()
 })

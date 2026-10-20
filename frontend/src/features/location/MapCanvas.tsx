@@ -15,13 +15,13 @@ function setMapDisabled(instance: LeafletMap, disabled: boolean) {
   }
 }
 
-export function MapCanvas({ initialize, disabled = false, selecting = false, fill = false }: {
-  initialize: MapInitializer; disabled?: boolean; selecting?: boolean; fill?: boolean
+export function MapCanvas({ initialize, disabled = false, selecting = false, fill = false, active = true }: {
+  initialize: MapInitializer; disabled?: boolean; selecting?: boolean; fill?: boolean; active?: boolean
 }) {
   const container = useRef<HTMLDivElement>(null)
   const map = useRef<LeafletMap | null>(null)
-  const latest = useRef({ initialize, disabled })
-  useEffect(() => { latest.current = { initialize, disabled } })
+  const latest = useRef({ initialize, disabled, active })
+  useEffect(() => { latest.current = { initialize, disabled, active } })
   const [attempt, setAttempt] = useState(0)
   const [codeFailed, setCodeFailed] = useState(false)
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
@@ -58,7 +58,7 @@ export function MapCanvas({ initialize, disabled = false, selecting = false, fil
         tiles.on('load', () => { clearTimeout(timeout); if (!failed) setStatus('ready') })
         const release = latest.current.initialize(instance, L)
         tiles.addTo(instance)
-        const resize = new ResizeObserver(() => instance.invalidateSize())
+        const resize = new ResizeObserver(() => { if (latest.current.active) instance.invalidateSize() })
         resize.observe(container.current)
         dispose = () => { resize.disconnect(); release?.(); instance.remove(); map.current = null }
       }).catch(() => { if (!controller.signal.aborted) { setCodeFailed(true); setStatus('error') } })
@@ -66,12 +66,13 @@ export function MapCanvas({ initialize, disabled = false, selecting = false, fil
     return () => { controller.abort(); clearTimeout(timeout); clearTimeout(initialTimeout); dispose?.() }
   }, [attempt])
 
+  useEffect(() => { if (active) map.current?.invalidateSize() }, [active])
   useEffect(() => { if (map.current) setMapDisabled(map.current, disabled) }, [disabled])
   return <div className={`flex min-h-0 min-w-0 flex-col gap-2 ${fill ? 'h-full' : ''}`}>
     <div ref={container} role="region" className={`relative z-0 w-full rounded-control [&_.leaflet-control-zoom_a]:min-h-target [&_.leaflet-control-zoom_a]:min-w-target ${fill ? 'min-h-0 flex-1' : 'h-72'}`} aria-label="Mapa do local; use setas para mover e mais ou menos para zoom" />
     <p role="status" className={status === 'ready' ? 'sr-only' : 'mb-0 text-small'}>{status === 'loading' ? 'Carregando mapa…' : status === 'error'
-      ? selecting ? 'Não foi possível carregar o mapa completo. Tente novamente ou informe as coordenadas abaixo.' : 'Não foi possível carregar o mapa completo. Tente novamente ou consulte os relatos em texto.'
-      : selecting ? 'Mapa carregado. Clique para confirmar o ponto ou use as coordenadas abaixo.' : 'Mapa carregado.'}</p>
+      ? selecting ? 'Não foi possível carregar o mapa completo. Tente novamente. Se houver uma sugestão de localização, você pode confirmá-la abaixo. Sem um ponto, o novo relato não pode continuar.' : 'Não foi possível carregar o mapa completo. Tente novamente ou consulte os relatos em texto.'
+      : selecting ? 'Mapa carregado. Toque para confirmar o ponto ou use setas e Enter para escolher o centro.' : 'Mapa carregado.'}</p>
     {codeFailed && !selecting && <p>Recarregue a página para tentar carregar o mapa. O contexto da consulta será mantido na URL.</p>}
     {status === 'error' && <Button disabled={disabled} variant="secondary" onClick={() => {
       if (codeFailed && !selecting) window.location.reload()
