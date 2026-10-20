@@ -4,9 +4,9 @@
 
 Fonte de verdade da identidade pública, independente de uma prefeitura específica.
 A direção é cívica, próxima, simples e confiável, com prioridade mobile e uma ação
-principal por contexto. A referência aprovada permanece **Alô Cidade**; o shell
-e a entrada atuais usam o nome de produto **Tá na Rua**, preservando símbolo,
-paleta, tokens, tipografia e pinos. Ver [navegação](../frontend-navigation.md).
+principal por contexto. **Alô Cidade** é o nome público do produto e do design
+system, usado no shell e na entrada, preservando símbolo, paleta, tokens,
+tipografia e pinos. Ver [navegação](../frontend-navigation.md).
 
 - [Preview autocontido](preview.html) e [feedbacks e fronteiras](revisao-preview.md)
 - [Fundamentos e acessibilidade](fundamentos.md)

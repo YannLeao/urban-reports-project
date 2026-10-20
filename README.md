@@ -11,7 +11,7 @@ os dados, Flyway versiona o schema e Cloudflare R2 armazena imagens privadas.
 Docker Compose executa o ambiente local; GitLab CI valida e coordena os deploys
 manuais do backend no Render e do frontend estático na Vercel.
 
-A entrada Tá na Rua oferece mapa e registro com [navegação por perfil](docs/frontend-navigation.md),
+A entrada Alô Cidade oferece mapa e registro com [navegação por perfil](docs/frontend-navigation.md),
 reutilizando o design system aprovado Alô Cidade. `/status`, `/prova-imagem` e
 `/dev/design-system` são ferramentas exclusivas do Vite de desenvolvimento, sem
 links no produto. Health da API e endpoints técnicos de storage mantêm seus contratos. Cadastro de cidadão em `/cadastro` persiste contas reais, sem login

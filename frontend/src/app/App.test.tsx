@@ -107,7 +107,7 @@ test('leaving status cancels the request through the query signal', async () => 
   await screen.findByText('Verificando a conexão…')
   const signal = fetchMock.mock.calls[0][1]?.signal
   expect(signal?.aborted).toBe(false)
-  await user.click(screen.getByRole('link', { name: 'Tá na Rua, início' }))
+  await user.click(screen.getByRole('link', { name: 'Alô Cidade, início' }))
   await waitFor(() => expect(signal?.aborted).toBe(true))
 })
 
@@ -132,7 +132,7 @@ test('image proof is public, independent of API configuration, and loses selecti
   await user.upload(screen.getByLabelText('Arquivo de imagem'), new File(['fixture'], 'photo.png', { type: 'image/png' }))
   await act(async () => images[0]?.onload?.())
   expect(screen.getByRole('img', { name: 'Prévia da imagem selecionada' })).toBeVisible()
-  await user.click(screen.getByRole('link', { name: 'Tá na Rua, início' }))
+  await user.click(screen.getByRole('link', { name: 'Alô Cidade, início' }))
   expect(screen.queryByRole('link', { name: /Demonstração técnica/ })).toBeNull()
   expect(screen.queryByRole('img', { name: 'Prévia da imagem selecionada' })).not.toBeInTheDocument()
   expect(fetchMock).not.toHaveBeenCalled()

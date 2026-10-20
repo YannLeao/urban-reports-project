@@ -97,7 +97,7 @@ export function RegistrationPage() {
       <Link className={`${buttonStyles()} mt-6`} to="/entrar" state={{ returnTo: destination }}>Entrar na minha conta</Link>
     </> : <>
       <h1 id="registration-title">Crie sua conta</h1>
-      <p className="text-text-secondary">Cadastre-se no Tá na Rua com seu nome e e-mail. Depois, entre para relatar e acompanhar problemas.</p>
+      <p className="text-text-secondary">Cadastre-se no Alô Cidade com seu nome e e-mail. Depois, entre para relatar e acompanhar problemas.</p>
       <form ref={form} noValidate onSubmit={(event) => { void submit(event) }} className="grid min-w-0 gap-5" aria-busy={pending}>
         {message && <Alert ref={summary} tabIndex={-1} role="alert" tone="danger">{message}</Alert>}
         {(Object.keys(labels) as Fields[]).map((key) => {

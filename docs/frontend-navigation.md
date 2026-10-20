@@ -1,11 +1,12 @@
 # Navegação e composições do frontend
 
-O produto Tá na Rua usa a identidade, tokens, Figtree e pinos do design system
+O produto Alô Cidade usa a identidade, tokens, Figtree e pinos do design system
 Alô Cidade. A entrada `/` é curta: “Ver no mapa” abre
 `/ocorrencias?visao=mapa`; “Relatar problema” abre a rota protegida do registro.
 Visitante segue para `/entrar` com retorno interno validado por `safeReturnPath`.
-USER retorna ao registro após login; ADMIN/SUPER_ADMIN recebem acesso ao painel
-adequado na home, sem chamada para criar relato.
+USER retorna ao registro após login. ADMIN recebe Abrir moderação na home;
+SUPER_ADMIN tem somente Sair na área de ações da home e acessa a gestão de
+administradores exclusivamente pela navbar, sem chamada para criar relato.
 
 ## Destinos e papéis
 
@@ -21,7 +22,10 @@ cabeçalho no desktop. Ícones decorativos acompanham rótulos visíveis. NavLin
 marca a seção, incluindo detalhes/edição, por pathname; query não muda o universo.
 O destino Mapa abre consulta pública em modo mapa mesmo quando a seção atual
 está em Lista. Guards de papel continuam exatos, sem herança administrativa.
-Logout permanece na conta com confirmação real da API e possibilidade de retry.
+Logout permanece na conta dos três papéis e também na home de SUPER_ADMIN,
+com confirmação real da API e possibilidade de retry. `features/auth/LogoutActions`
+compartilha busy, erro e foco, delegando revogação/limpeza ao AuthProvider.
+Minha Conta conserva os atalhos de USER/ADMIN; SUPER_ADMIN não repete gestão ali.
 
 A barra inferior usa `safe-area-inset-bottom`; o shell reserva espaço inferior
 para que todo conteúdo possa ser alcançado por rolagem. `viewport-fit=cover`
@@ -35,6 +39,15 @@ com várias linhas; marca permanece link de início. Skip link e main são prese
 - `reading`: entrada, formulários, listas e detalhes, com `max-w-reading`.
 - `map`: consultas pública/própria com `visao=mapa`, com `max-w-app`.
 - `panel`: `/administracao/*`, com `max-w-app`.
+- `account`: exceção apenas para `/minha-conta`, com `max-w-app`, alinhando as
+  bordas úteis ao cabeçalho sem duplicar o padding horizontal do shell.
+
+As ações de Minha Conta usam uma coluna com largura completa no mobile e
+largura automática com wrap a partir de `sm`. Sair integra o mesmo grupo;
+erro de logout aparece antes das ações, com foco e possibilidade de repetir.
+O grupo compartilhado revela o controle focado por rolagem quando seu retângulo
+fica encoberto pela navbar fixa, cuja posição é medida no momento do foco.
+Isso também atende ao foco do Alert, sem aumentar o padding global do shell.
 
 O shell usa padding menor no celular; Card mantém o contrato global. As páginas
 de formulário/relatório continuam responsáveis por seus grupos internos, sem
