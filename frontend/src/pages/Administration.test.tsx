@@ -15,7 +15,7 @@ const report = { id: '3e85aa3d-19e3-42a3-8861-c435ff5908af', categoryId: 1, cate
 const token = 'a'.repeat(43)
 beforeEach(() => {
   sessionStorage.clear(); window.history.replaceState({}, '', '/')
-  fetchMock.mockReset(); vi.stubGlobal('fetch', fetchMock); vi.stubEnv('VITE_API_URL', 'https://api.example.com')
+  fetchMock.mockReset(); vi.stubGlobal('fetch', (url: Parameters<typeof fetch>[0], init?: RequestInit) => String(url).endsWith('/api/public/occurrence-categories') ? Promise.resolve(Response.json([{ id: 1, name: 'Iluminação pública' }, { id: 2, name: 'Buraco ou pavimentação' }])) : fetchMock(url, init)); vi.stubEnv('VITE_API_URL', 'https://api.example.com')
   vi.stubGlobal('IntersectionObserver', class { observe() {} disconnect() {} })
   vi.stubGlobal('URL', Object.assign(class extends URL {}, { createObjectURL: vi.fn(() => 'blob:photo'), revokeObjectURL: vi.fn() }))
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', '') }
@@ -69,7 +69,7 @@ test('account creation distinguishes mail failure, blocks repeat and refreshes s
   await act(async () => resolve(Response.json({ admin, mailStatus: 'FAILED' }, { status: 201 })))
   expect(await screen.findByText(/O envio do convite falhou/)).toBeVisible()
   expect(await screen.findByRole('button', { name: `Reenviar convite para ${admin.email}` })).toBeVisible()
-  expect(client.getQueryData(['private', user.id, 'admins', 0])).toMatchObject({ items: [admin] })
+  expect(client.getQueryData(['private', user.id, 'admins', 'list', 0])).toMatchObject({ items: [admin] })
 })
 
 test('moderation page survives detail navigation and return without changing queue order or request size', async () => {
@@ -81,7 +81,7 @@ test('moderation page survives detail navigation and return without changing que
   })
   renderPage('/administracao/relatos?pagina=2')
   expect(await screen.findByText('Página 2 de 2')).toBeVisible()
-  expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/admin/occurrences?page=1&size=20'))).toBe(true)
+  expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/admin/occurrences?page=1&size=20&scope=QUEUE'))).toBe(true)
   await userEvent.click(screen.getByRole('link', { name: `Analisar relato: ${report.title}` }))
   const back = await screen.findByRole('link', { name: '← Voltar para a fila' })
   expect(back).toHaveAttribute('href', '/administracao/relatos?pagina=2')
@@ -169,6 +169,15 @@ test('moderation rejects with Unicode count and reloads conflicts without false 
   })
   const { client } = renderPage(`/administracao/relatos/${report.id}`)
   client.setQueryData(['private', user.id, 'occurrence-report'], { total: 1 })
+  const filteredKeys = [
+    ['private', user.id, 'moderation', 'list', { page: 0, size: 20, categoryId: 1, status: 'PENDING', scope: 'QUEUE' }],
+    ['private', user.id, 'moderation', 'list', { page: 1, size: 20, categoryId: 2, status: 'RESOLVED', scope: 'ALL' }],
+    ['private', user.id, 'occurrences', 'list', { categoryId: 1, status: 'PENDING' }],
+    ['private', user.id, 'occurrences', 'markers', { categoryId: 2, status: 'IN_ANALYSIS' }],
+    ['public', 'occurrences', 'list', { page: 1, size: 20, categoryId: 2, status: 'RESOLVED' }],
+    ['public', 'occurrences', 'markers', { categoryId: 1, status: 'PENDING' }],
+  ]
+  filteredKeys.forEach(key => client.setQueryData(key, { synthetic: true }))
   await userEvent.click(await screen.findByRole('button', { name: 'Iniciar análise' }))
   expect(await screen.findByRole('alert')).toHaveTextContent('Este relato mudou')
   expect(screen.queryByText('Estado atualizado.')).not.toBeInTheDocument()
@@ -181,8 +190,9 @@ test('moderation rejects with Unicode count and reloads conflicts without false 
   await userEvent.click(screen.getByRole('button', { name: 'Confirmar rejeição' }))
   expect(await screen.findByText('Estado atualizado.')).toBeVisible()
   expect(await screen.findByText('Relato finalizado. Não há novas ações disponíveis.')).toBeVisible()
-  expect(client.getQueryData(['private', user.id, 'moderation', report.id])).toMatchObject({ report: { status: 'REJECTED', version: 2 } })
+  expect(client.getQueryData(['private', user.id, 'moderation', 'detail', report.id])).toMatchObject({ report: { status: 'REJECTED', version: 2 } })
   expect(client.getQueryState(['private', user.id, 'occurrence-report'])?.isInvalidated).toBe(true)
+  await waitFor(() => filteredKeys.forEach(key => expect(client.getQueryState(key)?.isInvalidated).toBe(true)))
 })
 
 test.each(['/administracao/contas', '/administracao/relatos'])('revoked session at %s removes all private cache', async path => {

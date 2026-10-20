@@ -1,3 +1,4 @@
+import { administrativeReturn } from '../features/occurrence/filters'
 import { OccurrenceStatus } from '../features/occurrence/OccurrenceStatus'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams, useLocation } from 'react-router'
@@ -19,7 +20,7 @@ const actionLabels = { IN_ANALYSIS: 'Iniciar análise', RESOLVED: 'Resolver', RE
 export function ModerationDetailPage() {
   const location = useLocation()
   const from: unknown = location.state?.from
-  const back = typeof from === 'string' && /^\/administracao\/relatos(?:\?pagina=[1-9]\d*)?$/.test(from) ? from : '/administracao/relatos'
+  const back = administrativeReturn(from)
   const { id = '' } = useParams()
   const { state, request } = useAuth()
   const client = useQueryClient()

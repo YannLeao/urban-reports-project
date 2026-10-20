@@ -11,7 +11,7 @@ const fetchMock = vi.fn<typeof fetch>()
 beforeEach(() => {
   sessionStorage.clear()
   fetchMock.mockReset()
-  vi.stubGlobal('fetch', fetchMock)
+  vi.stubGlobal('fetch', (url: Parameters<typeof fetch>[0], init?: RequestInit) => String(url).endsWith('/api/public/occurrence-categories') ? Promise.resolve(Response.json([{ id: 1, name: 'Iluminação pública' }, { id: 2, name: 'Buraco ou pavimentação' }])) : fetchMock(url, init))
   vi.stubEnv('VITE_API_URL', 'https://api.example.com/base///')
 })
 

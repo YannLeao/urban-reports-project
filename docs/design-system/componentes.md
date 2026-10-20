@@ -271,3 +271,13 @@ de retorno por botões sem semântica de tabs, título focável e hidden/inert p
 etapas inativas. Ações finais de semelhantes usam enviar/salvar conforme modo,
 com retry manual. Controle de localização com Icon location dentro do mapa usa
 alvo mínimo de 44×44, nome/tooltip e estado busy; clique não confirma pino.
+
+## Filtros de consultas
+
+`OccurrenceFilters` compõe Select Categoria/Estado com labels persistentes,
+Button Limpar filtros, resumo textual/total e Alert para URL ajustada ou catálogo
+indisponível com retry. Uma coluna em mobile, duas quando couber. Lista/Mapa
+compartilham os mesmos critérios acima do conteúdo. Administração oferece
+Fila de moderação/Todos os relatos antes dos selects, com aria-pressed; voltar
+à fila remove estado final e informa o ajuste. Usa tokens/componentes existentes.
+[Contrato e navegação](../occurrence-filters.md).

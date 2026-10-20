@@ -107,3 +107,9 @@ localização, informações e revisão. Navegação entre etapas não altera hi
 Links de saída com alterações pedem confirmação; beforeunload protege reload quando
 suportado. Histórico nativo do navegador não é bloqueado pelo Router declarativo.
 Sem autosave ou promessa de recuperação após sair/encerrar sessão.
+
+## Filtros de categoria e estado
+
+Consulte [contrato, URL, cache e roteiro dos filtros](occurrence-filters.md).
+Listas e mapas aceitam os mesmos critérios; a administração mantém QUEUE padrão
+e oferece ALL para consultar finalizados, preservando autorização e transições.

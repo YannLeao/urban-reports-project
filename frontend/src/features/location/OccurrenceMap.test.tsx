@@ -54,10 +54,17 @@ test('a queued movement after disposal never reads the removed map or changes na
   const view = render(<OccurrenceMap items={[point]} selected={null} onView={changed} />)
   await waitFor(() => expect(events.has('moveend')).toBe(true))
   const queued = events.get('moveend')!
+  changed.mockClear() // Initialization records the fitted viewport for later filter changes.
   view.unmount()
   expect(instance.off).toHaveBeenCalledWith('moveend', queued)
   const read = vi.spyOn(instance, 'getCenter').mockImplementation(() => { throw new Error('Map already removed') })
   expect(() => queued()).not.toThrow()
   expect(changed).not.toHaveBeenCalled()
   read.mockRestore()
+})
+
+test('initial fit is reported immediately so filter remounts can restore its viewport', async () => {
+  const changed = vi.fn()
+  render(<OccurrenceMap items={[point]} selected={null} onView={changed} />)
+  await waitFor(() => expect(changed).toHaveBeenCalledExactlyOnceWith({ latitude: -8, longitude: -36, zoom: 14 }))
 })

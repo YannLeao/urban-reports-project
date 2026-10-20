@@ -141,3 +141,9 @@ O [roteiro de provisionamento](admin-provisioning.md#roteiro-de-revisão) cobre
 criar/ativar/moderar/desativar com contas legítimas, consulta como autor e matriz
 de negativas. A central possui testes de integração locais; aceite publicado e validação
 manual devem ser registrados na MR/issue, sem inferir deploy pelo código.
+
+## Filtros de categoria e estado
+
+Consulte [contrato, URL, cache e roteiro dos filtros](occurrence-filters.md).
+Listas e mapas aceitam os mesmos critérios; a administração mantém QUEUE padrão
+e oferece ALL para consultar finalizados, preservando autorização e transições.

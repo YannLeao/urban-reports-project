@@ -1,3 +1,5 @@
+import { OccurrenceFilters } from '../features/occurrence/OccurrenceFilters'
+import { parseFilters, filterQuery } from '../features/occurrence/filters'
 import { OccurrenceStatus } from '../features/occurrence/OccurrenceStatus'
 import { Link, useSearchParams } from 'react-router'
 import { Button } from '../components/ui/Button'
@@ -10,16 +12,19 @@ import { occurrenceDate } from '../features/occurrence/occurrence'
 
 export function ModerationQueuePage() {
   const [params, setParams] = useSearchParams()
+  const filters = parseFilters(params, 'admin').filters
+  const filtered = filters.categoryId !== null || filters.status !== null
   const requested = Number(params.get('pagina') ?? '1')
   const page = Number.isInteger(requested) && requested >= 1 ? requested - 1 : 0
-  function setPage(next: number) { setParams({ pagina: String(next + 1) }) }
-  const query = useAdministrativeQuery('moderation', page, `/api/admin/occurrences?page=${page}&size=20`, moderationQueueSchema)
+  function setPage(value: number) { const next = new URLSearchParams(params); next.set('pagina', String(value + 1)); setParams(next) }
+  const query = useAdministrativeQuery('moderation', { page, size: 20, ...filters }, `/api/admin/occurrences?page=${page}&size=20&${filterQuery(filters, true)}`, moderationQueueSchema)
   return <section className="py-8" aria-labelledby="queue-title">
-    <h1 id="queue-title">Fila de moderação</h1><p>Relatos pendentes e em análise, dos mais antigos aos mais recentes.</p>
+    <h1 id="queue-title">{filters.scope === 'ALL' ? 'Todos os relatos' : 'Fila de moderação'}</h1><p>Relatos dos mais antigos aos mais recentes.</p>
+    <OccurrenceFilters context="admin" total={query.data?.totalItems} />
     {query.isPending && <p role="status">Carregando fila…</p>}
     {query.isError && <Alert tone="danger" role="alert">Não conseguimos carregar a fila. <Button onClick={() => { void query.refetch() }}>Tentar novamente</Button></Alert>}
     {!query.isError && query.data && <>
-      {query.data.items.length === 0 && <p>Nenhum relato nesta página da fila.</p>}
+      {query.data.items.length === 0 && <div><p>{page > 0 ? 'Nenhum relato nesta página.' : filtered ? 'Nenhum relato com estes filtros.' : filters.scope === 'QUEUE' ? 'A fila de moderação está vazia.' : 'Ainda não há relatos.'}</p>{page > 0 && <Button variant="secondary" onClick={() => setPage(0)}>Voltar para a primeira página</Button>}</div>}
       <div className="grid gap-4">{query.data.items.map(report => <Card key={report.id} aria-label={report.title} density="compact">
         <div className="grid min-w-0 gap-4 sm:grid-cols-[8rem_minmax(0,1fr)_auto] sm:items-center">
         <div className="w-24 sm:w-full"><OccurrencePhoto report={report} administrative flush /></div>

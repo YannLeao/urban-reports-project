@@ -77,6 +77,9 @@ export function OccurrenceMap({ items, selected, onSelect, onGroup, view, onView
       latest.current.onView?.({ latitude: center.lat, longitude: center.lng, zoom: instance.getZoom() })
     }
     instance.on('moveend', moved)
+    // Save the initial fit too: a filter request may temporarily remount the
+    // map, and only the user's Ver todos action should fit a new result set.
+    moved()
     return () => {
       instance.off('zoomend', draw); instance.off('moveend', moved)
       map.current = null; library.current = null; layer.current = null; setReady(false)

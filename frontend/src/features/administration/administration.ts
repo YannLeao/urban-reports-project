@@ -15,13 +15,13 @@ export const moderationDetailSchema = z.object({ report: occurrenceSchema, histo
   id: z.uuid(), previousStatus: occurrenceStatusSchema, newStatus: occurrenceStatusSchema,
   occurredAt: z.iso.datetime(), reason: z.string().nullable(), responsible: z.string().min(1),
 })) })
-export function useAdministrativeQuery<T>(resource: 'admins' | 'moderation', pageOrId: number | string, path: string, schema: z.ZodType<T>) {
+export function useAdministrativeQuery<T>(resource: 'admins' | 'moderation', selection: number | string | { page: number; size: number; categoryId: number | null; status: string | null; scope: string }, path: string, schema: z.ZodType<T>) {
   const { state, request } = useAuth()
   const userId = state.status === 'authenticated' ? state.user.id : null
   return useQuery({
-    queryKey: ['private', userId, resource, pageOrId], enabled: userId !== null,
+    queryKey: ['private', userId, resource, typeof selection === 'string' ? 'detail' : 'list', selection], enabled: userId !== null,
     queryFn: async ({ signal }) => {
-      if (resource === 'moderation' && typeof pageOrId === 'string') z.uuid().parse(pageOrId)
+      if (resource === 'moderation' && typeof selection === 'string') z.uuid().parse(selection)
       return schema.parse(await (await request(path, 'GET', signal)).json())
     },
     retry: false, staleTime: 0, refetchOnWindowFocus: false,

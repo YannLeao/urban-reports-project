@@ -1,3 +1,5 @@
+import { OccurrenceFilters } from '../features/occurrence/OccurrenceFilters'
+import { parseFilters } from '../features/occurrence/filters'
 import { OccurrenceStatus } from '../features/occurrence/OccurrenceStatus'
 import { PublicMapView } from '../features/occurrence/OccurrenceMapView'
 import { QueryViewToggle } from '../features/occurrence/QueryViewToggle'
@@ -14,8 +16,10 @@ export function PublicOccurrencesPage() {
   const [params] = useSearchParams()
   const requested = Number(params.get('pagina') ?? '1')
   const page = Number.isInteger(requested) && requested >= 1 ? requested - 1 : 0
+  const filters = parseFilters(params, 'public').filters
+  const filtered = filters.categoryId !== null || filters.status !== null
   const mapMode = params.get('visao') === 'mapa'
-  const query = usePublicOccurrences(page, !mapMode)
+  const query = usePublicOccurrences(page, !mapMode, filters)
   const data = query.data
   const error = query.isError
   function pageLink(value: number) {
@@ -24,15 +28,17 @@ export function PublicOccurrencesPage() {
 
   return <section className={mapMode ? 'py-3' : 'py-8'} aria-labelledby="public-title">
     <div className={mapMode ? 'wrap-anywhere' : 'max-w-reading wrap-anywhere'}>
-      <div className="flex flex-wrap items-center justify-between gap-2"><h1 id="public-title" className={mapMode ? 'mb-0 text-title' : ''}>Relatos da comunidade</h1><QueryViewToggle /></div>
+      <div className="flex flex-wrap items-center justify-between gap-2"><h1 id="public-title" className={mapMode ? 'mb-0 text-title' : ''}>Relatos da comunidade</h1></div>
       {!mapMode && <p className="text-lead text-text-secondary">Problemas urbanos relatados pela comunidade.</p>}
+      <OccurrenceFilters context="public" total={!mapMode ? data?.totalItems : undefined} />
+      <div className="flex justify-end"><QueryViewToggle /></div>
       {mapMode ? <PublicMapView /> : <>
       {query.isPending && <p role="status" className="mt-8">Carregando relatos…</p>}
       {error && <Alert className="mt-6" tone="danger" role="alert">Não conseguimos carregar os relatos. Tente novamente.</Alert>}
       {error && <Button className="mt-4" variant="secondary" loading={query.isFetching} onClick={() => { void query.refetch() }}>Tentar novamente</Button>}
       {data && data.items.length === 0 && (page === 0
-        ? <Card className="mt-8"><h2 className="mt-0">Ainda não há relatos públicos</h2><p>Quando houver relatos registrados, eles aparecerão aqui.</p></Card>
-        : <Card className="mt-8"><h2 className="mt-0">Esta página não existe</h2><Link className={buttonStyles('secondary')} to="/ocorrencias">Voltar para a primeira página</Link></Card>)}
+        ? <Card className="mt-8"><h2 className="mt-0">{filtered ? 'Nenhum relato com estes filtros' : 'Ainda não há relatos públicos'}</h2><p>{filtered ? 'Ajuste os filtros ou limpe a seleção para consultar outros relatos.' : 'Quando houver relatos registrados, eles aparecerão aqui.'}</p></Card>
+        : <Card className="mt-8"><h2 className="mt-0">Esta página não existe</h2><Link className={buttonStyles('secondary')} to={pageLink(1)}>Voltar para a primeira página</Link></Card>)}
       {data && data.items.length > 0 && <div className="mt-8 grid gap-4" aria-label="Relatos da comunidade" aria-busy={query.isPlaceholderData}>
         {data.items.map(report => <article key={report.id} className="min-w-0 rounded-card border border-border-subtle bg-surface-raised shadow-card">
           <PublicOccurrencePhoto report={report} flush />

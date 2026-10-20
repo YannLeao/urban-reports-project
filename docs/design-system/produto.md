@@ -51,8 +51,8 @@ uma decisão de cada vez, sem dashboard artificial nem botões sem destino.
 
 ## Padrões da referência a aplicar na próxima auditoria
 
-Filtros de categoria e estado são independentes, com selects rotulados que cabem
-no mobile. Rejeição oferece motivo sugerido opcional; a explicação humana de
+Filtros de categoria e estado estão implementados, com selects independentes e
+rotulados no mobile; veja [contrato](../occurrence-filters.md). Rejeição oferece motivo sugerido opcional; a explicação humana de
 10–500 caracteres Unicode após trim continua necessária. A sugestão não altera
 a API nem substitui texto digitado.
 

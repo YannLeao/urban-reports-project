@@ -2,7 +2,7 @@ import { OccurrenceStatus } from '../features/occurrence/OccurrenceStatus'
 import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { OccurrenceLocation } from '../features/occurrence/OccurrenceLocation'
-import { queryReturn } from '../features/occurrence/map-navigation'
+import { queryMap, queryReturn } from '../features/occurrence/map-navigation'
 import { Link, useLocation, useParams } from 'react-router'
 import { Alert } from '../components/ui/Feedback'
 import { Button } from '../components/ui/Button'
@@ -46,7 +46,7 @@ export function PublicOccurrenceDetailPage() {
           <div><dt className="font-bold">Data do registro</dt><dd className="m-0">{occurrenceDate(report.createdAt)}</dd></div>
         </dl></Card>
         <OccurrenceLocation report={report} />
-        <Link className={buttonStyles('quiet')} to={from.includes('visao=mapa') ? from : '/ocorrencias?visao=mapa'}>Ver mapa dos relatos</Link>
+        <Link className={buttonStyles('quiet')} to={queryMap(from, false)}>Ver mapa dos relatos</Link>
       </>}
     </div>
   </section>
