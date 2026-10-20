@@ -18,6 +18,7 @@ paralelismo 1, salt 16 bytes e hash 32 bytes, sem normalizar senhas.
 | GET `/api/auth/me` | Sessão válida; 200 com id/name/email/role atuais |
 | POST `/api/auth/logout` | Sessão válida e Content-Type application/json; 204 após commit |
 | GET/HEAD `/api/health` | Público |
+| GET `/api/public/occurrence-categories` | Público, somente id/name; GET exato |
 | GET `/api/occurrence-categories` | Sessão válida; oito categorias |
 | GET `/api/occurrences` e `/api/occurrences/{id}` | Sessão válida; somente autoria própria; detalhe alheio/inexistente retorna 404; [contrato](occurrence-query.md) |
 | POST `/api/occurrences` | Sessão válida, papel USER; multipart conforme [contrato](occurrence-registration.md); autor e PENDING definidos no servidor |
@@ -197,3 +198,9 @@ retorna 503 `REPORT_PDF_CAPACITY`; falhas inesperadas retornam 500 sanitizado.
 O AuthProvider expõe também um AbortSignal por geração de sessão para leituras
 binárias que continuam após os headers. Login/revalidação/logout confirmado
 cancelam o corpo em andamento mesmo quando a nova sessão pertence à mesma conta.
+
+## Filtros de categoria e estado
+
+Consulte [contrato, URL, cache e roteiro dos filtros](occurrence-filters.md).
+Listas e mapas aceitam os mesmos critérios; a administração mantém QUEUE padrão
+e oferece ALL para consultar finalizados, preservando autorização e transições.

@@ -56,3 +56,5 @@ um novo ADR que substitui o anterior.
 - [0027 — Wizard e sugestão de localização na primeira visita](0027-organizar-registro-em-etapas.md)
 
 - [0028 — Relatório administrativo em PDF](0028-exportar-relatorio-administrativo-em-pdf.md)
+
+- [0029 — Filtros e consulta administrativa de finalizados](0029-filtrar-consultas-e-ampliar-escopo-administrativo.md)

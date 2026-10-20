@@ -259,3 +259,9 @@ físico, pipeline ou publicação. Evidências executadas pertencem à MR/issue.
 - [ ] Legado não ganha ponto fictício e permanece acessível pela lista.
 - [ ] Falhas/GPS negado/tiles indisponíveis preservam alternativas e dados.
 - [ ] Revisão/integracão operacional das duas tarefas aprovada antes de encerrar #41.
+
+## Filtros de categoria e estado
+
+Consulte [contrato, URL, cache e roteiro dos filtros](occurrence-filters.md).
+Listas e mapas aceitam os mesmos critérios; a administração mantém QUEUE padrão
+e oferece ALL para consultar finalizados, preservando autorização e transições.

@@ -126,3 +126,9 @@ O formulário de cadastro/edição oferece revisão informativa antes da gravaç
 com 100 m/mesma categoria/ativos/até cinco e exclusão própria na edição.
 Contrato, minimização, falhas, integração futura e roteiro em
 [sugestões de relatos próximos](similar-occurrences.md).
+
+## Filtros de categoria e estado
+
+Consulte [contrato, URL, cache e roteiro dos filtros](occurrence-filters.md).
+Listas e mapas aceitam os mesmos critérios; a administração mantém QUEUE padrão
+e oferece ALL para consultar finalizados, preservando autorização e transições.
