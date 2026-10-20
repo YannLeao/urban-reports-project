@@ -182,3 +182,18 @@ O formulário de cadastro/edição oferece revisão informativa antes da gravaç
 com 100 m/mesma categoria/ativos/até cinco e exclusão própria na edição.
 Contrato, minimização, falhas, integração futura e roteiro em
 [sugestões de relatos próximos](similar-occurrences.md).
+
+## PDF administrativo
+
+GET exato `/api/admin/reports/occurrences/pdf` exige ADMIN ativo, sem herança para
+SUPER_ADMIN. Reutiliza sessão revogável e AccountAccess no snapshot do relatório.
+Entrega agregados, nunca linhas de ocorrência/identificação pessoal, com no-store,
+nosniff e attachment ASCII. Texto livre de localidades não é anonimizado por ser
+agrupado. Revogação não recolhe arquivos já entregues. Sem token em URL, cache
+binário, links/JavaScript ou assets remotos no PDF. Capacidade ocupada/excedida
+retorna 503 `REPORT_PDF_CAPACITY`; falhas inesperadas retornam 500 sanitizado.
+[Contrato e limites](occurrence-report.md#download-em-pdf).
+
+O AuthProvider expõe também um AbortSignal por geração de sessão para leituras
+binárias que continuam após os headers. Login/revalidação/logout confirmado
+cancelam o corpo em andamento mesmo quando a nova sessão pertence à mesma conta.

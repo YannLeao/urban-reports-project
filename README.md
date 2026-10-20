@@ -25,7 +25,8 @@ A [moderação](docs/occurrence-moderation.md) oferece fila, foto, transições 
 histórico para ADMIN ativo. O [provisionamento administrativo](docs/admin-provisioning.md)
 permite ao SUPER_ADMIN criar, convidar e desativar ADMINs, com bootstrap explícito.
 O [relatório administrativo](docs/occurrence-report.md) em `/administracao/relatorio`
-oferece contagens globais, média de resolução e proporção de rejeitadas para ADMIN ativo.
+oferece contagens globais, média de resolução, proporção de rejeitadas e download
+em PDF por nova consulta consistente para ADMIN ativo.
 A [central de notificações](docs/notifications.md) em `/notificacoes` permite ao
 cidadão acompanhar transições e marcar avisos como lidos, com contador no sino.
 Novos avisos também capturam [intenções de e-mail](docs/notification-email.md)

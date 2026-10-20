@@ -54,3 +54,5 @@ um novo ADR que substitui o anterior.
 - [0026 — Alertas por categoria e proximidade](0026-alertar-relatos-por-proximidade.md)
 
 - [0027 — Wizard e sugestão de localização na primeira visita](0027-organizar-registro-em-etapas.md)
+
+- [0028 — Relatório administrativo em PDF](0028-exportar-relatorio-administrativo-em-pdf.md)

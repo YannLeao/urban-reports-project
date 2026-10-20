@@ -254,3 +254,12 @@ retorna 404. Cada request de mídia revalida acesso antes de HEAD/GET do storage
 encerra transação antes da cópia. Bucket permanece privado e bytes/metadados são
 preservados. V14/runtime/worker atualizado precedem frontend; versões antigas
 exigem parada coordenada, com recuperação por avanço em vez de desfazer migration.
+
+## PDF administrativo
+
+O JAR inclui PDFBox 3.0.8, TTF Figtree/OFL, marca e cores; contexto backend basta.
+Não instalar Node/navegador/fontes do SO na imagem. Antes de publicar, conferir
+[paridade dos assets e probe Java 21 headless sem rede](report-pdf-assets.md).
+Uma geração por instância e limites de saída não limitam todo o heap: medir no
+container alvo. Publicar backend antes do frontend e homologar download autorizado
+sem acessar dados reais para teste. Sem variáveis novas, migrations ou R2.

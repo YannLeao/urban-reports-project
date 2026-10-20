@@ -65,6 +65,8 @@
   `frontend/src/components/ui/`; atualize documentação, catálogo e código juntos.
   Execute `pnpm tokens:generate` após editar tokens e versione o CSS gerado;
   `pnpm tokens:check` valida sem escrever e precede o build.
+  Marca/tokens/fontes do PDF backend seguem [assets do PDF](docs/report-pdf-assets.md);
+  execute `pnpm run report-pdf:assets:check` em `frontend/` e revise a derivação.
 - Priorize utilitários Tailwind em páginas e componentes. Reserve CSS manual
   para defaults globais, integração de ferramentas ou exceção justificada no
   guia de design system. Reutilize variantes com classes completas e estáticas;
