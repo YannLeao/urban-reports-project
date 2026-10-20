@@ -261,3 +261,11 @@ Publicar suporte a USER/ADMIN/SUPER_ADMIN antes de emitir novas identidades no
 backend. Contratos e roteiro: [provisionamento](admin-provisioning.md).
 
 A V13 migra fotografias para `occurrence_media` e retira `occurrences.image_key`. É obrigatória a parada coordenada de todas as instâncias/workers antigos antes da migração; publicar API nova antes do frontend. Não há rollback binário para backend antigo. [Procedimento e limites multipart](multiple-photos.md).
+
+## Download administrativo
+
+Publicar o backend com `/api/admin/reports/occurrences/pdf` antes do frontend.
+Sem biblioteca PDF no bundle, variável nova ou header CORS exposto adicional.
+Conferir [roteiro de download](occurrence-report.md#roteiro-manual-do-pdf) na origem
+canônica: ADMIN, erro, busy, cancelamento e arquivo abrindo em leitor. Build sozinho
+não comprova download ou validação visual do PDF.

@@ -11,7 +11,8 @@
     "typecheck": "tsc -b",
     "test": "node --test scripts/*.test.ts && vitest run",
     "tokens:generate": "node scripts/tokens.ts",
-    "tokens:check": "node scripts/tokens.ts --check"
+    "tokens:check": "node scripts/tokens.ts --check",
+    "report-pdf:assets:check": "node scripts/report-pdf-assets.ts --check"
   },
   "dependencies": {
     "@fontsource/figtree": "5.2.10",

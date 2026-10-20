@@ -149,3 +149,89 @@ não integração publicada, envio externo de e-mail ou aceite remoto.
 (cd frontend && pnpm run lint && pnpm run typecheck && pnpm test && pnpm run build)
 git diff --check
 ```
+
+## Download em PDF
+
+`GET /api/admin/reports/occurrences/pdf`, Bearer, exige o mesmo ADMIN exato,
+ACTIVE e sessão válida, sem filtros/corpo/números do cliente. Não muda a rota JSON.
+Resposta pronta: 200 `application/pdf`, `Cache-Control: no-store`,
+`X-Content-Type-Options: nosniff`, Content-Length e attachment com nome ASCII
+`alo-cidade-relatorio-uuuuMMdd-HHmmssZ.pdf` gerado pelo servidor em UTC.
+Sem CORS adicional: o cliente usa nome controlado, sem ler Content-Disposition.
+
+“Baixar PDF” faz **nova consulta consistente**, uma chamada ao serviço do ADR 0017,
+e não atualiza/invalida o painel. A nota junto à ação explica a diferença.
+Referência dos dados (`Report.generatedAt`) e geração do arquivo (Clock) aparecem
+separadas em America/Sao_Paulo, com offset explícito. Dados podem diferir de um
+painel antigo sob concorrência. A transação termina antes da renderização.
+
+A4 retrato, Figtree embutida, marca Alô Cidade e cores canônicas, texto selecionável,
+contagens/barras e todas as localidades na ordem da consulta, sem top-N. Categorias
+e estados incluem zeros. Média e percentual preservam os valores do snapshot,
+com unidades/arredondamento apenas visual. Amostra/exclusões e aviso de média
+parcial ficam junto à média; ausência não é duração zero. O PDF distingue null
+como “Não informado (campo vazio)” do texto literal “Não informado”. Grafias não
+são fundidas. Glifos ausentes/controles viram `[U+XXXX]` com nota; conteúdo é texto
+puro, sem links, execução de HTML/JavaScript, anexos ou recursos remotos.
+
+Nenhuma ocorrência individual ou identificação pessoal é incluída. Texto livre
+de localidade pode conter informação indevida; agregação não garante anonimização.
+Metadados são institucionais, idioma pt-BR; não há certificação PDF/A ou PDF/UA.
+Revogar sessão não apaga PDFs previamente baixados.
+
+Geração limitada a uma por instância, sem fila: 503 `REPORT_PDF_CAPACITY` quando
+ocupada ou excedidos os limites de 512 páginas/16 MiB/orçamento cooperativo de
+30 s de layout. Não há truncamento. Banco mantém 503 `ADMINISTRATION_UNAVAILABLE`;
+fontes/renderização inesperada retornam 500 `INTERNAL_ERROR` sanitizado/no-store.
+PDF completo precede sucesso; falhas nunca viram PDF parcial/relatório zerado.
+[Limitações de memória, assets/licenças e medição](report-pdf-assets.md) e
+[ADR 0028](adr/0028-exportar-relatorio-administrativo-em-pdf.md).
+
+Frontend não faz retry automático e preserva o painel em rede/500/503 ou resposta
+inválida. Busy/guarda síncrona evitam clique/Enter repetido. 401 encerra sessão;
+403 oculta/limpa os agregados sem logout. AbortSignal cancela leitura em saída,
+logout/troca de contexto; não baixa resposta tardia. Leitura até EOF limitada a
+16 MiB, MIME PDF e marcadores básicos obrigatórios antes de Blob/link. Link e
+object URL são removidos após início do download (timer de 1 s) e na desmontagem.
+Binário não entra em Query/storage, e token nunca entra em URL.
+
+### Roteiro manual do PDF
+
+Usar somente ambiente local e dados sintéticos; não esvaziar banco real.
+
+1. Entrar como ADMIN ativo, abrir `/administracao/relatorio` e baixar. Esperado:
+   arquivo parseável, nome ASCII UTC, referências separadas e indicadores iguais
+   à nova leitura. Abrir em leitor comum, selecionar/copiar acentos e números.
+2. Conferir total, média contínua, amostra/exclusões, rejeitadas 0–100 e todas as
+   categorias/estados inclusive zeros. Base vazia deve ter zeros e “Sem dados”;
+   média parcial deve identificar exclusões, sem confundir duração zero.
+3. Incluir localidades null/espaços, literal “Não informado”, acentos, nome longo,
+   emoji/script sem glifo e volume para várias páginas. Esperado: grupos separados,
+   contagem preservada, `[U+XXXX]` visível com nota, cabeçalhos repetidos, rodapés
+   Página X de Y e nenhum corte. Conferir escala de cinza A4 em 100%.
+4. Alterar dados sintéticos depois de abrir o painel e baixar. Esperado: PDF com
+   nova referência/snapshot; painel mantém sua consulta anterior sem anunciar refresh.
+5. Simular erro local/fonte ausente/banco indisponível. Esperado: JSON 500/503
+   sanitizado/no-store; navegador mostra “Não foi possível gerar o PDF. Tente
+   novamente”, sem salvar JSON como PDF ou apagar os indicadores. Só novo clique
+   repete a ação. Duplo clique/Enter gera um download; sair/logout antes de terminar
+   impede arquivo tardio. Falha de logout preserva sessão conforme contrato de auth.
+6. USER/SUPER_ADMIN recebem 403 e anônimo/inválido/expirado/revogado/inativo 401.
+   No frontend, 403 esconde agregados sem encerrar sessão; 401 encerra e limpa cache.
+7. Conferir 360 px/desktop, foco/Tab/Enter e busy, e abrir o arquivo em leitor/celular
+   disponível. Após autorização/publicação, repetir na origem canônica com backend
+   novo antes do frontend, registrando resultados remotos separadamente.
+
+Os testes `OccurrenceReportPdfTests` geram exemplos reais em
+`backend/target/report-pdf-review/{reference,empty,partial,localities}.pdf`.
+Renderizar **todas** as páginas e inspecionar as imagens, além do texto extraído:
+
+```bash
+pdftoppm -png -r 144 backend/target/report-pdf-review/localities.pdf /tmp/localities
+pdftotext -layout backend/target/report-pdf-review/localities.pdf /tmp/localities.txt
+```
+
+`target/` é ignorado; não versionar PDFs/imagens de revisão. Executar verify backend,
+checks frontend e `pnpm run report-pdf:assets:check`. Testes de download usam fetch
+controlado e PDF sintético; revisão em navegador com API simulada não homologa
+backend publicado nem integração remota.

@@ -18,12 +18,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [credential, setCredential] = useState<Credential | null>(null)
   const current = useRef<Credential | null>(null)
   const generation = useRef(0)
+  const sessionCancellation = useRef(new AbortController())
   const requests = useRef(new Set<AbortController>())
   const loginPending = useRef(false)
   const logoutPending = useRef(false)
 
   const advance = useCallback(() => {
     generation.current++
+    sessionCancellation.current.abort()
+    sessionCancellation.current = new AbortController()
     for (const controller of requests.current) controller.abort()
     requests.current.clear()
     void client.cancelQueries({ queryKey: ['private'] })
@@ -110,5 +113,5 @@ export function AuthProvider({ children }: PropsWithChildren) {
       if (!(error instanceof PrivateRequestError && error.status === 401)) throw error
     } finally { logoutPending.current = false }
   }
-  return <AuthContext value={{ state, login, logout, request, retry: () => { void validate(current.current) } }}>{children}</AuthContext>
+  return <AuthContext value={{ state, sessionSignal: sessionCancellation.current.signal, login, logout, request, retry: () => { void validate(current.current) } }}>{children}</AuthContext>
 }

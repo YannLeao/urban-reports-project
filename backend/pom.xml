@@ -36,6 +36,12 @@
 		</dependencies>
 	</dependencyManagement>
 	<dependencies>
+		<dependency>
+			<groupId>org.apache.pdfbox</groupId>
+			<artifactId>pdfbox</artifactId>
+			<version>3.0.8</version>
+			<exclusions><exclusion><groupId>commons-logging</groupId><artifactId>commons-logging</artifactId></exclusion></exclusions>
+		</dependency>
 		<!-- Pure Java WebP decoder; BSD-3-Clause. JPEG/PNG use JDK readers. -->
 		<dependency>
 			<groupId>com.twelvemonkeys.imageio</groupId>

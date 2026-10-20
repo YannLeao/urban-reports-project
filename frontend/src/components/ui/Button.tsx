@@ -8,7 +8,7 @@ type Props = ComponentProps<'button'> & {
 }
 export function Button({ variant = 'primary', loading = false, disabled, type = 'button', size = 'default', className = '', children, ...props }: Props) {
   return <button {...props} type={type} className={buttonStyles(variant, className, size)}
-    disabled={disabled || loading} aria-busy={loading || undefined} data-loading={loading || undefined}>
+    disabled={disabled || loading} aria-busy={loading || props['aria-busy'] || undefined} data-loading={loading || undefined}>
     {loading && <span aria-hidden="true">◌ </span>}{children}
   </button>
 }

@@ -29,7 +29,11 @@ public class OccurrenceReportService {
             @Schema(nullable = true, description = "Média em segundos contínuos; null sem duração válida", minimum = "0") BigDecimal averageResolutionSeconds,
             long resolvedSampleSize, long resolvedWithoutValidDuration,
             @Schema(nullable = true, description = "100 × rejeitadas / total; null com total zero", minimum = "0", maximum = "100") BigDecimal rejectedPercentage,
-            Instant generatedAt) {}
+            Instant generatedAt) {
+        public Report {
+            categories = List.copyOf(categories); statuses = List.copyOf(statuses); localities = List.copyOf(localities);
+        }
+    }
     private record Summary(long total, BigDecimal percentage, Instant generatedAt) {}
     private record Resolution(BigDecimal average, long valid, long invalid) {}
 

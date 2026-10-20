@@ -30,7 +30,8 @@ class OccurrenceReportIntegrationTests {
     static final String PATH = "/api/admin/reports/occurrences";
     static final String PASSWORD = "synthetic strong password phrase";
     static final Instant NOW = Instant.parse("2026-10-15T12:00:00Z");
-    @Autowired OccurrenceReportService service;
+    @MockitoSpyBean OccurrenceReportService service;
+    @MockitoSpyBean OccurrenceReportPdf pdfRenderer;
     @Autowired ModerationService moderation;
     @Autowired AdminProvisioningService administration;
     @Autowired BootstrapService bootstrap;
@@ -77,6 +78,21 @@ class OccurrenceReportIntegrationTests {
         assertThat(result.resolvedSampleSize()).isEqualTo(2); assertThat(result.resolvedWithoutValidDuration()).isZero();
         assertThat(result.rejectedPercentage().doubleValue()).isCloseTo(100.0 / 3, within(0.000001));
         sums(result);
+        clearInvocations(service);
+        doAnswer(call -> {
+            assertThat(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+            return call.callRealMethod();
+        }).when(pdfRenderer).render(any(), any());
+        var pdfBytes = mvc.perform(get(PATH + "/pdf").header("Authorization", "Bearer " + adminLogin.accessToken()))
+                .andExpect(status().isOk()).andExpect(content().contentType("application/pdf"))
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+                .andExpect(header().string("Content-Disposition", "attachment; filename=\"alo-cidade-relatorio-20261015-120000Z.pdf\""))
+                .andReturn().getResponse().getContentAsByteArray();
+        verify(service, times(1)).get(any());
+        try (var pdf = org.apache.pdfbox.Loader.loadPDF(pdfBytes)) {
+            assertThat(new org.apache.pdfbox.text.PDFTextStripper().getText(pdf)).contains("Total de relatos: 6", "4 h", "33,3%", "Amostra: 2");
+        }
         mvc.perform(get(PATH).header("Authorization", "Bearer " + adminLogin.accessToken()))
                 .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(jsonPath("$.total").value(6)).andExpect(jsonPath("$.averageResolutionSeconds").value(14400))
@@ -148,19 +164,54 @@ class OccurrenceReportIntegrationTests {
     }
 
     @Test void exactRolesRealSessionsAndDeactivationDenyAggregates() throws Exception {
-        mvc.perform(get(PATH)).andExpect(status().isUnauthorized());
+        for (String path : List.of(PATH, PATH + "/pdf")) {
+            mvc.perform(get(path)).andExpect(status().isUnauthorized()).andExpect(header().string("Cache-Control", "no-store"));
+            mvc.perform(get(path).header("Authorization", "Bearer invalid")).andExpect(status().isUnauthorized());
+            for (var forbidden : List.of(citizenLogin, rootLogin))
+                mvc.perform(get(path).header("Authorization", "Bearer " + forbidden.accessToken())).andExpect(status().isForbidden());
+        }
         for (var user : List.of(citizenLogin, rootLogin)) {
-            mvc.perform(get(PATH).header("Authorization", "Bearer " + user.accessToken())).andExpect(status().isForbidden());
+            mvc.perform(get(PATH + "/pdf").header("Authorization", "Bearer " + user.accessToken())).andExpect(status().isForbidden());
             assertThatThrownBy(() -> service.get(identity(user))).isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
         }
-        mvc.perform(get(PATH).header("Authorization", "Bearer " + adminLogin.accessToken())).andExpect(status().isOk());
+        mvc.perform(get(PATH + "/pdf").header("Authorization", "Bearer " + adminLogin.accessToken())).andExpect(status().isOk());
         mvc.perform(post("/api/auth/logout").header("Authorization", "Bearer " + adminLogin.accessToken()).contentType("application/json")).andExpect(status().isNoContent());
-        mvc.perform(get(PATH).header("Authorization", "Bearer " + adminLogin.accessToken())).andExpect(status().isUnauthorized());
+        mvc.perform(get(PATH + "/pdf").header("Authorization", "Bearer " + adminLogin.accessToken())).andExpect(status().isUnauthorized());
         assertThatThrownBy(() -> service.get(admin)).isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
         adminLogin = login.login("admin@example.com", PASSWORD); admin = identity(adminLogin);
         administration.deactivate(root, admin.userId());
-        mvc.perform(get(PATH).header("Authorization", "Bearer " + adminLogin.accessToken())).andExpect(status().isUnauthorized());
+        mvc.perform(get(PATH + "/pdf").header("Authorization", "Bearer " + adminLogin.accessToken())).andExpect(status().isUnauthorized());
         assertThatThrownBy(() -> service.get(admin)).isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+    }
+
+    @Test void pdfErrorsAreSanitizedNoStoreAndReleaseCapacity() throws Exception {
+        for (Exception error : List.of(new java.io.IOException("private-font-path"), new IllegalArgumentException("private-font-path"))) {
+            doThrow(error).when(pdfRenderer).render(any(), any());
+            var response = mvc.perform(get(PATH + "/pdf").header("Authorization", "Bearer " + adminLogin.accessToken()))
+                    .andExpect(status().isInternalServerError()).andExpect(content().contentTypeCompatibleWith("application/json"))
+                    .andExpect(header().string("Cache-Control", "no-store")).andExpect(jsonPath("$.code").value("INTERNAL_ERROR"))
+                    .andReturn().getResponse();
+            assertThat(response.getContentAsString()).doesNotContain("private-font-path", "%PDF", "Exception");
+        }
+        doThrow(new AdministrationException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE, "REPORT_PDF_CAPACITY"))
+                .when(pdfRenderer).render(any(), any());
+        mvc.perform(get(PATH + "/pdf").header("Authorization", "Bearer " + adminLogin.accessToken()))
+                .andExpect(status().isServiceUnavailable()).andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.code").value("REPORT_PDF_CAPACITY"));
+        doCallRealMethod().when(pdfRenderer).render(any(), any());
+        mvc.perform(get(PATH + "/pdf").header("Authorization", "Bearer " + adminLogin.accessToken())).andExpect(status().isOk());
+        doThrow(new org.springframework.dao.DataAccessResourceFailureException("private-database"))
+                .when(service).get(any());
+        mvc.perform(get(PATH + "/pdf").header("Authorization", "Bearer " + adminLogin.accessToken()))
+                .andExpect(status().isServiceUnavailable()).andExpect(jsonPath("$.code").value("ADMINISTRATION_UNAVAILABLE"))
+                .andExpect(header().string("Cache-Control", "no-store"));
+    }
+
+    @Test void expiredSessionCannotExportPdf() throws Exception {
+        when(clock.instant()).thenReturn(NOW.plusSeconds(1800));
+        mvc.perform(get(PATH + "/pdf").header("Authorization", "Bearer " + adminLogin.accessToken()))
+                .andExpect(status().isUnauthorized()).andExpect(header().string("Cache-Control", "no-store"));
+        verifyNoInteractions(pdfRenderer);
     }
 
     @Test void snapshotRemainsConsistentWhileModerationCommitsWithoutWaitingForReport() throws Exception {

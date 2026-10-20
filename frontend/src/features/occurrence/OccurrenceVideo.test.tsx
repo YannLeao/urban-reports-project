@@ -10,7 +10,7 @@ import type { Occurrence } from './occurrence'
 
 const report: Occurrence = { id: '00000000-0000-4000-8000-000000000001', categoryId: 1, categoryName: 'Luz', title: 'Poste apagado', description: null, neighborhood: 'Centro', reference: 'Praça central', latitude: null, longitude: null, version: 0, createdAt: '2026-10-20T00:00:00Z', status: 'PENDING', media: [{ id: '00000000-0000-4000-8000-000000000002', type: 'VIDEO', mime: 'video/mp4', sizeBytes: 3, position: 0, endpoint: '/unused', durationSeconds: 1, width: 320, height: 240 }] }
 const request = vi.fn<AuthContextValue['request']>()
-function auth(id = 'author'): AuthContextValue { return { state: { status: 'authenticated', user: { id, name: 'Pessoa', email: 'synthetic@example.com', role: 'USER' } }, request, login: vi.fn(), logout: vi.fn(), retry: vi.fn() } }
+function auth(id = 'author'): AuthContextValue { return { sessionSignal: new AbortController().signal, state: { status: 'authenticated', user: { id, name: 'Pessoa', email: 'synthetic@example.com', role: 'USER' } }, request, login: vi.fn(), logout: vi.fn(), retry: vi.fn() } }
 beforeEach(() => {
   request.mockReset()
   vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: vi.fn(() => 'blob:synthetic'), revokeObjectURL: vi.fn() }))

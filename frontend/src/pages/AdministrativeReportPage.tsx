@@ -1,3 +1,4 @@
+import { useReportPdf } from '../features/administration/report-pdf'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { Alert } from '../components/ui/Feedback'
@@ -7,13 +8,21 @@ import { occurrenceDate, occurrenceStatusLabel } from '../features/occurrence/oc
 import { PrivateRequestError } from '../lib/api'
 
 export function AdministrativeReportPage() {
-  const query = useOccurrenceReport()
-  const denied = query.error instanceof PrivateRequestError && query.error.status === 403
+  const pdf = useReportPdf()
+  const query = useOccurrenceReport(!pdf.denied)
+  const denied = pdf.denied || (query.error instanceof PrivateRequestError && query.error.status === 403)
   const report = denied ? undefined : query.data
   return <section className="min-w-0 py-8" aria-labelledby="report-title">
     <h1 id="report-title">Relatório administrativo</h1>
     <p>Uma visão dos relatos da comunidade, incluindo rejeitados.</p>
+    <div className="flex flex-wrap gap-3">
     <Button aria-disabled={query.isFetching} onClick={() => { if (!query.isFetching) void query.refetch() }}>{query.isError ? 'Tentar novamente' : 'Atualizar relatório'}</Button>
+    <Button variant="secondary" aria-busy={pdf.busy} aria-disabled={pdf.busy || denied || query.isPending} onClick={() => { if (!query.isPending && !denied) void pdf.download() }}>{pdf.busy ? 'Gerando PDF…' : 'Baixar PDF'}</Button>
+    </div>
+    <p className="mt-3 text-small">O PDF consulta os dados atuais; a referência consta no documento.</p>
+    {pdf.busy && <p role="status">Gerando PDF…</p>}
+    {pdf.error && <Alert tone="danger" role="alert">Não foi possível gerar o PDF. Tente novamente</Alert>}
+    {pdf.denied && <Alert tone="danger" role="alert">Acesso negado ao relatório.</Alert>}
     {query.isFetching && <p role="status">Atualizando relatório…</p>}
     {query.isError && <Alert className="my-5" tone="danger" role="alert">{denied ? 'Acesso negado ao relatório.'
       : report ? 'Falha na atualização. Os dados abaixo não foram atualizados; tente novamente.' : 'Não conseguimos carregar o relatório. Tente novamente.'}</Alert>}
