@@ -149,3 +149,14 @@ Objetos referenciados são preservados. Falha registra apenas DELETE_FAILED em
 last_error; conferir fila/next_attempt_at sem exportar bytes ou credenciais.
 Não remover tombstones manualmente nem executar varredura de órfãos históricos.
 Ver [ADR 0014](adr/0014-gerir-relatos-e-descarte-de-imagens.md).
+
+## Mídia de vídeo
+
+O [contrato de vídeo](occurrence-video.md) define a alternativa exclusiva a fotos,
+validação FFprobe/FFmpeg, streaming/HEAD/Range e limites. Fotos mantêm seus limites.
+Vídeo privado usa download Bearer limitado → Blob somente após EOF; público usa o
+endpoint da aplicação sob demanda. Cards/mapas não baixam vídeo; `/image` em VIDEO
+retorna 404. Cada request de mídia revalida acesso antes de HEAD/GET do storage e
+encerra transação antes da cópia. Bucket permanece privado e bytes/metadados são
+preservados. V14/runtime/worker atualizado precedem frontend; versões antigas
+exigem parada coordenada, com recuperação por avanço em vez de desfazer migration.

@@ -19,7 +19,7 @@ ou detecção automática por imagem. Não apresentar métricas históricas sem 
 
 Os padrões abaixo orientam extensões e os fluxos implementados de registro/consulta de
 ocorrência, já implementado com categoria, título, descrição, bairro, referência
-textual, uma fotografia obrigatória e um ponto geográfico confirmado:
+textual, uma coleção de 1–5 fotos ou um vídeo obrigatório e um ponto geográfico confirmado:
 
 - Consulta pública implementada com Lista/Mapa, fotos nos cards/detalhes e
   alternativa textual integral para os pontos; GPS opcional por ação explícita

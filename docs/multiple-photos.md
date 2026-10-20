@@ -1,6 +1,6 @@
 # Fotografias de relatos: contrato e operação
 
-Refs #52. Coleção ordenada de **1 a 5 fotos**; posição zero é capa em cards,
+Refs #52. Modo fotos: coleção ordenada de **1 a 5 fotos**; posição zero é capa em cards,
 mapas e painéis. Galerias pública/própria/admin mostram a selecionada com navegação
 por botões. Seleção incremental na galeria (`multiple`) e captura nativa compartilham
 o mesmo conjunto; botões permitem mover, remover e definir capa por teclado/toque.
@@ -67,7 +67,7 @@ OpenAPI dev descreve partes/compatibilidade; base/prod continuam sem Swagger.
 
 - Cada arquivo: JPEG/PNG/WebP estático, 5.242.880 bytes; lados até 8192 e até
   25.000.000 pixels. Mesma validação estrutural/decoder existente no backend.
-- `spring.servlet.multipart.max-file-size=5242880B`.
+- `spring.servlet.multipart.max-file-size=26214400B`.
 - `spring.servlet.multipart.max-request-size=27262976B` (26 MiB).
 - `spring.servlet.multipart.file-size-threshold=0B` (spool em disco).
 - `server.tomcat.max-swallow-size=28311552B` (27 MiB, finito).
@@ -158,15 +158,11 @@ comprovam câmera física, R2 remoto, limites do proxy ou deploy.
    rejeição, galeria na Vercel e descarte eventual autorizado. Não testar objetos
    de terceiros, inventariar bucket ou atribuir homologação a configuração existente.
 
-## Passagem para #45
+## Vídeo
 
-Reutilizar coleção/IDs/operação do objeto/journal, autorização por relato+mídia
-e composição de galeria. Hoje tipo aceito é apenas IMAGE. Antes de `S04-45.md`,
-diagnosticar streaming e HTTP Range, containers/codecs/duração, memória/buffers,
-limites do transporte/plataforma, processamento e autenticação do player. O journal
-V5 ainda restringe keys a UUID v4 com jpg/png/webp; `R2ImageStorage.load` limita a
-5 MiB + 1 byte e `StoredImageContent` materializa/clona arrays. Controllers retornam
-`byte[]`, e a leitura privada atual usa fetch Bearer → Blob → object URL. Esses
-limites e contratos precisam ser revistos explicitamente para vídeo; trocar MIME
-ou aumentar multipart isoladamente não implementa reprodução adequada. Sem vídeo,
-URLs assinadas, CDN, thumbnail otimizada, EXIF novo ou Wizard #51 nesta entrega.
+A coleção foi ampliada para fotos **OU** um vídeo por [contrato próprio](occurrence-video.md).
+Este guia continua descrevendo a galeria de fotos. No modo vídeo, `/image` retorna
+404, cards/mapas usam placeholder, o detalhe privado baixa Blob sob demanda e o
+público usa streaming/HEAD/Range. Multipart permite 25 MiB por arquivo, mantendo
+5 MiB para fotos na aplicação. API/schema V14 e workers devem preceder o frontend;
+veja o roteiro de publicação coordenada no contrato de vídeo.

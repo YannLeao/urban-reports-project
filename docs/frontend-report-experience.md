@@ -83,3 +83,11 @@ renova a lista. Falhas/incerteza de e-mail e confirmação de desativação segu
 [provisionamento](admin-provisioning.md). Não há promoção ou herança de ADMIN.
 
 Seleção de fotografias no produto usa `PhotoCollectionPicker` (1–5, ordenação/capa), reutilizável no futuro Wizard; detalhes usam `OccurrenceGallery`. Prova singular permanece independente. [Contrato, roteiro e limites](multiple-photos.md).
+
+
+## Alternativa de vídeo
+
+`MediaPicker` acrescenta modo exclusivo vídeo à composição existente, sem etapas
+novas. A troca de tipo pede confirmação e só persiste com sucesso do envio.
+`OccurrenceGallery` discrimina VIDEO para player sob demanda; cards/mapas mostram
+placeholder e duração, sem foto fictícia. [Contrato e operação](occurrence-video.md).

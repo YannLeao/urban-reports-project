@@ -243,3 +243,14 @@ executa Flyway. Plano Render deve ser conferido; suspensão pausa o scheduler,
 mantendo intenções no Neon, sem promessa de prazo ou necessidade de keep-alive.
 
 A V13 migra fotografias para `occurrence_media` e retira `occurrences.image_key`. É obrigatória a parada coordenada de todas as instâncias/workers antigos antes da migração; publicar API nova antes do frontend. Não há rollback binário para backend antigo. [Procedimento e limites multipart](multiple-photos.md).
+
+## Mídia de vídeo
+
+O [contrato de vídeo](occurrence-video.md) define a alternativa exclusiva a fotos,
+validação FFprobe/FFmpeg, streaming/HEAD/Range e limites. Fotos mantêm seus limites.
+Vídeo privado usa download Bearer limitado → Blob somente após EOF; público usa o
+endpoint da aplicação sob demanda. Cards/mapas não baixam vídeo; `/image` em VIDEO
+retorna 404. Cada request de mídia revalida acesso antes de HEAD/GET do storage e
+encerra transação antes da cópia. Bucket permanece privado e bytes/metadados são
+preservados. V14/runtime/worker atualizado precedem frontend; versões antigas
+exigem parada coordenada, com recuperação por avanço em vez de desfazer migration.
