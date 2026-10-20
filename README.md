@@ -30,7 +30,7 @@ A [central de notificações](docs/notifications.md) em `/notificacoes` permite 
 cidadão acompanhar transições e marcar avisos como lidos, com contador no sino.
 Novos avisos também capturam [intenções de e-mail](docs/notification-email.md)
 para o mesmo autor, com consumidor desligado por padrão e recuperação operacional.
-O registro autenticado em `/registrar-ocorrencia` integra categorias, [uma a cinco fotografias ordenadas](docs/multiple-photos.md),
+O registro autenticado em `/registrar-ocorrencia` integra categorias, [uma a cinco fotografias ordenadas](docs/multiple-photos.md) ou [um vídeo MP4 limitado](docs/occurrence-video.md),
 [localização confirmada](docs/occurrence-location.md) e persistência. Consulte o [contrato de ocorrência](docs/occurrence-registration.md):
 a implementação não comprova, por si só, o aceite publicado ou a captura física.
 
@@ -54,6 +54,8 @@ a implementação não comprova, por si só, o aceite publicado ou a captura fí
 
 - Git;
 - Java 21;
+- FFmpeg/FFprobe com H.264/AAC para execução/testes locais do backend
+  ([contrato e instalação](docs/occurrence-video.md)); a imagem Docker os inclui;
 - Docker com Docker Compose;
 - Node.js 22.23.2 (`frontend/.node-version`);
 - pnpm 10.34.5 (`frontend/package.json#packageManager`); bootstrap no

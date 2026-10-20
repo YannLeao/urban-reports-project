@@ -43,7 +43,7 @@ class OccurrenceHttpTests {
 
     @BeforeEach void login() throws Exception {
         when(clock.instant()).thenReturn(NOW);
-        storage.calls.set(0); storage.failAt = 0; storage.loseAt = 0; storage.fail = false; storage.loseResponse = false; storage.failDelete = false;
+        storage.calls.set(0); storage.failAt = 0; storage.loseAt = 0; storage.fail = false; storage.loseResponse = false; storage.failDelete = false; storage.failOpen = false;
         String email = UUID.randomUUID() + "@example.com";
         String password = "synthetic password for HTTP tests";
         var registered = json("/api/auth/register", Map.of("name", "Pessoa teste", "email", email, "password", password), null);
@@ -134,7 +134,8 @@ class OccurrenceHttpTests {
                         "Saneamento ou alagamento", "Calçada ou acessibilidade", "Sinalização ou trânsito", "Árvore ou área verde", "Outro");
         for (String extension : List.of("jpg", "png", "webp")) {
             var parts = valid(); parts.set(5, image(ImageFixtures.photo(extension), mime(extension)));
-            parts.add(text("authorId", UUID.randomUUID().toString())); parts.add(text("status", "APPROVED"));
+            reject(replace(new ArrayList<>(parts), text("authorId", UUID.randomUUID().toString())), 400);
+            reject(replace(new ArrayList<>(parts), text("status", "APPROVED")), 400);
             var result = upload(parts, token);
             assertThat(result.statusCode()).as(result.body()).isEqualTo(201);
             assertThat(result.headers().firstValue("Location")).isEmpty();
@@ -663,6 +664,146 @@ class OccurrenceHttpTests {
         for (String key : pending) assertThat(storage.objects).doesNotContain(key);
     }
 
+    List<Part> videoParts() throws Exception {
+        var parts = valid(); parts.removeIf(part -> part.name().equals("image"));
+        parts.add(new Part("video", "synthetic.mp4", "video/mp4", VideoValidatorTests.fixture("h264-aac"))); return parts;
+    }
+    HttpResponse<byte[]> videoRead(String path, String method, String range, String credential, String ifRange) throws Exception {
+        var request = HttpRequest.newBuilder(uri(path)).method(method, HttpRequest.BodyPublishers.noBody());
+        if (range != null) request.header("Range", range);
+        if (ifRange != null) request.header("If-Range", ifRange);
+        if (credential != null) request.header("Authorization", "Bearer " + credential);
+        return client.send(request.build(), HttpResponse.BodyHandlers.ofByteArray());
+    }
+    @Test void videoRoundTripsBytesRangesHeadAuthorizationAndRejectionWithoutDatabaseDuringStorage() throws Exception {
+        var created = upload(videoParts(), token);
+        assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
+        var body = mapper.readTree(created.body()); String id = body.get("id").asString();
+        var media = body.get("media").get(0);
+        assertThat(media.get("type").asString()).isEqualTo("VIDEO");
+        assertThat(media.get("durationSeconds").asDouble()).isEqualTo(1);
+        String publicPath = "/api/public/occurrences/" + id + "/media/" + media.get("id").asString();
+        byte[] bytes = VideoValidatorTests.fixture("h264-aac");
+        int calls = storage.streamGets;
+        for (String range : List.of("bytes=0-3", "bytes=2-", "bytes=-5", "bytes=0-999999999")) {
+            var response = videoRead(publicPath, "GET", range, null, null);
+            var parsed = ByteRange.parse(range, bytes.length);
+            assertThat(response.statusCode()).isEqualTo(206);
+            assertThat(response.body()).isEqualTo(Arrays.copyOfRange(bytes, (int) parsed.start(), (int) parsed.end()+1));
+            assertThat(response.headers().firstValue("Content-Range")).contains("bytes " + parsed.start() + "-" + parsed.end() + "/" + bytes.length);
+            assertThat(response.headers().firstValue("Content-Length")).contains("" + parsed.length());
+            assertThat(response.headers().firstValue("Cache-Control")).contains("no-store");
+            assertThat(response.headers().firstValue("X-Content-Type-Options")).contains("nosniff");
+        }
+        assertThat(storage.streamGets).isEqualTo(calls + 4);
+        for (String range : List.of("bytes=99999999-", "bytes=-0")) {
+            var response = videoRead(publicPath, "GET", range, null, null);
+            assertThat(response.statusCode()).isEqualTo(416);
+            assertThat(response.headers().firstValue("Content-Range")).contains("bytes */" + bytes.length);
+        }
+        var head = videoRead(publicPath, "HEAD", "bytes=0-1", null, null);
+        assertThat(head.statusCode()).isEqualTo(200); assertThat(head.body()).isEmpty();
+        assertThat(storage.streamGets).isEqualTo(calls + 4);
+        for (String range : List.of("bytes=bad-", "items=0-1", "bytes=0-1,3-5")) {
+            var response = videoRead(publicPath,"GET",range,null,null);
+            assertThat(response.statusCode()).isEqualTo(200); assertThat(response.body()).isEqualTo(bytes);
+        }
+        assertThat(videoRead(publicPath, "GET", "bytes=0-1", null, "unsupported-validator").statusCode()).isEqualTo(200);
+        assertThat(videoRead("/api/occurrences/" + id + "/media/" + media.get("id").asString(), "GET", null, token, null).body()).isEqualTo(bytes);
+        assertThat(videoRead("/api/occurrences/" + id + "/media/" + media.get("id").asString(), "HEAD", null, null, null).statusCode()).isEqualTo(401);
+        assertThat(action("/api/occurrences/"+id+"/image", "GET", token, null).statusCode()).isEqualTo(404);
+        assertThat(action("/api/public/occurrences/"+id+"/image", "GET", null, null).statusCode()).isEqualTo(404);
+        storage.failOpen = true;
+        var unavailable = videoRead(publicPath,"GET",null,null,null);
+        assertThat(unavailable.statusCode()).isEqualTo(502);
+        assertThat(unavailable.headers().firstValue("Content-Type").orElse("")).startsWith("application/json");
+        assertThat(new String(unavailable.body(), StandardCharsets.UTF_8)).contains("IMAGE_STORAGE_UNAVAILABLE").doesNotContain("synthetic-secret-provider-error");
+        storage.failOpen = false;
+        jdbc.update("UPDATE occurrences SET status='REJECTED' WHERE id=?", UUID.fromString(id));
+        int gets = storage.streamGets, heads = storage.heads;
+        for (String method : List.of("GET", "HEAD")) assertThat(videoRead(publicPath, method, "bytes=0-1", null, null).statusCode()).isEqualTo(404);
+        assertThat(storage.streamGets).isEqualTo(gets); assertThat(storage.heads).isEqualTo(heads);
+    }
+    @Test void switchesWholeCollectionAtomicallyAndPreservesOnPutFailureAndLegacyAliasRefused() throws Exception {
+        var created = upload(photos(3), token); String id = mapper.readTree(created.body()).get("id").asString();
+        String path = "/api/occurrences/"+id;
+        var video = videoParts(); video.add(manifest(List.of(Map.of("uploadIndex",0))));
+        var mixed = new ArrayList<>(video); mixed.removeIf(part -> part.name().equals("media"));
+        mixed.add(manifest(List.of(Map.of("id",mediaIds(created.body()).getFirst()), Map.of("uploadIndex",0))));
+        int puts = storage.calls.get();
+        assertThat(multipart(path,"PUT",mixed,token,"\"0\"").statusCode()).isEqualTo(400);
+        assertThat(storage.calls).hasValue(puts);
+        storage.fail = true;
+        assertThat(multipart(path,"PUT",video,token,"\"0\"").statusCode()).isEqualTo(502);
+        storage.fail = false;
+        assertThat(mediaIds(action(path,"GET",token,null).body())).containsExactlyElementsOf(mediaIds(created.body()));
+        var updated = multipart(path,"PUT",video,token,"\"0\""); assertThat(updated.statusCode()).as(updated.body()).isEqualTo(200);
+        assertThat(mapper.readTree(updated.body()).get("media").get(0).get("type").asString()).isEqualTo("VIDEO");
+        assertThat(multipart(path,"PUT",valid(),token,"\"1\"").statusCode()).isEqualTo(400);
+        var unchanged = photos(0);
+        assertThat(multipart(path,"PUT",unchanged,token,"\"1\"").statusCode()).isEqualTo(200);
+        var back = photos(2); back.add(manifest(List.of(Map.of("uploadIndex",0),Map.of("uploadIndex",1))));
+        assertThat(multipart(path,"PUT",back,token,"\"2\"").statusCode()).isEqualTo(200);
+        assertThat(mediaIds(action(path,"GET",token,null).body())).hasSize(2);
+    }
+    @Test void headForPhotosAlsoUsesMetadataWithoutOpeningBody() throws Exception {
+        var response=upload(photos(2),token);assertThat(response.statusCode()).isEqualTo(201);
+        var report=mapper.readTree(response.body());String id=report.get("id").asString(),media=report.get("media").get(0).get("id").asString();
+        int heads=storage.heads,gets=storage.streamGets;
+        for(String prefix:List.of("/api/occurrences/","/api/public/occurrences/")) {
+            var head=videoRead(prefix+id+"/media/"+media,"HEAD","bytes=0-1",token,null);
+            assertThat(head.statusCode()).isEqualTo(200);assertThat(head.body()).isEmpty();
+            assertThat(head.headers().firstValue("Content-Type")).contains("image/png");
+        }
+        assertThat(storage.heads).isEqualTo(heads+2);assertThat(storage.streamGets).isEqualTo(gets);
+    }
+
+    @Test void privateVideoHeadAndRangeRespectOwnerAdminStatusSessionAndMediaMembership() throws Exception {
+        var created = upload(videoParts(),token); var body = mapper.readTree(created.body());
+        String id = body.get("id").asString(), mediaId = body.get("media").get(0).get("id").asString();
+        String own = "/api/occurrences/"+id+"/media/"+mediaId;
+        String admin = "/api/admin/occurrences/"+id+"/media/"+mediaId;
+        String originalToken = token;
+        login(); // A second real account/session, preserving the first report and storage.
+        for(String method:List.of("GET","HEAD")) {
+            int heads = storage.heads;
+            assertThat(videoRead(own,method,"bytes=0-1",token,null).statusCode()).isEqualTo(404);
+            assertThat(videoRead(admin,method,"bytes=0-1",token,null).statusCode()).isEqualTo(403);
+            assertThat(videoRead("/api/public/occurrences/"+id+"/media/"+UUID.randomUUID(),method,"bytes=0-1",null,null).statusCode()).isEqualTo(404);
+            assertThat(storage.heads).isEqualTo(heads);
+        }
+        jdbc.update("UPDATE user_accounts SET role='ADMIN' WHERE id=?",author);
+        assertThat(videoRead(admin,"GET","bytes=0-1",token,null).statusCode()).isEqualTo(206);
+        assertThat(videoRead(admin,"HEAD",null,token,null).statusCode()).isEqualTo(200);
+        jdbc.update("UPDATE user_accounts SET status='DISABLED' WHERE id=?",author);
+        assertThat(videoRead(admin,"HEAD",null,token,null).statusCode()).isEqualTo(401);
+        assertThat(json("/api/auth/logout", Map.of(),originalToken).statusCode()).isEqualTo(204);
+        assertThat(videoRead(own,"GET","bytes=0-1",originalToken,null).statusCode()).isEqualTo(401);
+        assertThat(videoRead(own,"HEAD",null,originalToken,null).statusCode()).isEqualTo(401);
+    }
+
+    @Test void uncertainVideoPutRemainsRecoverableAndLinkedVideoSurvivesRecovery() throws Exception {
+        storage.loseResponse = true;
+        assertThat(upload(videoParts(),token).statusCode()).isEqualTo(502);
+        String orphan = storage.lastKey;
+        assertThat(orphan).endsWith(".mp4"); assertThat(storage.objects).contains(orphan);
+        assertThat(jdbc.queryForObject("select state from image_upload_journal where image_key=?",String.class,orphan)).isEqualTo("PENDING");
+        storage.loseResponse = false;
+        var created = upload(videoParts(),token); assertThat(created.statusCode()).isEqualTo(201);
+        String linked = storage.lastKey;
+        when(clock.instant()).thenReturn(NOW.plusSeconds(301)); journal.recover();
+        assertThat(storage.objects).doesNotContain(orphan).contains(linked);
+    }
+
+    @Test void videoPartsAndLimitsRejectBeforeIntentsAndStorage() throws Exception {
+        var mix = videoParts(); mix.add(image(ImageFixtures.photo("png"),"image/png")); reject(mix,400);
+        var two = videoParts(); two.add(two.getLast()); reject(two,400);
+        var big = videoParts(); big.removeIf(part -> part.name().equals("video"));
+        big.add(new Part("video","synthetic.mp4","video/mp4",new byte[26214401])); reject(big,413);
+        var corrupt = videoParts(); corrupt.removeIf(part -> part.name().equals("video"));
+        corrupt.add(new Part("video","synthetic.mp4","video/mp4",new byte[256])); reject(corrupt,400);
+    }
+
     void reject(List<Part> parts, int expected) throws Exception {
         int calls = storage.calls.get(); long rows = count();
         var response = upload(parts, token);
@@ -741,6 +882,23 @@ class OccurrenceHttpTests {
         @Override public void delete(String key) { if (failDelete) throw new ImageStorageException("synthetic delete failure"); deleted.add(key); objects.remove(key); }
         final java.util.Map<String, StoredImageContent> contents = new java.util.concurrent.ConcurrentHashMap<>();
         volatile boolean failDelete;
+        volatile boolean failOpen;
+        volatile int streamGets, heads;
+        @Override public Metadata head(String key) {
+            assertThat(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+            heads++; var content = load(key); return new Metadata(content.contentLength(), content.contentType());
+        }
+        @Override public MediaObject open(String key, Long start, Long end) {
+            assertThat(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+            if (failOpen) throw new ImageStorageException("synthetic-secret-provider-error");
+            streamGets++; byte[] all = load(key).content();
+            var input = new java.io.ByteArrayInputStream(start == null ? all : Arrays.copyOfRange(all,start.intValue(),end.intValue()+1));
+            return new MediaObject() {
+                public InputStream input() { return input; }
+                public void abort() { try { input.close(); } catch (java.io.IOException ignored) {} }
+                public void close() { abort(); }
+            };
+        }
         @Override public StoredImageContent load(String key) {
             if (fail) throw new ImageStorageException("synthetic provider failure");
             var image = contents.get(key);

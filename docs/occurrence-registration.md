@@ -20,8 +20,7 @@ Campos textuais recebem trim externo ASCII (U+0009–U+000D e U+0020), sem mudar
 espaços internos. Java, TypeScript e `char_length` PostgreSQL contam pontos de
 código, inclusive emojis; NUL/UTF-16 inválido não são aceitos. Cada parte textual
 obrigatória deve ocorrer exatamente uma vez; description pode ser omitida, mas não repetida. Arquivos inesperados, a sexta foto, image repetida e mistura de aliases são recusados, inclusive arquivos vazios com `filename=""`.
-Nome vazio não transforma arquivo em campo textual. Campos textuais extras são
-ignorados; autoria/status forjados nunca alteram a persistência.
+Nome vazio não transforma arquivo em campo textual. Partes desconhecidas, inclusive autoria/status enviados pelo cliente, são recusadas.
 
 O servidor deriva autor da `AuthenticatedIdentity`, gera a key
 `occurrences/{UUID}.{extensão}` e mantém status técnico `PENDING` (Pendente).
@@ -48,7 +47,7 @@ image explica resolução excessiva e a restrição a imagens estáticas.
 
 ## Transporte e erros
 
-`max-file-size=5242880B`, `max-request-size=27262976B` (26 MiB), deixando espaço
+`max-file-size=26214400B`, `max-request-size=27262976B` (26 MiB), deixando espaço
 para campos e overhead de cinco fotografias no limite. Tomcat descarta no máximo
 27 MiB de corpo rejeitado para entregar o erro perto do limite sem reset prematuro.
 Corpos arbitrariamente maiores podem ter a conexão encerrada; não há descarte

@@ -271,3 +271,14 @@ lida invalida todas as páginas do usuário, incluindo o sino, sem retry de POST
 Contrato e limitações: [notificações](notifications.md).
 
 Seleção de fotografias no produto usa `PhotoCollectionPicker` (1–5, ordenação/capa), reutilizável no futuro Wizard; detalhes usam `OccurrenceGallery`. Prova singular permanece independente. [Contrato, roteiro e limites](multiple-photos.md).
+
+## Mídia de vídeo
+
+O [contrato de vídeo](occurrence-video.md) define a alternativa exclusiva a fotos,
+validação FFprobe/FFmpeg, streaming/HEAD/Range e limites. Fotos mantêm seus limites.
+Vídeo privado usa download Bearer limitado → Blob somente após EOF; público usa o
+endpoint da aplicação sob demanda. Cards/mapas não baixam vídeo; `/image` em VIDEO
+retorna 404. Cada request de mídia revalida acesso antes de HEAD/GET do storage e
+encerra transação antes da cópia. Bucket permanece privado e bytes/metadados são
+preservados. V14/runtime/worker atualizado precedem frontend; versões antigas
+exigem parada coordenada, com recuperação por avanço em vez de desfazer migration.

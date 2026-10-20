@@ -10,7 +10,7 @@ import tools.jackson.databind.json.JsonMapper;
 public record MediaManifest(List<Item> items) {
     public record Item(UUID id, Integer uploadIndex) {}
     static OccurrenceValidationException invalid() {
-        return new OccurrenceValidationException(Map.of("media", List.of("Informe de 1 a 5 fotos, sem IDs ou índices repetidos; use todos os novos arquivos uma vez.")));
+        return new OccurrenceValidationException(Map.of("media", List.of("Informe de 1 a 5 fotos ou um vídeo, sem IDs ou índices repetidos; use todos os novos arquivos uma vez.")));
     }
     static MediaManifest parse(byte[] bytes) {
         try {

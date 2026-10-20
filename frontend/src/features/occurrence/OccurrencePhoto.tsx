@@ -1,8 +1,13 @@
+import { VideoPlaceholder } from './VideoPlaceholder'
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../auth/auth'
 import type { Occurrence } from './occurrence'
 
 export function OccurrencePhoto({ report, full = false, administrative = false, thumbnail = false, flush = false, mediaId }: { report: Occurrence; full?: boolean; administrative?: boolean; thumbnail?: boolean; flush?: boolean; mediaId?: string }) {
+  if (report.media?.[0]?.type === 'VIDEO') return <VideoPlaceholder compact={thumbnail} flush={flush} duration={report.media[0].durationSeconds} />
+  return <Photo report={report} full={full} thumbnail={thumbnail} flush={flush} administrative={administrative} mediaId={mediaId} />
+}
+function Photo({ report, full = false, administrative = false, thumbnail = false, flush = false, mediaId }: { report: Occurrence; full?: boolean; administrative?: boolean; thumbnail?: boolean; flush?: boolean; mediaId?: string }) {
   const { request, state } = useAuth()
   const owner = state.status === 'authenticated' ? state.user.id : null
   const container = useRef<HTMLDivElement>(null)

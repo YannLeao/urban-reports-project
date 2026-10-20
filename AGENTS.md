@@ -25,6 +25,9 @@
 
 ## Backend e banco
 
+- Vídeo usa FFprobe/FFmpeg nativos em `/usr/bin`, com H.264/AAC, inclusive na
+  suíte local. Consulte [vídeo](docs/occurrence-video.md); ferramentas ausentes
+  são falha operacional, não arquivo inválido. Fotos não executam esses binários.
 - Use Java 21 e o Maven Wrapper em `backend/`. Confira `JAVA_HOME` e o JDK
   efetivamente usado na execução; não presuma que o Java padrão está correto.
 - O pacote raiz é `com.project.software.urbanreports`, com `health/`, `config/`
@@ -131,7 +134,7 @@ exigem acesso aos respectivos repositórios quando não estiverem em cache.
 | Tipos e build frontend | `frontend/` | `pnpm run build` | Node/pnpm e dependências instaladas; URL configurada para o bundle de destino |
 | Tipos frontend | `frontend/` | `pnpm run typecheck` | Node/pnpm e dependências instaladas |
 | Testes frontend e script de CI | `frontend/` | `pnpm test` | Node/pnpm e dependências instaladas; sem API real |
-| Verificação backend | `backend/` | `./mvnw verify` | JDK 21, Wrapper e Docker disponível para Testcontainers |
+| Verificação backend | `backend/` | `./mvnw verify` | JDK 21, Wrapper, FFmpeg/FFprobe e Docker disponível para Testcontainers |
 | Desenvolvimento backend | `backend/` | `./mvnw spring-boot:run -Dspring-boot.run.profiles=dev` | JDK 21, Wrapper, PostgreSQL acessível e configuração de conexão |
 | Validação estática do Compose | raiz | `docker compose config --quiet` | Docker CLI com Compose e variáveis de interpolação pertinentes |
 

@@ -54,6 +54,23 @@ public class R2ImageStorage implements ImageStorage {
     }
 
     @Override
+    public void storeAt(String key, long size, String contentType, java.util.function.Supplier<InputStream> source) {
+        var current = new java.util.concurrent.atomic.AtomicReference<InputStream>();
+        software.amazon.awssdk.http.ContentStreamProvider streams = () -> {
+            closeUpload(current.getAndSet(null));
+            var input = source.get(); current.set(input); return input;
+        };
+        try {
+            s3Client.putObject(PutObjectRequest.builder().bucket(properties.bucket()).key(key)
+                .contentType(contentType).contentLength(size).build(), RequestBody.fromContentProvider(streams, size, contentType));
+        } catch (RuntimeException failure) { throw new ImageStorageException("Media upload unavailable"); }
+        finally { closeUpload(current.getAndSet(null)); }
+    }
+    private static void closeUpload(InputStream input) {
+        if (input != null) try { input.close(); } catch (java.io.IOException ignored) { }
+    }
+
+    @Override
     public void delete(String key) {
         try {
             s3Client.deleteObject(DeleteObjectRequest.builder()
@@ -92,6 +109,30 @@ public class R2ImageStorage implements ImageStorage {
             logAndThrow(key, exception);
             throw new AssertionError("unreachable");
         }
+    }
+
+    @Override public Metadata head(String key) {
+        try {
+            var result = s3Client.headObject(software.amazon.awssdk.services.s3.model.HeadObjectRequest.builder()
+                .bucket(properties.bucket()).key(key).build());
+            return new Metadata(result.contentLength(), result.contentType());
+        } catch (RuntimeException failure) { throw new ImageStorageException("Media metadata unavailable"); }
+    }
+    @Override public com.project.software.urbanreports.storage.application.MediaObject open(String key, Long start, Long end) {
+        try {
+            var request = GetObjectRequest.builder().bucket(properties.bucket()).key(key);
+            if (start != null) request.range("bytes=" + start + "-" + end);
+            var result = s3Client.getObject(request.build());
+            if (start != null && (!java.util.Objects.equals(result.response().contentLength(), end - start + 1)
+                || result.response().contentRange() == null || !result.response().contentRange().startsWith("bytes " + start + "-" + end + "/"))) {
+                result.abort(); throw new ImageStorageException("Invalid range response");
+            }
+            return new com.project.software.urbanreports.storage.application.MediaObject() {
+                public InputStream input() { return result; }
+                public void abort() { result.abort(); }
+                public void close() { try { result.close(); } catch (java.io.IOException failure) { result.abort(); } }
+            };
+        } catch (RuntimeException failure) { throw new ImageStorageException("Media stream unavailable"); }
     }
 
     private String extension(String contentType) {

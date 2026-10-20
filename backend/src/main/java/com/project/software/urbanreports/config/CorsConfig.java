@@ -20,7 +20,8 @@ public class CorsConfig {
         var configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList(allowedOrigins));
         configuration.setAllowedMethods(List.of("GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Content-Type", "Authorization", "If-Match"));
+        configuration.setExposedHeaders(List.of("Accept-Ranges", "Content-Range"));
+        configuration.setAllowedHeaders(List.of("Content-Type", "Authorization", "If-Match", "Range", "If-Range"));
         configuration.setAllowCredentials(false);
         var source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

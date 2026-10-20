@@ -107,3 +107,14 @@ sem editar localização. Contrato, sobreposição, navegação, isolamento de c
 roteiro: [mapas nas consultas](occurrence-maps.md).
 
 Detalhes próprio/público/admin exibem galeria; cards e mapas baixam só capa. V13 retira image_key; recuperação reconhece todas as mídias. [Contrato e deploy](multiple-photos.md).
+
+## Mídia de vídeo
+
+O [contrato de vídeo](occurrence-video.md) define a alternativa exclusiva a fotos,
+validação FFprobe/FFmpeg, streaming/HEAD/Range e limites. Fotos mantêm seus limites.
+Vídeo privado usa download Bearer limitado → Blob somente após EOF; público usa o
+endpoint da aplicação sob demanda. Cards/mapas não baixam vídeo; `/image` em VIDEO
+retorna 404. Cada request de mídia revalida acesso antes de HEAD/GET do storage e
+encerra transação antes da cópia. Bucket permanece privado e bytes/metadados são
+preservados. V14/runtime/worker atualizado precedem frontend; versões antigas
+exigem parada coordenada, com recuperação por avanço em vez de desfazer migration.

@@ -187,3 +187,30 @@ test('coordinates typed without confirmation do not authorize a new registration
   expect(screen.getByText('Confirme o local real do problema.')).toBeVisible()
   expect(screen.getByRole('img', { name: 'Prévia da foto 1' })).toBeVisible()
 })
+
+test('video mode submits one authenticated video and preserves draft on capacity failure', async () => {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', '') }
+  HTMLDialogElement.prototype.close = function () { this.removeAttribute('open') }
+  vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {})
+  vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {})
+  await fill()
+  fireEvent.click(screen.getByRole('button', { name: 'Vídeo' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Trocar mídia' }))
+  const file = new File(['synthetic video'], 'local-only.mp4', { type: 'video/mp4' })
+  fireEvent.change(screen.getByLabelText('Escolher vídeo'), { target: { files: [file] } })
+  fetchMock.mockResolvedValueOnce(Response.json({ code: 'VIDEO_VALIDATION_BUSY' }, { status: 503 }))
+  submit()
+  await screen.findByText(/O serviço de mídia está indisponível ou ocupado/)
+  const options = fetchMock.mock.calls[2][1]!
+  expect(options.headers).toEqual({ Authorization: 'Bearer synthetic-token' })
+  const body = options.body as FormData
+  expect(body.getAll('video')).toHaveLength(1); expect(body.getAll('images')).toHaveLength(0)
+  expect(body.get('video')).toMatchObject({ name: 'upload.mp4', type: 'video/mp4', size: file.size })
+  expect(body.has('media')).toBe(false)
+  expect(screen.getByLabelText('Título')).toHaveValue('  Poste apagado 💡  ')
+  expect(screen.getByText(/local-only.mp4/)).toBeVisible()
+  expect(screen.getByRole('button', { name: 'Vídeo' })).toHaveAttribute('aria-pressed', 'true')
+  fetchMock.mockResolvedValueOnce(Response.json(result, { status: 201 }))
+  submit(); await screen.findByText('Relato registrado')
+  expect(fetchMock).toHaveBeenCalledTimes(4)
+})

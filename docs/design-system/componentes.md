@@ -240,3 +240,17 @@ A composição é coberta por NotificationsPage.test.tsx; não há novo componen
 ### Coleção de fotografias
 
 `PhotoCollectionPicker` reutiliza Button/Alert e tokens existentes para contador, prévias, remoção e reordenação acessível. Primeira foto é capa. `OccurrenceGallery` mantém foto inteira, posição e botões anterior/próxima apenas quando há múltiplas. Cards/mapas mantêm composição e capa original, sem baixar coleção inteira. Não gera thumbnails. [Contrato](../multiple-photos.md).
+
+
+### Fotos ou vídeo
+
+`MediaPicker` compõe `PhotoCollectionPicker` e seleção única MP4. Botões Fotos/Vídeo
+usam aria-pressed e diálogo nativo de confirmação antes de limpar mídia escolhida.
+Cancelar preserva rascunho; a persistência só muda com sucesso do envio. Limites e
+recusa de MOV/HEVC ficam visíveis junto ao campo. Não há etapa de Wizard nova.
+
+`VideoPlaceholder` usa Icon/play, tokens existentes e duração textual, sem poster
+nem GET automático. `OccurrenceVideo` oferece Carregar vídeo e player responsivo
+com controls/playsinline/preload=none, sem autoplay; privado informa download
+integral antes de tocar. Erro oferece nova tentativa. Catálogo DEV demonstra o
+seletor exclusivo; [contrato e roteiro](../occurrence-video.md).

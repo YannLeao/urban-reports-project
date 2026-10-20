@@ -3,12 +3,15 @@ import { categoryIdSchema } from './category'
 import { completePair, locationFields } from '../location/point'
 
 export const occurrenceStatusSchema = z.enum(['PENDING', 'IN_ANALYSIS', 'RESOLVED', 'REJECTED'])
+const mediaCommon = { id: z.uuid(), sizeBytes: z.number().int().positive().nullable(), position: z.number().int().min(0).max(4), endpoint: z.string() }
+export const occurrenceMediaSchema = z.discriminatedUnion('type', [
+  z.object({ ...mediaCommon, type: z.literal('IMAGE'), mime: z.enum(['image/jpeg', 'image/png', 'image/webp']).nullable() }),
+  z.object({ ...mediaCommon, type: z.literal('VIDEO'), mime: z.literal('video/mp4'), sizeBytes: z.number().int().positive().max(26214400), position: z.literal(0),
+    durationSeconds: z.number().positive().max(30.000002), width: z.number().int().positive().max(1280), height: z.number().int().positive().max(1280) }),
+])
 export const occurrenceBaseSchema = z.object({
   ...locationFields,
-  media: z.array(z.object({
-    id: z.uuid(), type: z.literal('IMAGE'), mime: z.enum(['image/jpeg', 'image/png', 'image/webp']).nullable(),
-    sizeBytes: z.number().int().positive().nullable(), position: z.number().int().min(0).max(4), endpoint: z.string(),
-  })).min(1).max(5).optional(),
+  media: z.array(occurrenceMediaSchema).min(1).max(5).refine(items => items.every(item => item.type === 'IMAGE') || items.length === 1 && items[0].type === 'VIDEO').optional(),
   id: z.uuid(),
   categoryId: categoryIdSchema,
   categoryName: z.string(),

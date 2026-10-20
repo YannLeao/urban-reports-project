@@ -15,6 +15,39 @@ import static org.assertj.core.api.Assertions.*;
 class MediaMigrationTests {
     @Autowired Flyway flyway;
     @Autowired JdbcTemplate jdbc;
+    @Autowired org.springframework.transaction.PlatformTransactionManager manager;
+    @Test void xorIsDeferredAndPreservesLegacyDuringUpgradeAndWholeTypeSwitches() {
+        String schema = "video_upgrade_" + UUID.randomUUID().toString().replace("-", "");
+        var source = flyway.getConfiguration().getDataSource();
+        Flyway.configure().dataSource(source).schemas(schema).defaultSchema(schema).target("13").load().migrate();
+        UUID author = UUID.randomUUID(), report = UUID.randomUUID(), media = UUID.randomUUID();
+        String photoKey = "occurrences/"+UUID.randomUUID()+".png";
+        jdbc.update("INSERT INTO " + schema + ".user_accounts(id,name,email,password_hash,role,created_at,updated_at) VALUES (?, 'Pessoa', 'video@example.com', 'hash', 'USER', now(), now())", author);
+        jdbc.update("INSERT INTO " + schema + ".occurrences(id,author_id,category_id,title,neighborhood,reference,created_at) VALUES (?, ?, 1, 'Poste apagado', 'Centro', 'Praça central', now())", report, author);
+        jdbc.update("INSERT INTO " + schema + ".occurrence_media(id,occurrence_id,object_key,kind,position) VALUES (?,?,?,'IMAGE',0)",media,report,photoKey);
+        assertThat(Flyway.configure().dataSource(source).schemas(schema).defaultSchema(schema).load().migrate().migrationsExecuted).isEqualTo(1);
+        assertThat(jdbc.queryForMap("SELECT * FROM "+schema+".occurrence_media WHERE id=?",media)).containsEntry("object_key",photoKey).containsEntry("size_bytes",null);
+        var transaction = new org.springframework.transaction.support.TransactionTemplate(manager);
+        assertThatThrownBy(() -> transaction.execute(status -> {
+            jdbc.update("DELETE FROM "+schema+".occurrence_media WHERE occurrence_id=?",report); return null;
+        })).isInstanceOf(RuntimeException.class);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM "+schema+".occurrence_media WHERE occurrence_id=?",Integer.class,report)).isEqualTo(1);
+        UUID videoId = UUID.randomUUID(); String videoKey = "occurrences/"+UUID.randomUUID()+".mp4";
+        transaction.execute(status -> {
+            jdbc.update("DELETE FROM "+schema+".occurrence_media WHERE occurrence_id=?",report);
+            jdbc.update("INSERT INTO "+schema+".occurrence_media(id,occurrence_id,object_key,kind,position,content_type,size_bytes,duration_seconds,width,height) VALUES (?,?,?,'VIDEO',0,'video/mp4',26214400,30,1280,720)",videoId,report,videoKey);
+            return null;
+        });
+        assertThatThrownBy(() -> transaction.execute(status -> {
+            jdbc.update("INSERT INTO "+schema+".occurrence_media(id,occurrence_id,object_key,kind,position) VALUES (?,?,?,'IMAGE',1)",UUID.randomUUID(),report,photoKey);return null;
+        })).isInstanceOf(RuntimeException.class);
+        assertThat(jdbc.queryForObject("SELECT kind FROM "+schema+".occurrence_media WHERE occurrence_id=?",String.class,report)).isEqualTo("VIDEO");
+        transaction.execute(status -> {
+            jdbc.update("DELETE FROM "+schema+".occurrence_media WHERE occurrence_id=?",report);
+            jdbc.update("INSERT INTO "+schema+".occurrence_media(id,occurrence_id,object_key,kind,position) VALUES (?,?,?,'IMAGE',0)",media,report,photoKey);return null;
+        });
+        assertThat(jdbc.queryForObject("SELECT kind FROM "+schema+".occurrence_media WHERE occurrence_id=?",String.class,report)).isEqualTo("IMAGE");
+    }
     @Test void upgradesV12WithoutProviderCallsAndPreservesJournalAndUnknownMetadata() {
         String schema = "media_upgrade_" + UUID.randomUUID().toString().replace("-", "");
         var source = flyway.getConfiguration().getDataSource();
@@ -25,7 +58,7 @@ class MediaMigrationTests {
         for (UUID id : java.util.List.of(first, ambiguous)) jdbc.update("INSERT INTO " + schema + ".occurrences(id,author_id,category_id,title,neighborhood,reference,image_key,created_at) VALUES (?, ?, 1, 'Poste apagado', 'Centro', 'Praça central', ?, now())", id, author, id.equals(first) ? key : "historical-unknown-key");
         jdbc.update("INSERT INTO " + schema + ".image_upload_journal(image_key,state,created_at,next_attempt_at) VALUES (?, 'LINKED', now(), now())", key);
         var upgraded = Flyway.configure().dataSource(source).schemas(schema).defaultSchema(schema).load();
-        assertThat(upgraded.migrate().migrationsExecuted).isEqualTo(1);
+        assertThat(upgraded.migrate().migrationsExecuted).isEqualTo(2);
         var row = jdbc.queryForMap("SELECT * FROM " + schema + ".occurrence_media WHERE occurrence_id=?", first);
         assertThat(row).containsEntry("object_key", key).containsEntry("position", 0).containsEntry("kind", "IMAGE")
                 .containsEntry("content_type", "image/png").containsEntry("size_bytes", null);
