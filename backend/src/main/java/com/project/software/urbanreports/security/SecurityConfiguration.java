@@ -48,7 +48,7 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/admin-activations").permitAll()
                         .requestMatchers("/api/super-admin/admins", "/api/super-admin/admins/**").hasRole("SUPER_ADMIN")
                         .requestMatchers("/api/admin/occurrences", "/api/admin/occurrences/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/admin/reports/occurrences").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/admin/reports/occurrences", "/api/admin/reports/occurrences/pdf").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/auth/logout").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/notifications").hasRole("USER")
