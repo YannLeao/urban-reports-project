@@ -1,17 +1,19 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
-import { beforeEach, expect, test, vi } from 'vitest'
+import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import App from '../App'
 import { AuthProvider } from '../features/auth/AuthProvider'
 import { STORAGE_KEY } from '../features/auth/auth'
+import { NOTIFICATIONS_REFETCH_INTERVAL } from '../features/notification/notifications'
 
 const fetchMock = vi.fn<typeof fetch>()
 const user = { id: 'a50062d3-9ac2-4e70-86fa-eac5249f4d0c', name: 'Ana', email: 'ana@example.com', role: 'USER' }
 const item = { id: 'b50062d3-9ac2-4e70-86fa-eac5249f4d0c', occurrenceId: 'c50062d3-9ac2-4e70-86fa-eac5249f4d0c', type: 'OCCURRENCE_REJECTED', message: 'Seu relato foi rejeitado: <img src=x onerror=alert(1)>', createdAt: '2026-10-15T12:00:00Z', readAt: null }
 const page = { items: [item], page: 0, size: 20, totalItems: 21, totalPages: 2, unreadCount: 21 }
 beforeEach(() => { sessionStorage.clear(); fetchMock.mockReset(); vi.stubGlobal('fetch', fetchMock); vi.stubEnv('VITE_API_URL', 'https://api.example.com') })
+afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks() })
 function mount(path = '/notificacoes', authenticated = true) {
   if (authenticated) sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ accessToken: 'synthetic-token', expiresAt: new Date(Date.now() + 1800000).toISOString() }))
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -87,4 +89,43 @@ test('anonymous direct access asks for login without notification request', asyn
   mount('/notificacoes', false)
   expect(await screen.findByRole('heading', { name: 'Entrar' })).toBeVisible()
   expect(fetchMock).not.toHaveBeenCalled()
+})
+
+test('notifications poll automatically every 2 minutes and update list and bell', async () => {
+  vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] })
+  let count = 0
+  fetchMock.mockImplementation(async url => {
+    if (String(url).endsWith('/auth/me')) return Response.json(user)
+    count++
+    return Response.json({
+      ...page,
+      unreadCount: count === 1 ? 21 : 22,
+      items: count === 1 ? [item] : [item, { ...item, id: 'd50062d3-9ac2-4e70-86fa-eac5249f4d0c', message: 'Nova notificação periódica' }],
+    })
+  })
+  mount()
+  await vi.waitFor(() => expect(screen.getByText(item.message)).toBeVisible())
+  expect(screen.getByRole('link', { name: 'Notificações: 21 não lidas' })).toBeVisible()
+
+  // Advance by 2 minutes
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(NOTIFICATIONS_REFETCH_INTERVAL + 1000)
+  })
+  await vi.waitFor(() => expect(screen.getByText('Nova notificação periódica')).toBeVisible())
+  expect(screen.getByRole('link', { name: 'Notificações: 22 não lidas' })).toBeVisible()
+})
+
+test('polling stops when the session ends', async () => {
+  vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] })
+  respond()
+  mount()
+  await vi.waitFor(() => expect(screen.getByText(item.message)).toBeVisible())
+
+  // Force session expiry (advance past expiresAt: 1800000ms)
+  await act(async () => { await vi.advanceTimersByTimeAsync(1800000) })
+  const callsAfterExpiry = fetchMock.mock.calls.length
+
+  // Further 2-minute tick should not trigger notification requests
+  await act(async () => { await vi.advanceTimersByTimeAsync(NOTIFICATIONS_REFETCH_INTERVAL) })
+  expect(fetchMock.mock.calls.length).toBe(callsAfterExpiry)
 })

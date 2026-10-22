@@ -20,6 +20,9 @@ const pageSchema = z.object({
 })
 export type Notification = z.infer<typeof notificationSchema>
 
+/** Intervalo para atualização automática das notificações (2 minutos). */
+export const NOTIFICATIONS_REFETCH_INTERVAL = 120_000
+
 export function useNotifications(page = 0) {
   const { state, request } = useAuth()
   const client = useQueryClient()
@@ -32,6 +35,7 @@ export function useNotifications(page = 0) {
     staleTime: 0,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
+    refetchInterval: NOTIFICATIONS_REFETCH_INTERVAL,
   })
   async function markRead(id: string) {
     z.uuid().parse(id)
