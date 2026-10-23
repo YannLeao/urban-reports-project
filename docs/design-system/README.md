@@ -112,7 +112,8 @@ A central de [notificações](../notifications.md) reutiliza Card, Button, Alert
 Icon (bell), com badge semântico e estado textual Lida/Não lida. O sino funcional
 substitui o acesso desabilitado e mantém alvo mínimo e nome acessível com contagem.
 
-O download do relatório reutiliza Button secondary, busy e Alert, com nota de nova
-consulta junto à ação. O documento exportado conserva Alô Cidade/Figtree e cores
+O download do relatório reutiliza Button secondary com Icon download, busy e
+Alert. A nova consulta do PDF é explicada no disclosure de cálculos; o painel
+segue a [política automática](../live-queries.md). O documento exportado conserva Alô Cidade/Figtree e cores
 dos tokens, via [derivação rastreável para o backend](../report-pdf-assets.md).
 Não há alterações de paleta ou de identidade do shell.

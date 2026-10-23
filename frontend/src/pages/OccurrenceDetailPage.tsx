@@ -52,7 +52,6 @@ export function OccurrenceDetailPage() {
       navigate(returnPath, { replace: true, state: { deleted: true, deletedId: report.id } })
       client.removeQueries({ queryKey: [...prefix, 'detail', report.id], exact: true })
       void client.invalidateQueries({ queryKey: prefix })
-      void client.invalidateQueries({ queryKey: [...prefix, 'markers'] })
       void client.invalidateQueries({ queryKey: ['public', 'occurrences'] })
     } catch (error) {
       setNotice(error instanceof PrivateRequestError && [412, 428].includes(error.status)

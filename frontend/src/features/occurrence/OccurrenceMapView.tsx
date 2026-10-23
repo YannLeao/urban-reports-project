@@ -1,3 +1,4 @@
+import { deniedRead } from '../../lib/live-query'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router'
 import { useAuth } from '../auth/auth'
@@ -50,7 +51,7 @@ function MarkerResults({ query, own }: { query: ReturnType<typeof usePublicMarke
   const stage = useRef<HTMLDivElement>(null)
   const origin = useRef<HTMLElement | null>(null)
   const selected = params.get('selecionado')
-  const data = query.data
+  const data = deniedRead(query.error) ? undefined : query.data
   const availableHeight = useMapStageHeight(stage, data !== undefined)
   const active = data?.items.find(item => item.id === selected)
   const base = own ? '/meus-relatos' : '/ocorrencias'
@@ -87,15 +88,15 @@ function MarkerResults({ query, own }: { query: ReturnType<typeof usePublicMarke
     {notice && <p role="status" className="mb-0 text-small">{notice}</p>}
     {query.isPending && <p role="status">Carregando todos os pontos…</p>}
     {query.isError && <Alert className="p-3 text-small" tone="danger" role="alert">Não foi possível atualizar os pontos.{data ? ' Os dados anteriores estão sendo exibidos e podem estar desatualizados.' : ' Tente novamente ou consulte pela lista.'}
-      {!data && <Button size="compact" className="mt-2" variant="secondary" loading={query.isFetching} onClick={() => { void query.refetch() }}>Atualizar mapa</Button>}
+      <Button size="compact" className="mt-2" variant="secondary" loading={query.isFetching} onClick={() => { void query.refetch() }}>Tentar novamente</Button>
     </Alert>}
     {data && <>
-      <p className="m-0 text-small">{data.total} relatos nesta consulta.</p>
+      {data.total > 0 && <p className="m-0 text-small">{data.total} relatos nesta consulta.</p>}
       {data.total === 0 ? <p role="status" className="mb-0 text-small">{params.has('categoria') || params.has('estado') ? 'Nenhum relato com estes filtros.' : 'Ainda não há relatos nesta consulta.'} <Link to={own ? '/registrar-ocorrencia' : '/ocorrencias'}>{own ? 'Relatar um problema' : 'Ver relatos em lista'}</Link></p>
         : data.located === 0 ? <p role="status" className="mb-0 text-small">Os relatos ainda não têm localização no mapa. <Link to={list}>Ver relatos em lista</Link></p>
           : data.unlocated > 0 && <p role="status" className="mb-0 text-small">{data.unlocated === 1 ? 'Há 1 relato sem ponto no mapa.' : `Há ${data.unlocated} relatos sem ponto no mapa.`} <Link to={list}>Ver relatos em lista</Link></p>}
       <div ref={stage} style={availableHeight === undefined ? undefined : { height: availableHeight }} className="grid h-[calc(100vh-18rem-env(safe-area-inset-bottom))] min-h-[26rem] min-w-0 grid-rows-[minmax(12rem,1fr)_auto] gap-2 supports-[height:100svh]:h-[calc(100svh-18rem-env(safe-area-inset-bottom))] md:h-[calc(100vh-15rem)] md:supports-[height:100svh]:h-[calc(100svh-15rem)]">
-        <OccurrenceMap items={data.items} selected={active?.id ?? null} onSelect={select} explore refresh={{ pending: query.isFetching, run: () => { void query.refetch() } }}
+        <OccurrenceMap items={data.items} selected={active?.id ?? null} onSelect={select} explore
           onGroup={items => { origin.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setGroup(items.map(item => item.id)) }} view={readView(params)} onView={view => {
             updateParams(next => { next.set('lat', view.latitude.toFixed(6)); next.set('lng', view.longitude.toFixed(6)); next.set('zoom', String(view.zoom)) })
           }} />

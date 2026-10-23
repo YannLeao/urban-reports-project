@@ -141,7 +141,15 @@ placeholder com ícone/duração e não pedem MP4 ou `/image` para VIDEO.
 
 **Bytes originais são preservados, inclusive possíveis tags/localização.**
 Decode e bucket privado não anonimizam. Sem compatibilidade universal de câmera,
-transcodificação, poster, CDN, URLs assinadas, HLS/DASH/MSE ou Wizard nesta entrega.
+transcodificação, poster, CDN, URLs assinadas ou HLS/DASH/MSE. O [Wizard atual](report-wizard.md)
+integra mídia em uma entrada visual com menu curto Fotografar/Gravar vídeo e Galeria.
+Entradas nativas específicas solicitam capture=environment, inclusive vídeo; o
+navegador/aparelho decide o caminho efetivo. Não há gravador próprio nem garantia
+de MP4 H.264 pela câmera. MOV/HEVC e lotes mistos/múltiplos vídeos são recusados
+localmente; integridade/codec/duração completos continuam sendo validados no servidor.
+Troca de tipo válido pede confirmação, cancelamento preserva o conjunto anterior.
+Seleção nunca muda etapa; Continuar é explícito. Restrições completas ficam em
+Formatos e limites; nenhum input nativo visível impõe largura ao layout.
 
 ## Runtime, validação local e roteiro manual
 

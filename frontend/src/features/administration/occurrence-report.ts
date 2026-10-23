@@ -1,3 +1,4 @@
+import { useLiveReadOptions } from '../../lib/live-query'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { z } from 'zod'
@@ -36,12 +37,13 @@ export function useOccurrenceReport(enabled = true) {
   const { state, request } = useAuth()
   const client = useQueryClient()
   const userId = state.status === 'authenticated' ? state.user.id : null
+  const live = useLiveReadOptions(enabled && state.status === 'authenticated' && state.user.role === 'ADMIN', true)
   const query = useQuery({
-    queryKey: reportKey(userId), enabled: enabled && state.status === 'authenticated' && state.user.role === 'ADMIN',
+    queryKey: reportKey(userId), ...live,
     queryFn: async ({ signal }) => {
       return occurrenceReportSchema.parse(await (await request('/api/admin/reports/occurrences', 'GET', signal)).json())
     },
-    retry: false, staleTime: 0, refetchOnWindowFocus: false, refetchOnReconnect: false,
+
   })
   useEffect(() => {
     if (query.error instanceof PrivateRequestError && query.error.status === 403) {

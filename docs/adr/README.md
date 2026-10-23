@@ -58,3 +58,5 @@ um novo ADR que substitui o anterior.
 - [0028 — Relatório administrativo em PDF](0028-exportar-relatorio-administrativo-em-pdf.md)
 
 - [0029 — Filtros e consulta administrativa de finalizados](0029-filtrar-consultas-e-ampliar-escopo-administrativo.md)
+
+- [0030 — Polimento e atualização das consultas visíveis](0030-polir-interface-e-atualizar-consultas-visiveis.md)

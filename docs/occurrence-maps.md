@@ -140,11 +140,15 @@ navegação, não alteram relatos, e podem aparecer no histórico local do naveg
 
 O enquadramento prioriza viewport válida da URL; sem ela, usa os pontos ao montar
 ou Belo Jardim/PE (centro/zoom do JSON) se não houver pontos. Atualização/seleção
-não recentralizam a exploração; “Reenquadrar relatos” é explícito. Viewport salvo não é filtro de abrangência: todos os pontos
+não recentralizam a exploração; “Reenquadrar relatos” é explícito. Localização e enquadramento são botões
+iconográficos de 44×44 dentro do mapa; recentralizam sem GET de relatos.
+Lista/Mapa é controle segmentado com ícones, mantendo Links e parâmetros. Viewport salvo não é filtro de abrangência: todos os pontos
 continuam carregados, e grupos/alternativa textual permitem alcançá-los.
 
-Não há polling. “Atualizar mapa” renova o conjunto; falha mantém dados anteriores
-com indicação de desatualização. Cadastro/edição/exclusão invalidam mapas públicos
+Consultas visíveis seguem a [política automática](live-queries.md): 60 s/30 s,
+com foco/reconexão quando stale e pausa em aba oculta/offline. Não há refresh
+permanente. Falha mantém dados anteriores e oferece Tentar novamente; 403 oculta
+dados proibidos e erro permanente interrompe repetição automática. Cadastro/edição/exclusão invalidam mapas públicos
 e próprios pertinentes; moderação já invalida prefixos compartilhados. Cada
 universo tem hook/cache separado: público `['public','occurrences','markers']`,
 privado `['private',userId,'occurrences','markers']`. AuthProvider cancela/limpa o

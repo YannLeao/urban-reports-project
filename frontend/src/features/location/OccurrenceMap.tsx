@@ -1,3 +1,4 @@
+import { IconButton } from '../../components/ui/IconButton'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { LayerGroup, Map as LeafletMap } from 'leaflet'
 import { Button } from '../../components/ui/Button'
@@ -6,13 +7,12 @@ import { groupMarkers } from './group-markers'
 import { MapCanvas, type Leaflet, type MapInitializer } from './MapCanvas'
 import type { GeographicPoint } from './point'
 import { useMapGeolocation } from './useMapGeolocation'
-import { Icon } from '../../components/ui/Icon'
 
 export type MapView = GeographicPoint & { zoom: number }
-export function OccurrenceMap({ items, selected, onSelect, onGroup, view, onView, explore = false, refresh }: {
+export function OccurrenceMap({ items, selected, onSelect, onGroup, view, onView, explore = false }: {
   items: OccurrenceMarker[]; selected: string | null; onSelect?: (id: string) => void
   onGroup?: (items: OccurrenceMarker[]) => void; view?: MapView; onView?: (view: MapView) => void
-  explore?: boolean; refresh?: { pending: boolean; run: () => void }
+  explore?: boolean
 }) {
   const map = useRef<LeafletMap | null>(null)
   const library = useRef<Leaflet | null>(null)
@@ -88,13 +88,14 @@ export function OccurrenceMap({ items, selected, onSelect, onGroup, view, onView
   if (!adapter) return <div><p role="status">{failure ? 'Não foi possível carregar os pinos. Consulte os relatos em texto.' : 'Carregando mapa…'}</p>
     {failure && <><p>Recarregue a página para tentar novamente. O contexto da consulta será mantido na URL.</p><Button size="compact" variant="secondary" onClick={() => window.location.reload()}>Recarregar página e pinos</Button></>}</div>
   return <div className={`flex min-h-0 min-w-0 flex-col gap-2 ${explore ? 'h-full' : ''}`}>
-    {explore && <div className="grid grid-cols-3 gap-2" aria-label="Controles do mapa">
-      {refresh && <Button size="compact" variant="secondary" className="min-w-0 text-small" aria-label="Atualizar mapa" loading={refresh.pending} onClick={refresh.run}><Icon name="refresh" className="hidden md:block" />Atualizar</Button>}
-      <Button size="compact" variant="secondary" className="min-w-0 text-small" disabled={!ready || gps.locating} onClick={gps.locate}><Icon name="location" className="hidden md:block" />Minha localização</Button>
-      <Button size="compact" variant="secondary" className="min-w-0 text-small" disabled={!ready || !items.length} aria-label="Reenquadrar relatos" onClick={fit}><Icon name="map" className="hidden md:block" />Ver todos</Button>
-    </div>}
     {explore && <p role="status" className={gps.message ? 'mb-0 text-small' : 'sr-only'}>{gps.message}</p>}
-    <MapCanvas initialize={initialize} fill={explore} />
+    <div className="relative min-h-0 flex-1">
+      <MapCanvas initialize={initialize} fill={explore} />
+      {explore && <div className="absolute top-3 right-3 z-[1000] grid gap-2" aria-label="Controles do mapa" onClick={event => event.stopPropagation()}>
+        <IconButton icon="location" label="Minha localização" loading={gps.locating} disabled={!ready} onClick={gps.locate} className="rounded-control! shadow-card" />
+        <IconButton icon="frame" label="Reenquadrar relatos" disabled={!ready || !items.length} onClick={fit} className="rounded-control! shadow-card" />
+      </div>}
+    </div>
     {!explore && items.length > 0 && <Button size="compact" variant="secondary" onClick={fit}>Reenquadrar relatos</Button>}
   </div>
 }

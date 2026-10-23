@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, expect, test, vi } from 'vitest'
-import { PhotoCollectionPicker } from './PhotoCollectionPicker'
+import { MediaPicker } from './MediaPicker'
 import { appendPhotoDraft, type PhotoDraft } from './photo-draft'
 import { OccurrenceGallery } from '../occurrence/OccurrenceGallery'
 import type { Occurrence } from '../occurrence/occurrence'
@@ -25,41 +25,58 @@ beforeEach(() => {
 })
 function Picker({ initial = [] }: { initial?: PhotoDraft[] }) {
   const [photos, setPhotos] = useState(initial)
-  return <PhotoCollectionPicker value={photos} onChange={setPhotos} existing={initial.length ? report : undefined} />
+  const [mode, setMode] = useState<'IMAGE' | 'VIDEO'>('IMAGE')
+  return <MediaPicker mode={mode} onMode={setMode} value={photos} onChange={setPhotos} existing={initial.length ? report : undefined} onValidationChange={() => {}} />
 }
 function choose(count: number, camera = false, type = 'image/png') {
   const files = Array.from({ length: count }, (_, i) => new File(['synthetic'], `${i}.png`, { type }))
-  fireEvent.change(screen.getByLabelText(camera ? 'Fotografia pela câmera' : 'Arquivo de imagem'), { target: { files } })
+  fireEvent.change(screen.getByLabelText(camera ? 'Fotografia pela câmera' : 'Fotos ou vídeo da galeria'), { target: { files } })
   return files
 }
 function readBlob(blob: Blob) {
   return new Promise<string>(resolve => { const reader = new FileReader(); reader.onload = () => resolve(reader.result as string); reader.readAsText(blob) })
 }
-test('gallery appends multiple photos and camera adds one; rejects sixth and invalid batch without losing selection', async () => {
+test('gallery appends photos and camera adds one; navigation is independent of order and removal selects a neighbour', async () => {
   render(<Picker />)
-  expect(screen.getByLabelText('Arquivo de imagem')).toHaveAttribute('multiple')
-  choose(3); await screen.findByText(/3\/5 fotos/)
-  choose(1, true); await screen.findByText(/4\/5 fotos/)
+  expect(screen.getByLabelText('Fotos ou vídeo da galeria')).toHaveAttribute('multiple')
+  choose(3); await screen.findByText('3 de 5 fotos')
+  expect(await screen.findByRole('img', { name: 'Prévia da foto 1' })).toBeVisible()
+  await userEvent.click(screen.getByRole('button', { name: 'Próxima foto' }))
+  expect(screen.getByRole('img', { name: 'Prévia da foto 2' })).toBeVisible()
+  expect(screen.getByRole('button', { name: 'Selecionar foto 1, capa' })).toHaveAttribute('aria-pressed', 'false')
+  choose(1, true); await screen.findByText('4 de 5 fotos')
   choose(2); expect(screen.getByRole('alert')).toHaveTextContent('máximo 5')
-  expect(screen.getAllByRole('img')).toHaveLength(4)
-  choose(1, false, 'image/gif'); await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Foto 5'))
-  expect(screen.getAllByRole('img')).toHaveLength(4)
+  expect(screen.getByText('4 de 5 fotos')).toBeVisible()
+  choose(1, false, 'image/gif'); await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Formato'))
   await userEvent.click(screen.getByRole('button', { name: 'Remover foto 2' }))
-  expect(screen.getByRole('button', { name: 'Tirar foto' })).toHaveFocus()
-  choose(1); await screen.findByText(/4\/5 fotos/)
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Selecionar foto 2' })).toHaveFocus())
+  choose(1); await screen.findByText('4 de 5 fotos')
 })
-test('accessible reordering changes cover and frees all local previews on removal/unmount', async () => {
+test('cover/order actions preserve selected File and URLs; removal/unmount free each owned preview', async () => {
   const view = render(<Picker />)
-  choose(3); await waitFor(() => expect(screen.getAllByRole('img')).toHaveLength(3))
-  const original = screen.getAllByRole('img').map(image => image.getAttribute('src'))
+  choose(3); await screen.findByText('3 de 5 fotos')
+  const original = (await screen.findByRole('img', { name: 'Prévia da foto 1' })).getAttribute('src')
+  await userEvent.click(screen.getByRole('button', { name: 'Selecionar foto 3' }))
+  const third = screen.getByRole('img', { name: 'Prévia da foto 3' }).getAttribute('src')
   await userEvent.click(screen.getByRole('button', { name: 'Definir foto 3 como capa' }))
-  expect(screen.getAllByRole('img')[0]).toHaveAttribute('src', original[2])
+  expect(screen.getByRole('img', { name: 'Prévia da foto 1' })).toHaveAttribute('src', third)
+  await userEvent.click(screen.getByText('Organizar fotos'))
   await userEvent.click(screen.getByRole('button', { name: 'Mover foto 1 para depois' }))
-  expect(screen.getAllByRole('img')[0]).toHaveAttribute('src', original[0])
+  expect(screen.getByRole('img', { name: 'Prévia da foto 2' })).toHaveAttribute('src', third)
+  await userEvent.click(screen.getByRole('button', { name: 'Foto anterior' }))
+  expect(screen.getByRole('img', { name: 'Prévia da foto 1' })).toHaveAttribute('src', original)
   await userEvent.click(screen.getByRole('button', { name: 'Remover foto 1' }))
-  expect(URL.revokeObjectURL).toHaveBeenCalledWith(original[0])
-  view.unmount()
-  for (const url of original) expect(URL.revokeObjectURL).toHaveBeenCalledWith(url)
+  expect(URL.revokeObjectURL).toHaveBeenCalledWith(original)
+  view.unmount(); expect(URL.revokeObjectURL).toHaveBeenCalledWith(third)
+})
+test('five photos keep one active preview, limit is clear, removing last restores capture', async () => {
+  render(<Picker />); choose(5); await screen.findByText('5 de 5 fotos')
+  expect(screen.queryByRole('button', { name: 'Adicionar fotos' })).not.toBeInTheDocument()
+  for (let remaining = 5; remaining > 0; remaining--) {
+    await userEvent.click(screen.getByRole('button', { name: 'Remover foto 1' }))
+  }
+  expect(screen.getByRole('button', { name: 'Adicionar foto ou vídeo' })).toBeEnabled()
+  expect(screen.queryByRole('button', { name: 'Foto anterior' })).not.toBeInTheDocument()
 })
 test('manifest follows visual order and sends only new bytes', async () => {
   const file = new File(['synthetic'], 'photo.png', { type: 'image/png' })
@@ -72,9 +89,25 @@ test('existing photos can be removed and reordered without uploading originals',
   request.mockImplementation(async () => new Response('synthetic', { headers: { 'Content-Type': 'image/png' } }))
   render(<Picker initial={ids.map(id => ({ key: id, id }))} />)
   await userEvent.click(screen.getByRole('button', { name: 'Remover foto 1' }))
-  expect(screen.getByText(/2\/5 fotos/)).toBeVisible()
+  expect(screen.getByText('2 de 5 fotos')).toBeVisible()
+  await userEvent.click(screen.getByRole('button', { name: 'Selecionar foto 2' }))
   await userEvent.click(screen.getByRole('button', { name: 'Definir foto 2 como capa' }))
-  expect(screen.getByText('Foto 1 · Capa')).toBeVisible()
+  expect(screen.getByText('1 de 2 · Capa')).toBeVisible()
+})
+test('saved editor reuses completed previews for navigation and thumbnails without decorating downloads', async () => {
+  request.mockImplementation(async () => new Response('synthetic', { headers: { 'Content-Type': 'image/png' } }))
+  const view = render(<Picker initial={ids.map(id => ({ key: id, id }))} />)
+  const photo = await screen.findByRole('img', { name: `Foto do problema: ${report.title}` })
+  const first = photo.getAttribute('src')
+  expect(request).toHaveBeenCalledTimes(1)
+  await userEvent.click(screen.getByRole('button', { name: 'Selecionar foto 2' }))
+  await waitFor(() => expect(screen.getByRole('img', { name: `Foto do problema: ${report.title}` })).not.toHaveAttribute('src', first))
+  expect(request).toHaveBeenCalledTimes(2)
+  await userEvent.click(screen.getByRole('button', { name: 'Selecionar foto 1, capa' }))
+  expect(screen.getByRole('img', { name: `Foto do problema: ${report.title}` })).toHaveAttribute('src', first)
+  expect(request).toHaveBeenCalledTimes(2)
+  expect(URL.revokeObjectURL).not.toHaveBeenCalled()
+  view.unmount(); expect(URL.revokeObjectURL).toHaveBeenCalledWith(first)
 })
 test('private gallery downloads only selected photo, cancels stale requests and revokes URLs across account change', async () => {
   let resolve!: (response: Response) => void

@@ -1,87 +1,82 @@
-import { useEffect, useId, useRef, useState, type ChangeEvent } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '../../components/ui/Button'
-import { Alert } from '../../components/ui/Feedback'
-import { checkImageDecoding, IMAGE_ACCEPT, validateImageFile } from './image-file'
+import { IconButton } from '../../components/ui/IconButton'
 import { OccurrencePhoto } from '../occurrence/OccurrencePhoto'
 import type { Occurrence } from '../occurrence/occurrence'
-
 import type { PhotoDraft } from './photo-draft'
 
-function LocalPreview({ file, position, onPreview }: { file: File; position: number; onPreview?: (url: string | null) => void }) {
+function LocalPreview({ file, position, onPreview }: { file: File; position: number; onPreview: (url: string | null) => void }) {
   const listener = useRef(onPreview)
   listener.current = onPreview
-  const [preview, setPreview] = useState<{ file: File; url: string } | null>(null)
+  const [url, setUrl] = useState<string>()
   useEffect(() => {
-    const url = URL.createObjectURL(file)
-    setPreview({ file, url }); listener.current?.(url)
-    return () => { listener.current?.(null); URL.revokeObjectURL(url) }
+    const next = URL.createObjectURL(file)
+    setUrl(next); listener.current(next)
+    return () => { listener.current(null); URL.revokeObjectURL(next) }
   }, [file])
-  return preview?.file === file ? <img src={preview.url} alt={`Prévia da foto ${position + 1}`} className="aspect-[4/3] w-full object-contain" /> : null
+  return url ? <img src={url} alt={`Prévia da foto ${position + 1}`} className="h-full w-full object-contain" /> : null
 }
 
-export function PhotoCollectionPicker({ value, onChange, existing, disabled = false, onValidationChange, errorId, active = true, onPreview }: {
+// Each stable slot owns its URL, including while hidden. Thumbnails reuse it;
+// saved photos are fetched on selection, never just to decorate the strip.
+export function PhotoCollectionPicker({ value, onChange, existing, disabled = false, active = true, onPreview, onAdd }: {
   value: PhotoDraft[]; onChange: (items: PhotoDraft[]) => void; existing?: Occurrence
-  disabled?: boolean; errorId?: string; onValidationChange?: (busy: boolean) => void; active?: boolean; onPreview?: (key: string, url: string | null) => void
+  disabled?: boolean; active?: boolean; onPreview?: (key: string, url: string | null) => void; onAdd: () => void
 }) {
-  const helpId = useId()
-  const gallery = useRef<HTMLInputElement>(null)
-  const camera = useRef<HTMLInputElement>(null)
-  const trigger = useRef<HTMLButtonElement>(null)
-  const pending = useRef<AbortController | null>(null)
-  const listener = useRef(onValidationChange)
-  listener.current = onValidationChange
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  useEffect(() => () => { pending.current?.abort(); listener.current?.(false) }, [value])
-  function setValidating(next: boolean) { setBusy(next); listener.current?.(next) }
-  async function select(event: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.currentTarget.files ?? [])
-    event.currentTarget.value = ''
-    if (!files.length || disabled || pending.current) return
-    if (files.length + value.length > 5) { setError('Use no máximo 5 fotos. A seleção anterior foi mantida.'); return }
-    const abort = new AbortController(); pending.current = abort
-    setValidating(true); setError(null)
-    try {
-      for (let i = 0; i < files.length; i++) {
-        const reason = validateImageFile(files[i])
-        if (reason) throw new Error(`Foto ${value.length + i + 1}: ${reason}`)
-        try { await checkImageDecoding(files[i], abort.signal) }
-        catch { throw new Error(`Foto ${value.length + i + 1}: não foi possível abrir a imagem.`) }
-      }
-      if (!abort.signal.aborted) onChange([...value, ...files.map(file => ({ key: crypto.randomUUID(), file }))])
-    } catch (failure) {
-      if (!abort.signal.aborted) setError(`${failure instanceof Error ? failure.message : 'Seleção inválida.'} As fotos anteriores foram mantidas.`)
-    } finally {
-      if (!abort.signal.aborted) setValidating(false)
-      if (pending.current === abort) pending.current = null
-    }
+  const [selectedKey, setSelectedKey] = useState<string | null>(null)
+  const [previews, setPreviews] = useState<Record<string, string>>({})
+  const selected = Math.max(0, value.findIndex(item => item.key === selectedKey))
+  const item = value[selected]
+  const chooser = useRef<HTMLButtonElement>(null)
+  const changed = useCallback((key: string, url: string | null) => {
+    setPreviews(current => { const next = { ...current }; if (url) next[key] = url; else delete next[key]; return next })
+    onPreview?.(key, url)
+  }, [onPreview])
+  function move(target: number) {
+    if (!item) return
+    const items = [...value]; items.splice(selected, 1); items.splice(target, 0, item)
+    setSelectedKey(item.key); onChange(items)
   }
-  function move(index: number, target: number) {
-    const items = [...value]; const [item] = items.splice(index, 1); items.splice(target, 0, item)
-    onChange(items)
+  function remove() {
+    const next = value.filter(photo => photo.key !== item.key)
+    setSelectedKey(next[Math.min(selected, next.length - 1)]?.key ?? null)
+    onChange(next)
+    requestAnimationFrame(() => chooser.current?.focus())
   }
-  return <section aria-label="Selecionar fotografia" className="grid min-w-0 gap-4">
-    <p id={helpId} className="text-small text-text-secondary">{value.length}/5 fotos. Use de 1 a 5 fotos estáticas JPEG, PNG ou WebP, até 5 MiB por foto. A primeira é a capa.</p>
-    <div className="flex flex-wrap gap-3">
-      <Button ref={trigger} disabled={disabled || busy} aria-describedby={[helpId, errorId].filter(Boolean).join(" ")} onClick={() => camera.current?.click()}>Tirar foto</Button>
-      <Button variant="secondary" disabled={disabled || busy} aria-describedby={[helpId, errorId].filter(Boolean).join(" ")} onClick={() => gallery.current?.click()}>Escolher da galeria</Button>
+  if (!item) return null
+  return <section aria-label="Selecionar fotografia" className="grid min-w-0 gap-3">
+    <div className="flex items-center justify-between gap-2">
+      <p className="m-0 text-small" role="status">{selected + 1} de {value.length}{selected === 0 ? ' · Capa' : ''}</p>
+      <span className="text-small text-text-secondary">{value.length} de 5 fotos</span>
     </div>
-    <p className="text-small text-text-secondary">Se a câmera não abrir, escolha da galeria.</p>
-    <input hidden ref={gallery} type="file" multiple accept={IMAGE_ACCEPT} aria-label="Arquivo de imagem" disabled={disabled || busy} onChange={event => { void select(event) }} />
-    <input hidden ref={camera} type="file" capture="environment" accept={IMAGE_ACCEPT} aria-label="Fotografia pela câmera" disabled={disabled || busy} onChange={event => { void select(event) }} />
-    <ol className="m-0 grid min-w-0 list-none gap-4 p-0 sm:grid-cols-2">
-      {value.map((item, index) => <li key={item.key} className="min-w-0 rounded-card border border-border-subtle p-3">
-        <p className="font-bold">Foto {index + 1}{index === 0 ? ' · Capa' : ''}</p>
-        {item.file ? <LocalPreview file={item.file} position={index} onPreview={url => onPreview?.(item.key, url)} /> : existing && <OccurrencePhoto report={existing} mediaId={item.id} full active={active} onPreview={url => onPreview?.(item.key, url)} />}
-        <div className="flex flex-wrap gap-2">
-          {index > 0 && <Button variant="quiet" disabled={disabled || busy} aria-label={`Definir foto ${index + 1} como capa`} onClick={() => move(index, 0)}>Usar como capa</Button>}
-          <Button variant="quiet" disabled={disabled || busy || index === 0} aria-label={`Mover foto ${index + 1} para antes`} onClick={() => move(index, index - 1)}>Anterior</Button>
-          <Button variant="quiet" disabled={disabled || busy || index === value.length - 1} aria-label={`Mover foto ${index + 1} para depois`} onClick={() => move(index, index + 1)}>Próxima</Button>
-          <Button variant="quiet" disabled={disabled || busy} aria-label={`Remover foto ${index + 1}`} onClick={() => { onChange(value.filter(photo => photo.key !== item.key)); trigger.current?.focus() }}>Remover imagem</Button>
-        </div>
-      </li>)}
-    </ol>
-    {busy && <p role="status">Verificando imagens…</p>}
-    {error && <Alert tone="danger" role="alert">{error}</Alert>}
+    <div className="relative min-w-0 overflow-hidden rounded-card border border-border-subtle bg-surface-raised">
+      {value.map((photo, index) => <div key={photo.key} hidden={index !== selected} inert={index !== selected}
+        className="h-[min(52vh,24rem)] min-w-0 [&>div]:m-0 [&>div]:h-full [&>div]:aspect-auto">
+        {photo.file ? <LocalPreview file={photo.file} position={index} onPreview={url => changed(photo.key, url)} />
+          : existing && <OccurrencePhoto report={existing} mediaId={photo.id} full active={active && index === selected} onPreview={url => changed(photo.key, url)} />}
+      </div>)}
+      <IconButton icon="trash" label={`Remover foto ${selected + 1}`} disabled={disabled} onClick={remove} className="absolute top-2 right-2 shadow-card" />
+    </div>
+    <div className="flex min-w-0 items-center gap-2">
+      {value.length > 1 && <IconButton icon="chevronLeft" label="Foto anterior" disabled={disabled || selected === 0} onClick={() => setSelectedKey(value[selected - 1].key)} />}
+      <div className="flex min-w-0 flex-1 snap-x snap-proximity gap-2 overflow-x-auto py-1" aria-label="Fotos selecionadas">
+        {value.map((photo, index) => <button key={photo.key} ref={index === selected ? chooser : undefined} type="button"
+          disabled={disabled} aria-label={`Selecionar foto ${index + 1}${index === 0 ? ', capa' : ''}`} aria-pressed={index === selected}
+          onClick={event => { setSelectedKey(photo.key); event.currentTarget.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }) }}
+          className={`flex h-16 w-16 min-h-target min-w-target shrink-0 snap-center items-center justify-center overflow-hidden rounded-control border-2 ${index === selected ? 'border-text-primary' : 'border-border-subtle'}`}>
+          {previews[photo.key] ? <img src={previews[photo.key]} alt="" className="h-full w-full object-cover" /> : <span>{index + 1}</span>}
+        </button>)}
+        {value.length < 5 && <IconButton icon="plus" label="Adicionar fotos" disabled={disabled} onClick={onAdd} className="self-center" />}
+      </div>
+      {value.length > 1 && <IconButton icon="chevronRight" label="Próxima foto" disabled={disabled || selected === value.length - 1} onClick={() => setSelectedKey(value[selected + 1].key)} />}
+    </div>
+    {value.length === 5 && <p className="m-0 text-small text-text-secondary">Limite de 5 fotos atingido.</p>}
+    {selected > 0 && <Button variant="quiet" className="justify-self-start" disabled={disabled} aria-label={`Definir foto ${selected + 1} como capa`} onClick={() => move(0)}>Usar como capa</Button>}
+    {value.length > 1 && <details><summary className="min-h-target cursor-pointer py-3 text-small font-bold">Organizar fotos</summary>
+      <div className="flex flex-wrap gap-2">
+        {selected > 0 && <Button variant="quiet" disabled={disabled} aria-label={`Mover foto ${selected + 1} para antes`} onClick={() => move(selected - 1)}>Mover antes</Button>}
+        {selected < value.length - 1 && <Button variant="quiet" disabled={disabled} aria-label={`Mover foto ${selected + 1} para depois`} onClick={() => move(selected + 1)}>Mover depois</Button>}
+      </div>
+    </details>}
   </section>
 }

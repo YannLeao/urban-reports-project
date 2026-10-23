@@ -87,13 +87,18 @@ Volumes maiores exigem medição própria; não há promessa de desempenho em pr
 Veja [ADR 0017](adr/0017-consultar-relatorio-em-snapshot.md).
 
 Zod valida estrutura, nullabilidade e coerência básica das distribuições.
-Query usa `['private', userId, 'occurrence-report']`, AbortSignal, sem retry,
-polling, refetch por foco ou reconexão. Logout/401 cancelam e limpam caches pelo
+Query usa `['private', userId, 'occurrence-report']`, AbortSignal e a
+[política automática](live-queries.md): intervalo de 120 s, staleTime de 60 s,
+pausa em aba oculta/offline e revalidação stale por entrada/foco/reconexão. Logout/401 cancelam e limpam caches pelo
 AuthProvider; 403 remove o cache do relatório e esconde agregados sem encerrar
 a sessão. Falha de rede em atualização preserva os dados com aviso explícito e
 referência da consulta anterior. Falha inicial nunca preenche indicadores com
 zeros. Transição administrativa confirmada invalida o relatório no mesmo
-cliente; mudanças de outros clientes aparecem ao clicar Atualizar relatório.
+cliente; mudanças de outros clientes chegam na próxima revalidação automática.
+Cabeçalho mostra título, download manual com ícone/PDF e referência Consultado em.
+Não há Atualizar relatório permanente. Snapshot novo do PDF é explicado no
+disclosure de cálculos, sem texto repetido acima das métricas. Exportação não
+invalida nem refaz o JSON; nunca roda por polling.
 
 ## Desenvolvimento e revisão manual
 
@@ -126,7 +131,7 @@ depende de storage, envio de e-mail ou mapas. ADMIN já ativo não precisa de no
 3. Conferir média sem resolvidas e 0% sem rejeitadas. Excluir um próprio PENDING
    como autor e atualizar o relatório; confirmar retirada de todos os agregados.
 4. No mesmo cliente, moderar e voltar ao relatório: consulta invalidada. Em outro
-   navegador, moderar e clicar Atualizar relatório no primeiro para ver mudanças.
+   navegador, moderar e aguardar a revalidação automática no primeiro para ver mudanças.
 5. Interromper a API local após uma leitura: atualização falha, dados anteriores
    permanecem identificados. Retomar e tentar novamente. Na primeira leitura sem
    API, somente erro/retry, sem indicadores inventados.
@@ -160,7 +165,7 @@ Resposta pronta: 200 `application/pdf`, `Cache-Control: no-store`,
 Sem CORS adicional: o cliente usa nome controlado, sem ler Content-Disposition.
 
 “Baixar PDF” faz **nova consulta consistente**, uma chamada ao serviço do ADR 0017,
-e não atualiza/invalida o painel. A nota junto à ação explica a diferença.
+e não atualiza/invalida o painel. O disclosure de cálculos explica a diferença.
 Referência dos dados (`Report.generatedAt`) e geração do arquivo (Clock) aparecem
 separadas em America/Sao_Paulo, com offset explícito. Dados podem diferir de um
 painel antigo sob concorrência. A transação termina antes da renderização.

@@ -25,7 +25,9 @@ está em Lista. Guards de papel continuam exatos, sem herança administrativa.
 Logout permanece na conta dos três papéis e também na home de SUPER_ADMIN,
 com confirmação real da API e possibilidade de retry. `features/auth/LogoutActions`
 compartilha busy, erro e foco, delegando revogação/limpeza ao AuthProvider.
-Minha Conta conserva os atalhos de USER/ADMIN; SUPER_ADMIN não repete gestão ali.
+Minha Conta apresenta identidade e Sair. Atalhos repetidos de USER/ADMIN foram
+retirados; seus destinos permanecem na navbar e no sino (USER). SUPER_ADMIN
+continua sem repetir gestão ali; home e navegação desse papel estão preservadas.
 
 A barra inferior usa `safe-area-inset-bottom`; o shell reserva espaço inferior
 para que todo conteúdo possa ser alcançado por rolagem. `viewport-fit=cover`
@@ -42,8 +44,8 @@ com várias linhas; marca permanece link de início. Skip link e main são prese
 - `account`: exceção apenas para `/minha-conta`, com `max-w-app`, alinhando as
   bordas úteis ao cabeçalho sem duplicar o padding horizontal do shell.
 
-As ações de Minha Conta usam uma coluna com largura completa no mobile e
-largura automática com wrap a partir de `sm`. Sair integra o mesmo grupo;
+A ação Sair de Minha Conta usa largura completa no mobile e
+largura automática a partir de `sm`;
 erro de logout aparece antes das ações, com foco e possibilidade de repetir.
 O grupo compartilhado revela o controle focado por rolagem quando seu retângulo
 fica encoberto pela navbar fixa, cuja posição é medida no momento do foco.

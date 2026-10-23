@@ -48,7 +48,7 @@ export function SimilarOccurrencesPanel({ status, result, visible, busy, onRevie
       <Button type="button" variant="secondary" disabled={busy} onClick={onReview}>Revisar meu relato</Button>
       {!forbidden && status !== 'not-executed' && <Button type="button" variant="secondary" disabled={busy || loading} onClick={onRetry}>Consultar novamente</Button>}
       {!forbidden && <Button type="button" disabled={busy || loading} onClick={onConfirm}>
-        {wizard ? (status === 'unavailable' ? editing ? 'Salvar mesmo assim' : 'Enviar mesmo assim' : status === 'candidates' ? editing ? 'É outro relato, salvar' : 'É outro relato, enviar' : editing ? 'Salvar alterações' : 'Enviar relato') : status === 'unavailable' ? 'Enviar mesmo assim' : status === 'candidates' ? 'É outro relato, continuar' : 'Confirmar envio'}
+        {wizard ? (status === 'unavailable' ? editing ? 'Salvar mesmo assim' : 'Enviar mesmo assim' : status === 'candidates' ? editing ? 'Salvar' : 'Enviar' : editing ? 'Salvar' : 'Enviar') : status === 'unavailable' ? 'Enviar mesmo assim' : status === 'candidates' ? 'É outro relato, continuar' : 'Confirmar envio'}
       </Button>}
     </div>
   </div>

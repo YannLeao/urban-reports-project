@@ -63,8 +63,9 @@ Falha de foto é independente dos dados e não inventa evidência visual.
 Cliente autenticado busca bytes; object URLs ficam apenas em memória e são
 revogadas ao trocar versão, desmontar ou encerrar sessão. Token não vai à URL.
 
-Queries usam ['private', userId, 'occurrences', ...], AbortSignal, sem retry,
-polling ou refetch por foco/reconexão. Mutações diretas também não repetem envios.
+Queries usam ['private', userId, 'occurrences', ...] e AbortSignal. Listas/mapas
+visíveis seguem a [política automática](live-queries.md); detalhes/edição não
+recebem polling. Não há retry imediato de query nem de escrita. Mutações diretas também não repetem envios.
 Commit confirmado cancela consultas anteriores e renova lista/detalhe/foto.
 Exclusão desmonta o detalhe antes de removê-lo do cache para evitar nova leitura.
 Sessão encerrada remove consultas/rascunhos e impede resposta tardia na UI.

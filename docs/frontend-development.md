@@ -165,7 +165,13 @@ Nginx local não comprova o roteamento da Vercel.
 Compose recebe `FRONTEND_ALLOWED_ORIGINS` para o backend e `VITE_API_URL` como
 build arg frontend. Variáveis vêm do shell, `.env` da raiz ou `--env-file`, não
 automaticamente dos `.env` de cada aplicação. No celular, localhost aponta ao
-próprio dispositivo; use a API acessível e reconstrua o bundle.
+próprio dispositivo; use a API acessível e reconstrua o bundle. HTTP pelo IP da
+rede não é contexto seguro como localhost: anexação local de foto/vídeo funciona
+sem crypto.randomUUID, mas GPS continua exigindo contexto seguro. Para conferir
+se uma recarga vem da reconexão HMR do Vite ao retornar da câmera, compare com
+`pnpm run build` e `pnpm run preview --host 0.0.0.0`, mantendo a URL de API
+apropriada para o celular antes de gerar o bundle. Preview serve apenas
+o bundle já gerado e não contém o cliente HMR; isso não homologa câmera física.
 
 A base usa a identidade Alô Cidade e oferece [cadastro real](identity.md) em
 `/cadastro`, sem autenticação automática. O helper `postJson` no cliente existente
@@ -227,7 +233,8 @@ fetch controlado e inspeção multipart. Roteiro publicado/físico e limites em
 
 O [relatório administrativo](occurrence-report.md) em `/administracao/relatorio`
 reutiliza o guard exato de ADMIN e o cliente privado, com schema Zod e cache
-por usuário. Transições de moderação invalidam esse cache; atualização é manual.
+por usuário. Transições de moderação invalidam esse cache; atualização JSON segue a
+[política automática](live-queries.md). PDF permanece download manual independente.
 
 ## Consulta privada de relatos
 
@@ -286,6 +293,6 @@ exigem parada coordenada, com recuperação por avanço em vez de desfazer migra
 ## Wizard de relatos
 
 Cadastro/edição usam [quatro etapas](report-wizard.md), com rascunho estável em
-memória, mídia inicial com avanço único, GPS sugerido na primeira visita de cadastro
+memória, seleção de mídia com avanço somente por Continuar, GPS sugerido na primeira visita de cadastro
 à localização, mapa sem entrada numérica e semelhantes integrados à revisão final.
 Erros direcionam à etapa; If-Match e mídia mantêm contratos.

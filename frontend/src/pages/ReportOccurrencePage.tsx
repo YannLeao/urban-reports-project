@@ -1,3 +1,5 @@
+import { revealFocusedControl } from '../lib/reveal-focus'
+import { Icon } from '../components/ui/Icon'
 import { SimilarOccurrencesReview } from '../features/occurrence/SimilarOccurrencesReview'
 import { queryReturn } from '../features/occurrence/map-navigation'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
@@ -44,7 +46,6 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
   const previewChanged = useCallback((key: string, url: string | null) => setPreviews(current => {
     const next = { ...current }; if (url) next[key] = url; else delete next[key]; return next
   }), [])
-  const autoAdvanced = useRef(!!existing)
   const stepTitle = useRef<HTMLHeadingElement>(null)
   const [categoriesAttempt, setCategoriesAttempt] = useState(0)
   const [categoriesFailed, setCategoriesFailed] = useState(false)
@@ -80,7 +81,7 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
   useEffect(() => { stepTitle.current?.focus() }, [step])
   useEffect(() => {
     if (notice && !Object.keys(errors).length) feedback.current?.focus()
-    else if (step === 1 && errors.image) form.current?.querySelector<HTMLElement>('[aria-label="Selecionar fotografia"] button')?.focus()
+    else if (step === 1 && errors.image) form.current?.querySelector<HTMLElement>('[aria-label="Mídia do relato"] button')?.focus()
     else if (step === 2 && errors.location) {
       const control = form.current?.querySelector<HTMLButtonElement>('[aria-label="Usar minha localização"]')
       if (control && !control.disabled) control.focus(); else stepTitle.current?.focus()
@@ -161,11 +162,6 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
     setErrors(current => ({ ...Object.fromEntries(Object.entries(current).filter(([key]) => fieldStep(key) !== step)), ...next }))
     if (!Object.keys(next).length) go(step + 1)
   }
-  useEffect(() => {
-    if (existing || autoAdvanced.current || step !== 1 || imageBusy || !photos.some(item => item.file)) return
-    // Validation callbacks complete before this effect; a ref makes the one-time advance Strict Mode safe.
-    autoAdvanced.current = true; setStep(2); setVisited(current => Math.max(current, 2))
-  }, [existing, step, imageBusy, photos])
   function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault() }
 
   async function confirm() {
@@ -203,7 +199,7 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
         navigate(`/meus-relatos/${existing.id}`, { state: { from } })
         return
       }
-      autoAdvanced.current = false; setStep(1); setVisited(1); setReview(null)
+      setStep(1); setVisited(1); setReview(null)
       setRegistered({ id: result.id, title })
       setSuccess(true)
       setNotice(null)
@@ -250,20 +246,22 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
 
   return <section className="py-8" aria-labelledby="report-title">
     <div className="max-w-reading">
-      <p className="mb-2 text-small font-bold text-brand-default">Registro cidadão</p>
+
       <h1 id="report-title">{existing ? 'Editar relato' : 'Relatar problema'}</h1>
-      <p className="text-lead text-text-secondary">Mostre o problema, marque o local e conte o essencial.</p>
+
       {notice && <Alert ref={feedback} tabIndex={-1} className="mt-6" tone={success ? 'success' : 'danger'} role={success ? 'status' : 'alert'}>{notice}</Alert>}
       <div className="mt-6">
-        <form ref={form} aria-busy={pending} className="grid min-w-0 gap-5" onSubmit={event => { void submit(event) }} noValidate>
-          <nav aria-label="Etapas do relato" className="flex flex-wrap gap-2">
-            {stepNames.map((name, index) => <Button key={name} type="button" size="compact" variant="quiet" aria-current={step === index + 1 ? 'step' : undefined}
-              disabled={pending || imageBusy || index + 1 > step} onClick={() => go(index + 1)}>{index + 1}. {name}</Button>)}
-          </nav>
-          <p role="status" className="mb-0 text-small">Etapa {step} de 4</p>
-          <h2 ref={stepTitle} tabIndex={-1} className="text-title">{stepNames[step - 1]}</h2>
+        <form ref={form} onFocusCapture={revealFocusedControl} aria-busy={pending} className="grid min-w-0 gap-5" onSubmit={event => { void submit(event) }} noValidate>
+          <h2 ref={stepTitle} tabIndex={-1} className="mb-2 text-title" aria-live="polite">{step} de 4 · {stepNames[step - 1]}</h2>
+          <div className="mb-4 grid grid-cols-4 gap-2" aria-label="Etapas do relato">
+            {stepNames.map((name, index) => <button key={name} type="button" aria-label={`${index + 1}. ${name}`}
+              aria-current={step === index + 1 ? 'step' : undefined} disabled={pending || imageBusy || index + 1 > step}
+              onClick={() => go(index + 1)}
+              className="flex min-h-target items-center disabled:cursor-not-allowed">
+              <span className={`h-1.5 w-full rounded-pill ${index + 1 <= step ? 'bg-brand-default' : 'bg-border-subtle'}`} />
+            </button>)}
+          </div>
           <section hidden={step !== 1} inert={step !== 1} aria-label="Foto ou vídeo">
-            <p className="text-small text-text-secondary">De uma a cinco fotos ou um vídeo. Após a primeira seleção válida, você segue para o local. Pode voltar aqui para adicionar fotos e escolher a capa.</p>
             <MediaPicker mode={mode} onMode={setMode} active={step === 1} onPreview={previewChanged} errorId={errors.image ? 'report-photo-error' : undefined}
               value={photos} onChange={setPhotos} existing={existing} disabled={pending || imageBusy || step !== 1} onValidationChange={busy => {
                 validatingImage.current = busy; setImageBusy(busy)
@@ -304,9 +302,9 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
           </section>}
           <div className="flex flex-wrap gap-3 border-t border-border-subtle pt-4">
             {step > 1 && <Button variant="secondary" disabled={pending || imageBusy} onClick={() => go(step - 1)}>Voltar</Button>}
-            {step < 4 && <Button disabled={pending || imageBusy} onClick={advance}>{step === 3 ? 'Revisar relato' : 'Continuar'}</Button>}
+            {step < 4 && <Button disabled={pending || imageBusy} onClick={advance}>{step === 3 ? 'Revisar' : 'Continuar'}</Button>}
             {visited === 4 && step < 3 && <Button variant="secondary" disabled={pending || imageBusy} onClick={reviewDraft}>Voltar à revisão</Button>}
-            <Link aria-disabled={pending || undefined} className={buttonStyles('quiet')} to={existing ? `/meus-relatos/${existing.id}` : '/meus-relatos'} state={{ from }}>{existing ? 'Cancelar edição' : 'Cancelar relato'}</Link>
+            <Link aria-disabled={pending || undefined} className={buttonStyles('quiet')} to={existing ? `/meus-relatos/${existing.id}` : '/meus-relatos'} state={{ from }}><Icon name="close" />Cancelar</Link>
           </div>
           {existing && notice && <Link to={`/meus-relatos/${existing.id}`}>Consultar relato novamente</Link>}
         </form>

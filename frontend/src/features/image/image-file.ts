@@ -5,7 +5,7 @@ export const IMAGE_ACCEPT = IMAGE_TYPES.join(',')
 export function validateImageFile(file: File): string | null {
   if (file.size === 0) return 'O arquivo está vazio. Escolha outra imagem.'
   if (!IMAGE_TYPES.some(type => type === file.type)) {
-    return 'Formato não reconhecido ou incompatível. Escolha JPEG, PNG ou WebP. HEIC/HEIF não é aceito neste teste.'
+    return 'Formato não reconhecido ou incompatível. Escolha JPEG, PNG ou WebP. HEIC/HEIF não é aceito.'
   }
   if (file.size > MAX_IMAGE_BYTES) return 'A imagem ultrapassa 5 MiB. Escolha uma imagem menor.'
   return null
