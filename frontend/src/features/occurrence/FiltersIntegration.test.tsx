@@ -68,7 +68,7 @@ test('late selection A cannot replace B; B failure shows no cards from A and ret
   mount('/ocorrencias')
   await screen.findByRole('option', { name: 'Buraco ou pavimentação' })
   await userEvent.selectOptions(screen.getByLabelText('Categoria'), '2')
-  await screen.findByText('Não conseguimos carregar os relatos. Tente novamente.')
+  await screen.findByText('Não conseguimos carregar os relatos.')
   await act(async () => { finishA?.(Response.json(page())) })
   expect(screen.queryByRole('heading', { name: item.title })).not.toBeInTheDocument()
   expect(screen.queryByText('Nenhum relato com estes filtros')).not.toBeInTheDocument()

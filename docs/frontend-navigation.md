@@ -25,7 +25,9 @@ está em Lista. Guards de papel continuam exatos, sem herança administrativa.
 Logout permanece na conta dos três papéis e também na home de SUPER_ADMIN,
 com confirmação real da API e possibilidade de retry. `features/auth/LogoutActions`
 compartilha busy, erro e foco, delegando revogação/limpeza ao AuthProvider.
-Minha Conta conserva os atalhos de USER/ADMIN; SUPER_ADMIN não repete gestão ali.
+Minha Conta apresenta identidade e Sair. Atalhos repetidos de USER/ADMIN foram
+retirados; seus destinos permanecem na navbar e no sino (USER). SUPER_ADMIN
+continua sem repetir gestão ali; home e navegação desse papel estão preservadas.
 
 A barra inferior usa `safe-area-inset-bottom`; o shell reserva espaço inferior
 para que todo conteúdo possa ser alcançado por rolagem. `viewport-fit=cover`
@@ -42,8 +44,8 @@ com várias linhas; marca permanece link de início. Skip link e main são prese
 - `account`: exceção apenas para `/minha-conta`, com `max-w-app`, alinhando as
   bordas úteis ao cabeçalho sem duplicar o padding horizontal do shell.
 
-As ações de Minha Conta usam uma coluna com largura completa no mobile e
-largura automática com wrap a partir de `sm`. Sair integra o mesmo grupo;
+A ação Sair de Minha Conta usa largura completa no mobile e
+largura automática a partir de `sm`;
 erro de logout aparece antes das ações, com foco e possibilidade de repetir.
 O grupo compartilhado revela o controle focado por rolagem quando seu retângulo
 fica encoberto pela navbar fixa, cuja posição é medida no momento do foco.
@@ -88,14 +90,15 @@ produção apenas para facilitar apresentação.
 `NotificationsAccess`, no shell de USER autenticado, abre `/notificacoes` com
 nome acessível e contagem total de não lidas, independente da página aberta.
 O badge mostra até 99+; o nome acessível preserva a contagem completa. Falha de
-consulta não inventa contagem zero. A central e o acesso em Minha conta exigem
+consulta não inventa contagem zero. A central e o sino exigem
 USER, com a mesma restrição no servidor; ADMIN/SUPER_ADMIN não herdam esse fluxo.
 
 A central usa sessão e cache privado por usuário/página, paginação de 20 itens,
-atualização manual, retry e marcação idempotente de leitura. Cada item mostra
-mensagem, horário, estado textual e link para o relato privado. Não há polling,
-push ou atualização em tempo real; entrar na central ou atualizar consulta o
-servidor novamente. Contrato: [notificações](notifications.md).
+atualização automática a cada 120 segundos, retry de erro e marcação idempotente
+de leitura. Cada item mostra mensagem, horário, estado textual e link para o
+relato privado. O sino mantém esse polling também nas outras páginas, com pausa
+em aba oculta; não há botão permanente Atualizar, push ou atualização em tempo
+real. Contrato: [notificações](notifications.md).
 
 `PasswordRecoveryAccess`, após a senha do login, continua como texto auxiliar
 “Recuperação de senha em breve”, sem href, submit ou e-mail simulado.

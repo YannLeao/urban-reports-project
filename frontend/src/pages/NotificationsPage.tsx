@@ -20,10 +20,7 @@ export function NotificationsPage() {
   }
 
   return <section className="py-8" aria-labelledby="notifications-title">
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <h1 id="notifications-title">Notificações</h1>
-      <Button variant="secondary" loading={query.isFetching} onClick={() => { void query.refetch() }}>Atualizar notificações</Button>
-    </div>
+    <h1 id="notifications-title">Notificações</h1>
     {query.isPending && <p role="status">Carregando notificações…</p>}
     {query.isError && <Alert tone="danger" role="alert">Não conseguimos atualizar suas notificações. <Button variant="secondary" loading={query.isFetching} onClick={() => { void query.refetch() }}>Tentar novamente</Button></Alert>}
     {error && <Alert className="mt-4" tone="danger" role="alert">Não foi possível marcar a notificação como lida.</Alert>}

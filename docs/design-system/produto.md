@@ -64,4 +64,6 @@ Não altera prioridade ou status. A regra geográfica substitui RN-20 textual.
 
 Detalhe administrativo começa com “Voltar para a fila”, antes do identificador.
 Mapa na fila administrativa aguarda priorização; mapas públicos/próprios não
-atendem esse pedido. Vídeo e PDF com filtros de datas permanecem no backlog.
+atendem esse pedido. Vídeo e exportação PDF estão implementados; filtros de
+datas do relatório permanecem pendentes. Consultas visíveis seguem a
+[política automática](../live-queries.md); rascunhos/exportação ficam fora dela.

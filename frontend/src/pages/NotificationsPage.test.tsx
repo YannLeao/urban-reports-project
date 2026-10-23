@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, focusManager } from '@tanstack/react-query'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
@@ -13,7 +13,7 @@ const user = { id: 'a50062d3-9ac2-4e70-86fa-eac5249f4d0c', name: 'Ana', email: '
 const item = { id: 'b50062d3-9ac2-4e70-86fa-eac5249f4d0c', occurrenceId: 'c50062d3-9ac2-4e70-86fa-eac5249f4d0c', type: 'OCCURRENCE_REJECTED', message: 'Seu relato foi rejeitado: <img src=x onerror=alert(1)>', createdAt: '2026-10-15T12:00:00Z', readAt: null }
 const page = { items: [item], page: 0, size: 20, totalItems: 21, totalPages: 2, unreadCount: 21 }
 beforeEach(() => { sessionStorage.clear(); fetchMock.mockReset(); vi.stubGlobal('fetch', fetchMock); vi.stubEnv('VITE_API_URL', 'https://api.example.com') })
-afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks() })
+afterEach(() => { focusManager.setFocused(undefined); vi.useRealTimers(); vi.restoreAllMocks() })
 function mount(path = '/notificacoes', authenticated = true) {
   if (authenticated) sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ accessToken: 'synthetic-token', expiresAt: new Date(Date.now() + 1800000).toISOString() }))
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -26,6 +26,7 @@ test('bell shows global unread count and central renders rejection as text with 
   respond(); const { container, client } = mount()
   expect(await screen.findByRole('link', { name: 'Notificações: 21 não lidas' })).toHaveAttribute('href', '/notificacoes')
   expect(await screen.findByText(item.message)).toBeVisible()
+  expect(screen.queryByRole('button', { name: 'Atualizar notificações' })).not.toBeInTheDocument()
   expect(container.querySelector('main img')).toBeNull()
   expect(screen.getByRole('link', { name: 'Ver relato' })).toHaveAttribute('href', `/meus-relatos/${item.occurrenceId}`)
   expect(client.getQueryData(['private', user.id, 'notifications', 0])).toMatchObject({ unreadCount: 21 })
@@ -75,7 +76,7 @@ test('invalid response offers retry and empty success displays zero count', asyn
 test.each([403, 401])('HTTP %s obeys session and cache policy', async status => {
   respond(); const { client } = mount(); await screen.findByText(item.message)
   fetchMock.mockResolvedValueOnce(new Response(null, { status }))
-  await userEvent.click(screen.getByRole('button', { name: 'Atualizar notificações' }))
+  await act(async () => { await client.invalidateQueries({ queryKey: ['private', user.id, 'notifications'] }) })
   if (status === 401) {
     expect(await screen.findByRole('heading', { name: 'Entrar' })).toBeVisible()
     await waitFor(() => expect(client.getQueriesData({ queryKey: ['private'] })).toHaveLength(0))
@@ -107,12 +108,15 @@ test('notifications poll automatically every 2 minutes and update list and bell'
   await vi.waitFor(() => expect(screen.getByText(item.message)).toBeVisible())
   expect(screen.getByRole('link', { name: 'Notificações: 21 não lidas' })).toBeVisible()
 
+  expect(count).toBe(1) // The central and bell share the first request.
+
   // Advance by 2 minutes
   await act(async () => {
     await vi.advanceTimersByTimeAsync(NOTIFICATIONS_REFETCH_INTERVAL + 1000)
   })
   await vi.waitFor(() => expect(screen.getByText('Nova notificação periódica')).toBeVisible())
   expect(screen.getByRole('link', { name: 'Notificações: 22 não lidas' })).toBeVisible()
+  expect(count).toBe(2) // One useful request per interval, even with both observers.
 })
 
 test('polling stops when the session ends', async () => {
@@ -128,4 +132,28 @@ test('polling stops when the session ends', async () => {
   // Further 2-minute tick should not trigger notification requests
   await act(async () => { await vi.advanceTimersByTimeAsync(NOTIFICATIONS_REFETCH_INTERVAL) })
   expect(fetchMock.mock.calls.length).toBe(callsAfterExpiry)
+})
+
+test('bell polls outside the central, pauses with a hidden tab and stops on unmount', async () => {
+  vi.useFakeTimers()
+  focusManager.setFocused(true)
+  let count = 0
+  fetchMock.mockImplementation(async url => {
+    if (String(url).endsWith('/auth/me')) return Response.json(user)
+    count++
+    return Response.json({ ...page, unreadCount: count === 1 ? 21 : 22 })
+  })
+  const { unmount } = mount('/minha-conta')
+  await vi.waitFor(() => expect(screen.getByRole('link', { name: 'Notificações: 21 não lidas' })).toBeVisible())
+  expect(count).toBe(1)
+  await act(async () => { await vi.advanceTimersByTimeAsync(NOTIFICATIONS_REFETCH_INTERVAL + 1000) })
+  await vi.waitFor(() => expect(screen.getByRole('link', { name: 'Notificações: 22 não lidas' })).toBeVisible())
+  expect(count).toBe(2)
+  act(() => focusManager.setFocused(false))
+  await act(async () => { await vi.advanceTimersByTimeAsync(NOTIFICATIONS_REFETCH_INTERVAL * 2) })
+  expect(count).toBe(2)
+  unmount()
+  act(() => focusManager.setFocused(true))
+  await act(async () => { await vi.advanceTimersByTimeAsync(NOTIFICATIONS_REFETCH_INTERVAL * 2) })
+  expect(count).toBe(2)
 })

@@ -49,7 +49,7 @@ function renderPage() {
 }
 function choose(name = 'photo.png', camera = false, type = 'image/png') {
   const file = new File(['synthetic image'], name, { type })
-  fireEvent.change(screen.getByLabelText(camera ? 'Fotografia pela câmera' : 'Arquivo de imagem'), { target: { files: [file] } })
+  fireEvent.change(screen.getByLabelText(camera ? 'Fotografia pela câmera' : 'Fotos ou vídeo da galeria'), { target: { files: [file] } })
   return file
 }
 async function finish(fail = false) {
@@ -57,9 +57,10 @@ async function finish(fail = false) {
 }
 async function fill(strict = false) {
   const view = strict ? renderStrict() : renderPage()
-  await screen.findByRole('button', {name:'Tirar foto'})
+  await screen.findByRole('button', {name:'Adicionar foto ou vídeo'})
   choose(); await finish()
-  await screen.findByRole('heading', {name:'Localização'})
+  fireEvent.click(screen.getByRole('button', {name:'Continuar'}))
+  await screen.findByRole('heading', {name:'2 de 4 · Localização'})
   fireEvent.click(screen.getByRole('button', {name:'Escolher no mapa'}))
   for (const [label,value] of [['Bairro','Centro'],['Ponto de referência','Ao lado da escola']]) fireEvent.change(screen.getByLabelText(label),{target:{value}})
   fireEvent.click(screen.getByRole('button', {name:'Continuar'}))
@@ -75,11 +76,11 @@ function renderStrict() {
   const view=render(<StrictMode><QueryClientProvider client={client}><AuthProvider><MemoryRouter initialEntries={['/registrar-ocorrencia']}><App /></MemoryRouter></AuthProvider></QueryClientProvider></StrictMode>)
   return {client,...view}
 }
-function reviewForm() { fireEvent.click(screen.getByRole('button',{name:'Revisar relato'})) }
+function reviewForm() { fireEvent.click(screen.getByRole('button',{name:'Revisar'})) }
 async function submit() {
   reviewForm()
   await screen.findByText('Não encontramos relatos semelhantes nesta consulta')
-  const confirm=screen.getByRole('button',{name:'Enviar relato'})
+  const confirm=screen.getByRole('button',{name:'Enviar'})
   fireEvent.click(confirm); fireEvent.click(confirm)
 }
 const candidate = {id:'c50062d3-9ac2-4e70-86fa-eac5249f4d0c',categoryId:1,categoryName:'Iluminação pública',title:'Outro poste apagado',neighborhood:'Centro',reference:'Próximo à escola',status:'PENDING',createdAt:'2026-10-19T12:00:00Z',distanceMeters:32.4}
@@ -89,20 +90,21 @@ test('starts with only media; empty, invalid and pending selections never advanc
   expect(screen.queryByLabelText('Bairro')).not.toBeInTheDocument()
   expect(screen.queryByLabelText('Categoria')).not.toBeInTheDocument()
   fireEvent.click(screen.getByRole('button',{name:'Continuar'}))
-  expect(screen.getByRole('button',{name:'Tirar foto'})).toHaveFocus()
-  fireEvent.change(screen.getByLabelText('Arquivo de imagem'),{target:{files:[]}})
+  expect(screen.getByRole('button',{name:'Adicionar foto ou vídeo'})).toHaveFocus()
+  fireEvent.change(screen.getByLabelText('Fotos ou vídeo da galeria'),{target:{files:[]}})
   choose('invalid.gif',false,'image/gif'); await finish()
-  expect(screen.getByText('Etapa 1 de 4')).toBeVisible()
+  expect(screen.getByText('1 de 4 · Foto ou vídeo')).toBeVisible()
   choose(); expect(screen.getByRole('button',{name:'Continuar'})).toBeDisabled()
   expect(similarFetch).not.toHaveBeenCalled()
   expect(fetchMock).toHaveBeenCalledTimes(2)
 })
-test('first decoded photo advances once; going back permits additions/order/cover and retains URLs', async () => {
+test('decoded photos stay until Continue; going back permits additions/order/cover and retains URLs', async () => {
   await fill()
   const initialUrls=vi.mocked(URL.createObjectURL).mock.calls.length
   fireEvent.click(screen.getByRole('button',{name:'1. Foto ou vídeo'}))
   choose('second.png',true); await finish()
-  expect(screen.getByText('Etapa 1 de 4')).toBeVisible()
+  expect(screen.getByText('1 de 4 · Foto ou vídeo')).toBeVisible()
+  fireEvent.click(screen.getByRole('button',{name:'Selecionar foto 2'}))
   fireEvent.click(screen.getByRole('button',{name:'Definir foto 2 como capa'}))
   expect(screen.getByRole('img',{name:'Prévia da foto 1'})).toBeVisible()
   expect(vi.mocked(URL.createObjectURL).mock.calls.length).toBeGreaterThan(initialUrls)
@@ -117,9 +119,10 @@ test('first decoded photo advances once; going back permits additions/order/cove
 })
 test('step validation, keyboard submit and future-step controls cannot bypass required point or fields', async () => {
   renderPage();await screen.findByRole('button',{name:'Continuar'});choose();await finish()
+  fireEvent.click(screen.getByRole('button',{name:'Continuar'}))
   fireEvent.submit(screen.getByRole('button',{name:'Continuar'}).closest('form')!)
   fireEvent.click(screen.getByRole('button',{name:'Continuar'}))
-  expect(screen.getByText('Etapa 2 de 4')).toBeVisible()
+  expect(screen.getByText('2 de 4 · Localização')).toBeVisible()
   expect(screen.getByText('Confirme o local real do problema.')).toBeVisible()
   expect(screen.getByRole('button',{name:'4. Revisão'})).toBeDisabled()
   expect(similarFetch).not.toHaveBeenCalled()
@@ -145,7 +148,7 @@ test('only explicit final action writes one authenticated multipart; pending loc
   expect(await screen.findByRole('heading',{name:'Relato registrado'})).toHaveFocus()
   expect(URL.revokeObjectURL).toHaveBeenCalled()
   fireEvent.click(screen.getByRole('button',{name:'Relatar outro problema'}))
-  expect(screen.getByText('Etapa 1 de 4')).toBeVisible()
+  expect(screen.getByText('1 de 4 · Foto ou vídeo')).toBeVisible()
 })
 test.each(['','  ','Muito lixo.','😀'.repeat(1000)])('preserves optional description contract (%s)',async description=>{
   await fill(); fireEvent.change(screen.getByLabelText('Detalhes (opcional)'),{target:{value:description}})
@@ -170,13 +173,13 @@ test('review lookup uses exact criteria once, preserves draft and opens public d
   reviewForm();await screen.findByText(candidate.title)
   expect(similarFetch).toHaveBeenCalledTimes(1)
   fetchMock.mockResolvedValueOnce(Response.json(result,{status:201}))
-  fireEvent.click(screen.getByRole('button',{name:'É outro relato, enviar'}))
+  fireEvent.click(screen.getByRole('button',{name:'Enviar'}))
   await screen.findByText('Relato registrado')
   expect((fetchMock.mock.calls[2][1]?.body as FormData).get('title')).toBe('Texto atual na revisão')
 })
 test('Strict Mode does not double query or advance twice',async()=>{
   await fill(true)
-  expect(screen.getByText('Etapa 3 de 4')).toBeVisible()
+  expect(screen.getByText('3 de 4 · Informações')).toBeVisible()
   reviewForm();await screen.findByText('Não encontramos relatos semelhantes nesta consulta')
   expect(similarFetch).toHaveBeenCalledTimes(1)
 })
@@ -223,10 +226,10 @@ test.each([
   [409,{},4,'não pode mais'],[412,{},4,'Este relato mudou'],[428,{},4,'Este relato mudou'],[503,{code:'MEDIA_BUSY'},4,'indisponível ou ocupado'],
 ] as const)('backend %s routes errors to step %s and keeps files/text',async(status,payload,step,message)=>{
   await fill();fetchMock.mockResolvedValueOnce(Response.json(payload,{status}));await submit()
-  await screen.findByText(new RegExp(message))
-  expect(screen.getByText(`Etapa ${step} de 4`)).toBeVisible()
+  await waitFor(() => expect(screen.getAllByText(new RegExp(message)).some(node => node.getAttribute('role') === 'alert' || node.closest('[role="alert"]'))).toBe(true))
+  expect(screen.getByRole('heading', { name: new RegExp(`^${step} de 4`) })).toBeVisible()
   expect(screen.getByLabelText('Título')).toHaveValue('  Poste apagado 💡  ')
-  expect(screen.getByLabelText('Arquivo de imagem')).toBeInTheDocument()
+  expect(screen.getByLabelText('Fotos ou vídeo da galeria')).toBeInTheDocument()
   expect(fetchMock).toHaveBeenCalledTimes(3)
 })
 test.each(['network','malformed','wrong-status'])('uncertain %s never retries writing and keeps risk warning when correcting',async failure=>{
@@ -238,26 +241,29 @@ test.each(['network','malformed','wrong-status'])('uncertain %s never retries wr
   expect(screen.getByText(/reenviar pode criar um relato duplicado/)).toBeVisible()
   expect(fetchMock).toHaveBeenCalledTimes(3)
 })
-test('new video advances locally, pauses on hiding and review never fetches or autoplays video',async()=>{
-  renderPage();await screen.findByRole('button',{name:'Vídeo'});fireEvent.click(screen.getByRole('button',{name:'Vídeo'}))
-  fireEvent.change(screen.getByLabelText('Escolher vídeo'),{target:{files:[new File(['x'],'invalid.mov',{type:'video/quicktime'})]}})
-  expect(screen.getByText('Etapa 1 de 4')).toBeVisible()
-  fireEvent.change(screen.getByLabelText('Escolher vídeo'),{target:{files:[new File(['video'],'synthetic.mp4',{type:'video/mp4'})]}})
-  await screen.findByRole('heading',{name:'Localização'})
+test('new video stays until Continue, pauses on hiding and review never fetches or autoplays video',async()=>{
+  renderPage();await screen.findByRole('button',{name:'Adicionar foto ou vídeo'})
+  fireEvent.change(screen.getByLabelText('Vídeo pela câmera'),{target:{files:[new File(['x'],'invalid.mov',{type:'video/quicktime'})]}})
+  expect(screen.getByText('1 de 4 · Foto ou vídeo')).toBeVisible()
+  fireEvent.change(screen.getByLabelText('Vídeo pela câmera'),{target:{files:[new File(['video'],'synthetic.mp4',{type:'video/mp4'})]}})
+  expect(screen.getByText('1 de 4 · Foto ou vídeo')).toBeVisible()
+  fireEvent.click(screen.getByRole('button',{name:'Continuar'}))
+  await screen.findByRole('heading',{name:'2 de 4 · Localização'})
   expect(HTMLMediaElement.prototype.pause).toHaveBeenCalled()
   expect(screen.getByLabelText('Prévia local do vídeo')).not.toHaveAttribute('autoplay')
   expect(fetchMock).toHaveBeenCalledTimes(2)
 })
 test('dirty cancellation protects draft; declining discard keeps all media and beforeunload is registered',async()=>{
   await fill();vi.mocked(window.confirm).mockReturnValue(false)
-  await userEvent.click(screen.getByRole('link',{name:'Cancelar relato'}))
+  await userEvent.click(screen.getByRole('link',{name:'Cancelar'}))
   expect(window.confirm).toHaveBeenCalledOnce();expect(screen.getByLabelText('Título')).toHaveValue('  Poste apagado 💡  ')
   const unload=new Event('beforeunload',{cancelable:true});window.dispatchEvent(unload);expect(unload.defaultPrevented).toBe(true)
 })
 
 test('category failure is recoverable without losing media/location/text or fabricating a category',async()=>{
   fetchMock.mockReset().mockResolvedValueOnce(Response.json(person)).mockResolvedValueOnce(Response.json({},{status:503}))
-  renderPage();await screen.findByRole('button',{name:'Tirar foto'});choose();await finish()
+  renderPage();await screen.findByRole('button',{name:'Adicionar foto ou vídeo'});choose();await finish()
+  fireEvent.click(screen.getByRole('button',{name:'Continuar'}))
   fireEvent.click(screen.getByRole('button',{name:'Escolher no mapa'}))
   fireEvent.change(screen.getByLabelText('Bairro'),{target:{value:'Centro'}})
   fireEvent.change(screen.getByLabelText('Ponto de referência'),{target:{value:'Perto da escola'}})
@@ -274,9 +280,9 @@ test('category failure is recoverable without losing media/location/text or fabr
 
 test('video replacement stays on revisited media and sends current video bytes only on final confirmation',async()=>{
   await fill();fireEvent.click(screen.getByRole('button',{name:'1. Foto ou vídeo'}))
-  fireEvent.click(screen.getByRole('button',{name:'Vídeo'}));fireEvent.click(screen.getByRole('button',{name:'Trocar mídia'}))
-  fireEvent.change(screen.getByLabelText('Escolher vídeo'),{target:{files:[new File(['video'],'synthetic.mp4',{type:'video/mp4'})]}})
-  expect(screen.getByText('Etapa 1 de 4')).toBeVisible()
+  fireEvent.change(screen.getByLabelText('Vídeo pela câmera'),{target:{files:[new File(['video'],'synthetic.mp4',{type:'video/mp4'})]}})
+  fireEvent.click(screen.getByRole('button',{name:'Trocar mídia'}))
+  expect(screen.getByText('1 de 4 · Foto ou vídeo')).toBeVisible()
   fireEvent.click(screen.getByRole('button',{name:'Continuar'}));fireEvent.click(screen.getByRole('button',{name:'Continuar'}))
   fetchMock.mockResolvedValueOnce(Response.json({code:'VIDEO_VALIDATION_BUSY'},{status:503}))
   await submit();await screen.findByText(/O serviço de mídia está indisponível ou ocupado/)

@@ -1,3 +1,5 @@
+import { IconButton } from '../../components/ui/IconButton'
+import { QueryViewToggle } from '../../features/occurrence/QueryViewToggle'
 import { SimilarOccurrencesPanel } from '../../features/occurrence/SimilarOccurrencesReview'
 import { PasswordField } from '../../components/ui/PasswordField'
 import { OccurrenceStatus } from '../../features/occurrence/OccurrenceStatus'
@@ -38,19 +40,21 @@ export default function DesignSystemPage() {
         <p>Categoria e estado combinam-se imediatamente. Limpar preserva visão e escopo. Exemplo estático, sem consulta.</p>
         <div className="grid gap-3 sm:grid-cols-2">
           <Select label="Categoria"><option>Todas as categorias</option><option>Iluminação pública</option></Select>
-          <Select label="Estado"><option>Todos os estados permitidos</option><option>Pendente</option><option>Em análise</option><option>Resolvida</option></Select>
+          <Select label="Estado"><option>Todos os estados</option><option>Pendente</option><option>Em análise</option><option>Resolvida</option></Select>
         </div>
-        <p>Todas as categorias · Todos os estados permitidos</p>
-        <Button variant="quiet" disabled>Limpar filtros — exemplo</Button>
+        <p>Limpar filtros aparece somente com categoria ou estado ativo.</p>
+        <QueryViewToggle />
         <Alert>Na administração, Todos os relatos inclui Resolvida/Rejeitada. Ao voltar à fila, estado final é removido com aviso.</Alert>
       </Card>
       <Card><h2>Registro em quatro etapas</h2>
-        <ol className="grid gap-2"><li>Foto ou vídeo — primeira seleção válida avança cadastro uma vez.</li><li>Localização — mapa e sugestão GPS confirmada.</li><li>Informações — categoria, título e detalhes opcionais.</li><li>Revisão — resumo e sugestões próximas, única confirmação final.</li></ol>
+        <p className="font-bold">1 de 4 · Foto ou vídeo</p>
+        <div className="grid grid-cols-4 gap-2" aria-hidden="true"><span className="h-1.5 rounded-pill bg-brand-default" /><span className="h-1.5 rounded-pill bg-border-subtle" /><span className="h-1.5 rounded-pill bg-border-subtle" /><span className="h-1.5 rounded-pill bg-border-subtle" /></div>
+        <ol className="grid gap-2"><li>Foto ou vídeo — prévia horizontal e avanço por Continuar.</li><li>Localização — mapa e sugestão GPS confirmada.</li><li>Informações — categoria, título e detalhes opcionais.</li><li>Revisão — resumo e sugestões próximas, única confirmação final.</li></ol>
         <p>Etapas visitadas permanecem montadas, com foco no título/erro e estado preservado. Voltar não descarta. Sem entrada numérica de coordenadas ou autosave.</p>
       </Card>
       <Card><h2>Download do relatório administrativo</h2>
         <p>O PDF consulta os dados atuais; a referência consta no documento.</p>
-        <div className="flex flex-wrap gap-3"><Button variant="secondary" disabled>Baixar PDF — exemplo</Button><Button variant="secondary" aria-busy="true" aria-disabled="true">Gerando PDF… — exemplo</Button></div>
+        <div className="flex flex-wrap gap-3"><Button variant="secondary" disabled><Icon name="download" />PDF — exemplo</Button><Button variant="secondary" aria-busy="true" aria-disabled="true">Gerando PDF… — exemplo</Button></div>
         <p>Busy mantém o foco; a ação real impede clique repetido, cancela ao sair e preserva o painel se falhar.</p>
       </Card>
       <Card><h2>Sugestões de relatos próximos</h2>
@@ -61,12 +65,12 @@ export default function DesignSystemPage() {
             status: 'PENDING', createdAt: '2026-10-20T12:00:00Z', distanceMeters: 32.4 }] }} />
       </Card>
       <Card><h2>Fotos ou vídeo</h2>
-        <p>Uma a cinco fotos ou um vídeo MP4. Troca de modo exige confirmação; seleção local sem upload.</p>
+        <p>Uma a cinco fotos ou um vídeo MP4. Troca de tipo exige confirmação; seleção local sem upload.</p>
         <MediaPicker mode={mediaMode} onMode={setMediaMode} value={photos} onChange={setPhotos} onValidationChange={() => {}} />
       </Card>
       <Card><h2>Navegação e exploração</h2>
         <p>Ícone com rótulo visível; o shell adapta destinos ao papel. Controles compactos preservam o alvo de toque.</p>
-        <div className="flex flex-wrap gap-4"><span className="inline-flex items-center gap-2"><Icon name="map" />Mapa</span><span className="inline-flex items-center gap-2"><Icon name="plus" />Relatar</span><Button size="compact" disabled>Atualizar</Button><NotificationBell unreadCount={3} /></div>
+        <div className="flex flex-wrap gap-4"><span className="inline-flex items-center gap-2"><Icon name="map" />Mapa</span><span className="inline-flex items-center gap-2"><Icon name="plus" />Relatar</span><IconButton icon="location" label="Minha localização" disabled /><IconButton icon="frame" label="Enquadrar relatos" disabled /><IconButton icon="trash" label="Remover foto — exemplo" disabled /><NotificationBell unreadCount={3} /></div>
         <div className="mt-4"><PasswordRecoveryAccess /></div>
         <p className="mt-4 text-small">O sino ilustrativo mostra três notificações não lidas e aponta para a central privada. A recuperação de senha permanece indisponível. O resumo de seleção no mapa é não modal, com fechamento explícito e foto somente do relato escolhido.</p>
       </Card>

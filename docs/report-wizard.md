@@ -1,5 +1,10 @@
 # Registro e edição em quatro etapas
 
+A evolução da [ADR 0030](adr/0030-polir-interface-e-atualizar-consultas-visiveis.md)
+substitui o avanço automático da ADR 0027 por navegação manual. O progresso
+compacto “1 de 4 · Foto ou vídeo” tem barra com retornos acessíveis às etapas
+anteriores; revisão conserva atalhos de correção. Não há polling no rascunho.
+
 `/registrar-ocorrencia` e `/meus-relatos/:id/editar` usam o mesmo rascunho em
 `ReportOccurrencePage`, sem troca de rota entre etapas. O [ADR 0027](adr/0027-organizar-registro-em-etapas.md)
 registra a evolução de localização. Dependências reais preservadas:
@@ -9,10 +14,10 @@ registra a evolução de localização. Dependências reais preservadas:
 ## Experiência e validação
 
 1. **Foto ou vídeo:** 1–5 fotos ordenadas (primeira é capa) OU um MP4 nos limites
-   atuais. Primeira seleção local válida de cadastro avança uma vez; validação
-   pendente/cancelada/inválida não avança. Voltar permite adicionar, remover,
-   reordenar e escolher capa, com avanço manual por Continuar. Edição inicia aqui,
-   sem avançar por carregar mídia existente. A validação local não garante codecs
+   atuais. Entrada visual única com Câmera (Fotografar/Gravar vídeo) e Galeria. Selecionar
+   nunca avança: confira a prévia, adicione fotos e toque Continuar, no cadastro
+   e na edição. Uma foto ativa e miniaturas horizontais separam navegação de
+   reordenação/capa; os arquivos permanecem em memória. A validação local não garante codecs
    ou integridade do vídeo no servidor.
 2. **Localização:** mapa, sugestão GPS, bairro (2–100) e referência (5–200 pontos
    de código). Cadastro exige ponto confirmado; legado editável pode continuar sem
@@ -65,7 +70,10 @@ opt-in próprio; esta mudança não introduz obtenção automática nas consulta
 
 Etapas visitadas ficam montadas, ocultas com hidden/inert quando inativas. Campos,
 File/keys/ordem/capa, modo, ponto/sugestão e versão original ficam em memória.
-Não persistir arquivo/Blob/base64 em storage do navegador. Previews locais mantêm
+Não persistir arquivo/Blob/base64 em storage do navegador. Chaves de mídias
+novas são identidades locais do componente (useId + sequência), não UUIDs de
+negócio: seleção/captura não depende de crypto.randomUUID ou de origem HTTPS.
+IDs persistidos e manifesto HTTP continuam vindo do contrato existente. Previews locais mantêm
 suas URLs até remoção/troca/desmontagem; fotos privadas já carregadas são reutilizadas
 no resumo por callback local à página, sem cache global ou novo download. Requests
 pendentes de foto são cancelados ao ocultar; retorno pode repetir um download
@@ -94,8 +102,9 @@ ambiente local e storage de teste autorizado, seguindo configuração de registr
 segurança. Não acessar Neon/R2/Render/Vercel reais para executar testes automatizados.
 
 1. Abrir cadastro em 360px: só mídia visível. Galeria/câmera com seleção válida deve
-   avançar uma vez; cancelamento/arquivo inválido deve permanecer. Voltar, adicionar
-   foto, mudar capa e continuar manualmente; conferir ordem no resumo. Repetir com
+   manter a etapa; cancelamento/arquivo inválido preserva seleção. Continuar é
+   explícito. Voltar, adicionar
+   foto, mudar capa e continuar manualmente; conferir ordem no resumo sem confundir setas de navegação e ordem. Repetir com
    MP4 suportado e inválido. Captura física depende do aparelho/navegador.
 2. Na mesma versão/origem segura, permitir/negar GPS. Esperar sugestão sem ponto
    confirmado, precisão estimada e confirmação explícita. Toque durante GPS pendente

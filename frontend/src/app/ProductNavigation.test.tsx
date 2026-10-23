@@ -43,10 +43,10 @@ test.each([
 })
 
 test.each([
-  ['USER', ['Notificações', 'Registrar problema', 'Meus relatos']],
-  ['ADMIN', ['Moderar relatos']],
+  ['USER', []],
+  ['ADMIN', []],
   ['SUPER_ADMIN', []],
-] as const)('account preserves data and exact shortcuts for %s', async (role, shortcuts) => {
+] as const)('account preserves data and only session action for %s', async (role, shortcuts) => {
   mount('/minha-conta', role)
   await screen.findByRole('heading', { name: 'Minha conta' })
   const main = within(screen.getByRole('main'))

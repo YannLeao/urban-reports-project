@@ -3,7 +3,14 @@
 Refs #52. Modo fotos: coleção ordenada de **1 a 5 fotos**; posição zero é capa em cards,
 mapas e painéis. Galerias pública/própria/admin mostram a selecionada com navegação
 por botões. Seleção incremental na galeria (`multiple`) e captura nativa compartilham
-o mesmo conjunto; botões permitem mover, remover e definir capa por teclado/toque.
+o mesmo conjunto; seleção permanece na etapa até Continuar. O editor mostra
+uma foto inteira ativa, contador e miniaturas em faixa horizontal. Chevrons
+navegam sem reordenar; lixeira remove a ativa e seleciona vizinha. Usar como capa
+move a ativa à primeira posição; Organizar fotos oferece Mover antes/depois.
+O controle Adicionar fotos aparece até cinco. Slots estáveis conservam URLs
+locais e fotos privadas concluídas; miniaturas reutilizam prévias disponíveis,
+sem downloads privados apenas para preencher a faixa. [Entrada de mídia](occurrence-video.md)
+classifica lotes e confirma troca de tipo sem apagar seleção em recusa/cancelamento.
 `ImagePicker` singular permanece apenas na prova local `/prova-imagem`.
 
 ## API e dados

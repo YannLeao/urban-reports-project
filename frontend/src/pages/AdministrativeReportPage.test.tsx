@@ -23,9 +23,12 @@ const empty = { ...reference, total: 0, categories: reference.categories.map(ite
 beforeEach(() => {
   sessionStorage.clear(); fetchMock.mockReset(); vi.stubGlobal('fetch', withEmptyNotifications(fetchMock)); vi.stubEnv('VITE_API_URL', 'https://api.example.com')
 })
+let currentClient: QueryClient
+async function refreshReport() { await act(async () => { await currentClient.invalidateQueries({ queryKey: reportKey(user.id) }) }) }
 function mount(authenticated = true) {
   if (authenticated) sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ accessToken: 'synthetic-session', expiresAt: new Date(Date.now() + 1800000).toISOString() }))
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  currentClient = client
   const view = render(<QueryClientProvider client={client}><AuthProvider><MemoryRouter initialEntries={['/administracao/relatorio']}><App /></MemoryRouter></AuthProvider></QueryClientProvider>)
   return { client, ...view }
 }
@@ -54,10 +57,10 @@ test('direct route renders reference calculations, textual distributions and all
 
 test('empty dataset shows explicit empty distributions and null metrics', async () => {
   respond(empty); mount()
-  expect(await screen.findByText('Nenhum relato disponível. Sem dados para as distribuições.')).toBeVisible()
+  expect(await screen.findByText('Nenhum relato disponível.')).toBeVisible()
   expect(screen.getAllByText('Sem dados')).toHaveLength(2)
   expect(within(screen.getByRole('region', { name: 'Total de relatos' })).getByText('0')).toBeVisible()
-  expect(screen.getByText('Sem dados de localidades.')).toBeVisible()
+  expect(screen.queryByText('Sem dados de localidades.')).not.toBeInTheDocument()
 })
 
 test.each([0, 0.125, 172800])('real duration %s and zero rejected remain data', async seconds => {
@@ -88,28 +91,17 @@ test('initial network failure offers retry and never fills metrics with false ze
 test('failed refresh preserves existing data, marks it stale, then can recover', async () => {
   respond(); mount(); await screen.findByText('4 h')
   fetchMock.mockRejectedValueOnce(new TypeError('network'))
-  await userEvent.click(screen.getByRole('button', { name: 'Atualizar relatório' }))
+  await refreshReport()
   expect(await screen.findByRole('alert')).toHaveTextContent('Os dados abaixo não foram atualizados')
   expect(screen.getByText('4 h')).toBeVisible()
   await userEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }))
   await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
 })
 
-test('keyboard refresh retains focus and prevents another request while pending', async () => {
+test('healthy panel has only explicit PDF export and no permanent refresh action', async () => {
   respond(); mount(); await screen.findByText('4 h')
-  let resolve!: (response: Response) => void
-  fetchMock.mockImplementationOnce(() => new Promise<Response>(done => { resolve = done }))
-  const button = screen.getByRole('button', { name: 'Atualizar relatório' })
-  button.focus()
-  await userEvent.keyboard('{Enter}')
-  expect(button).toHaveFocus()
-  expect(button).toHaveAttribute('aria-disabled', 'true')
-  const requests = fetchMock.mock.calls.length
-  await userEvent.keyboard('{Enter}')
-  expect(fetchMock).toHaveBeenCalledTimes(requests)
-  await act(async () => resolve(Response.json(reference)))
-  await waitFor(() => expect(button).toHaveAttribute('aria-disabled', 'false'))
-  expect(button).toHaveFocus()
+  expect(screen.queryByRole('button', { name: 'Atualizar relatório' })).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Baixar relatório em PDF' })).toBeEnabled()
 })
 
 test.each(['USER', 'SUPER_ADMIN'])('%s cannot open the report or see its navigation', async role => {
@@ -128,7 +120,7 @@ test('anonymous direct route requests login', async () => {
 test.each([401, 403])('refresh denied with %s removes report data from UI and private cache', async status => {
   respond(); const { client } = mount(); await screen.findByText('4 h')
   fetchMock.mockResolvedValueOnce(new Response(null, { status }))
-  await userEvent.click(screen.getByRole('button', { name: 'Atualizar relatório' }))
+  await refreshReport()
   if (status === 401) {
     expect(await screen.findByRole('heading', { name: 'Entrar' })).toBeVisible()
     expect(sessionStorage.getItem(STORAGE_KEY)).toBeNull()
@@ -144,7 +136,7 @@ test('pending report uses cancellation and cannot populate another user cache', 
   let resolve!: (response: Response) => void
   fetchMock.mockResolvedValueOnce(Response.json(user)).mockImplementationOnce(() => new Promise<Response>(done => { resolve = done }))
   const { client, unmount } = mount()
-  await screen.findByText('Atualizando relatório…')
+  await screen.findByText('Carregando relatório…')
   await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
   const signal = fetchMock.mock.calls[1][1]?.signal
   unmount()
@@ -180,7 +172,7 @@ test('PDF export uses a new authenticated request, blocks repeated Enter and lea
   const snapshot = client.getQueryData(reportKey(user.id))
   let resolve!: (response: Response) => void
   fetchMock.mockImplementationOnce(() => new Promise<Response>(done => { resolve = done }))
-  const button = screen.getByRole('button', { name: 'Baixar PDF' }); button.focus()
+  const button = screen.getByRole('button', { name: 'Baixar relatório em PDF' }); button.focus()
   await userEvent.keyboard('{Enter}{Enter}')
   expect(button).toHaveFocus(); expect(button).toHaveAttribute('aria-busy', 'true')
   expect(screen.getByRole('status')).toHaveTextContent('Gerando PDF')
@@ -190,7 +182,7 @@ test('PDF export uses a new authenticated request, blocks repeated Enter and lea
   expect(create).toHaveBeenCalledTimes(1); expect(revoke).not.toHaveBeenCalled()
   expect(client.getQueryData(reportKey(user.id))).toBe(snapshot)
   expect(screen.getByText('4 h')).toBeVisible()
-  expect(screen.getByText('O PDF consulta os dados atuais; a referência consta no documento.')).toBeVisible()
+  expect(screen.queryByText('O PDF consulta os dados atuais; a referência consta no documento.')).not.toBeInTheDocument()
   const [, options] = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/pdf'))!
   expect(options?.headers).toMatchObject({ Authorization: 'Bearer synthetic-session' })
   expect(options?.signal).toBeInstanceOf(AbortSignal)
@@ -208,12 +200,12 @@ test.each(['mime', 'empty', 'json', 'html', 'broken', 'large', 'network', '500',
     return new Response(mode === 'empty' ? '' : mode === 'json' ? '{}' : mode === 'html' ? '<html></html>' : '%PDF-1.7 broken',
       { headers: { 'Content-Type': 'application/pdf', ...(mode === 'large' ? { 'Content-Length': String(17 * 1024 * 1024) } : {}) } })
   })
-  await userEvent.click(screen.getByRole('button', { name: 'Baixar PDF' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Baixar relatório em PDF' }))
   expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível gerar o PDF. Tente novamente')
   expect(create).not.toHaveBeenCalled(); expect(screen.getByText('4 h')).toBeVisible()
   expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/pdf'))).toHaveLength(1)
   fetchMock.mockResolvedValueOnce(validPdf())
-  await userEvent.click(screen.getByRole('button', { name: 'Baixar PDF' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Baixar relatório em PDF' }))
   await waitFor(() => expect(create).toHaveBeenCalledTimes(1))
 })
 
@@ -221,7 +213,7 @@ test.each([401, 403])('PDF %s follows session policy and hides private report', 
   const { create } = mockDownload()
   respond(); const { client } = mount(); await screen.findByText('4 h')
   fetchMock.mockResolvedValueOnce(Response.json({ code: 'ACCESS_DENIED' }, { status }))
-  await userEvent.click(screen.getByRole('button', { name: 'Baixar PDF' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Baixar relatório em PDF' }))
   if (status === 401) {
     expect(await screen.findByRole('heading', { name: 'Entrar' })).toBeVisible()
     expect(sessionStorage.getItem(STORAGE_KEY)).toBeNull()
@@ -238,7 +230,7 @@ test('unmount before headers cancels PDF and ignores late response', async () =>
   respond(); const { unmount } = mount(); await screen.findByText('4 h')
   let resolve!: (response: Response) => void
   fetchMock.mockImplementationOnce(() => new Promise<Response>(done => { resolve = done }))
-  await userEvent.click(screen.getByRole('button', { name: 'Baixar PDF' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Baixar relatório em PDF' }))
   const [, options] = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/pdf'))!
   unmount(); expect(options?.signal?.aborted).toBe(true)
   await act(async () => resolve(validPdf()))
@@ -250,7 +242,7 @@ test('leaving after headers cancels a pending PDF body and prevents a late downl
   respond(); const { unmount } = mount(); await screen.findByText('4 h')
   const cancel = vi.fn()
   fetchMock.mockResolvedValueOnce(new Response(new ReadableStream({ cancel }), { headers: { 'Content-Type': 'application/pdf' } }))
-  await userEvent.click(screen.getByRole('button', { name: 'Baixar PDF' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Baixar relatório em PDF' }))
   unmount()
   await waitFor(() => expect(cancel).toHaveBeenCalled())
   expect(create).not.toHaveBeenCalled()

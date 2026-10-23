@@ -1,3 +1,4 @@
+import { useLiveReadOptions } from '../../lib/live-query'
 import { emptyFilters, filterKey, filterQuery, type Filters } from './filters'
 import { useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
@@ -7,15 +8,15 @@ import { publicOccurrencePageSchema, publicOccurrenceSchema } from './public-occ
 export const PUBLIC_PAGE_SIZE = 20
 
 export function usePublicOccurrences(page: number, enabled = true, filters: Filters = emptyFilters) {
+  const live = useLiveReadOptions(enabled)
   return useQuery({
-    queryKey: ['public', 'occurrences', 'list', { page, size: PUBLIC_PAGE_SIZE, ...filterKey(filters) }], enabled,
+    queryKey: ['public', 'occurrences', 'list', { page, size: PUBLIC_PAGE_SIZE, ...filterKey(filters) }], ...live,
     queryFn: async ({ signal }) => {
       const response = await publicRequest(`/api/public/occurrences?page=${page}&size=${PUBLIC_PAGE_SIZE}${filterQuery(filters) ? `&${filterQuery(filters)}` : ''}`, signal)
       const payload: unknown = await response.json()
       return publicOccurrencePageSchema.parse(payload)
     },
-    retry: false,
-    refetchOnWindowFocus: false,
+
   })
 }
 

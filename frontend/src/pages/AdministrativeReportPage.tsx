@@ -1,3 +1,4 @@
+import { Icon } from '../components/ui/Icon'
 import { useReportPdf } from '../features/administration/report-pdf'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
@@ -13,22 +14,20 @@ export function AdministrativeReportPage() {
   const denied = pdf.denied || (query.error instanceof PrivateRequestError && query.error.status === 403)
   const report = denied ? undefined : query.data
   return <section className="min-w-0 py-8" aria-labelledby="report-title">
-    <h1 id="report-title">Relatório administrativo</h1>
-    <p>Uma visão dos relatos da comunidade, incluindo rejeitados.</p>
-    <div className="flex flex-wrap gap-3">
-    <Button aria-disabled={query.isFetching} onClick={() => { if (!query.isFetching) void query.refetch() }}>{query.isError ? 'Tentar novamente' : 'Atualizar relatório'}</Button>
-    <Button variant="secondary" aria-busy={pdf.busy} aria-disabled={pdf.busy || denied || query.isPending} onClick={() => { if (!query.isPending && !denied) void pdf.download() }}>{pdf.busy ? 'Gerando PDF…' : 'Baixar PDF'}</Button>
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <h1 id="report-title" className="mb-0">Relatório administrativo</h1>
+      <Button variant="secondary" aria-label="Baixar relatório em PDF" aria-busy={pdf.busy} aria-disabled={pdf.busy || denied || query.isPending}
+        onClick={() => { if (!query.isPending && !denied) void pdf.download() }}><Icon name="download" />{pdf.busy ? 'Gerando PDF…' : 'PDF'}</Button>
     </div>
-    <p className="mt-3 text-small">O PDF consulta os dados atuais; a referência consta no documento.</p>
     {pdf.busy && <p role="status">Gerando PDF…</p>}
     {pdf.error && <Alert tone="danger" role="alert">Não foi possível gerar o PDF. Tente novamente</Alert>}
     {pdf.denied && <Alert tone="danger" role="alert">Acesso negado ao relatório.</Alert>}
-    {query.isFetching && <p role="status">Atualizando relatório…</p>}
+    {query.isPending && <p role="status">Carregando relatório…</p>}
     {query.isError && <Alert className="my-5" tone="danger" role="alert">{denied ? 'Acesso negado ao relatório.'
-      : report ? 'Falha na atualização. Os dados abaixo não foram atualizados; tente novamente.' : 'Não conseguimos carregar o relatório. Tente novamente.'}</Alert>}
+      : report ? 'Falha na atualização. Os dados abaixo não foram atualizados; tente novamente.' : 'Não conseguimos carregar o relatório. Tente novamente.'} {!denied && <Button variant="quiet" loading={query.isFetching} onClick={() => { void query.refetch() }}>Tentar novamente</Button>}</Alert>}
     {report && <>
-      <p className="mt-4 text-small">Referência da consulta: <time dateTime={report.generatedAt}>{occurrenceDate(report.generatedAt)}</time>. Use atualizar para consultar novas mudanças.</p>
-      {report.total === 0 && <p role="status">Nenhum relato disponível. Sem dados para as distribuições.</p>}
+      <p className="mt-4 text-small">Consultado em <time dateTime={report.generatedAt}>{occurrenceDate(report.generatedAt)}</time>.</p>
+      {report.total === 0 && <p role="status">Nenhum relato disponível.</p>}
       <div className="my-6 grid gap-5 sm:grid-cols-3">
         <Card aria-labelledby="total-title"><h2 id="total-title" className="text-lead">Total de relatos</h2><p className="my-3 text-3xl font-bold wrap-anywhere">{report.total.toLocaleString('pt-BR')}</p></Card>
         <Card aria-labelledby="duration-title"><h2 id="duration-title" className="text-lead">Tempo médio de resolução</h2>
@@ -44,6 +43,7 @@ export function AdministrativeReportPage() {
       <details className="my-5">
         <summary className="min-h-target cursor-pointer py-3 font-bold underline">Como os indicadores são calculados</summary>
         <div className="max-w-reading text-small">
+          <p>O PDF faz uma nova consulta; sua referência pode diferir da apresentada no painel.</p>
           <p>O total inclui os relatos existentes nos quatro estados, inclusive rejeitados. Relatos excluídos não entram. Não há filtro de período.</p>
           <p>A média vai da criação à resolução, incluindo noites e fins de semana. {report.resolvedSampleSize} consideradas; {report.resolvedWithoutValidDuration} sem duração válida.</p>
           {report.averageResolutionSeconds !== null && <p>Valor em segundos: {preciseSeconds(report.averageResolutionSeconds)}.</p>}
@@ -57,7 +57,7 @@ export function AdministrativeReportPage() {
         <Card aria-labelledby="status-title"><h2 id="status-title">Por estado</h2><CountDistribution total={report.total} items={report.statuses.map(item => ({ key: item.status, label: occurrenceStatusLabel(item.status), count: item.count }))} /></Card>
       </div>
       <Card aria-labelledby="locality-title"><h2 id="locality-title">Por bairro/localidade</h2>
-        {report.localities.length === 0 ? <p>Sem dados de localidades.</p> : <table className="w-full table-fixed text-left">
+        {report.localities.length === 0 ? null : <table className="w-full table-fixed text-left">
           <caption className="sr-only">Contagem de relatos por bairro ou localidade</caption>
           <thead><tr><th scope="col" className="w-2/3 py-3 pr-3">Bairro/localidade</th><th scope="col" className="py-3 text-right">Relatos</th></tr></thead>
           <tbody>{report.localities.map(item => <tr key={JSON.stringify(item.locality)} className="border-t border-border-subtle"><th scope="row" className="break-words py-3 pr-3 font-normal">{item.locality ?? 'Não informado'}</th><td className="py-3 text-right">{item.count.toLocaleString('pt-BR')}</td></tr>)}</tbody>

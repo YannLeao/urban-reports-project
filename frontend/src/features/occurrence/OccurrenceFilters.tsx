@@ -43,15 +43,16 @@ export function OccurrenceFilters({ context, total }: { context: FilterContext; 
         {categories.data?.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
       </Select>
       <Select label="Estado" value={filters.status ?? ''} onChange={event => change({ status: event.target.value ? allowedStatuses(context, filters.scope).find(status => status === event.target.value) ?? null : null })}>
-        <option value="">Todos os estados permitidos</option>
+        <option value="">Todos os estados</option>
         {allowedStatuses(context, filters.scope).map(status => <option key={status} value={status}>{occurrenceStatusLabel(status)}</option>)}
       </Select>
     </div>
     {categories.isPending && <p role="status" className="m-0">Carregando categorias…</p>}
     {categories.isError && <Alert tone="danger">Não conseguimos carregar as categorias. <Button variant="secondary" onClick={() => { void categories.refetch() }}>Tentar carregar categorias novamente</Button></Alert>}
-    <div className="flex flex-wrap items-center gap-3">
-      <p className="m-0 text-small" role="status">{filters.categoryId === null ? 'Todas as categorias' : category?.name ?? 'Categoria selecionada'} · {filters.status ? occurrenceStatusLabel(filters.status) : 'Todos os estados permitidos'}{total !== undefined ? ` · ${total} relatos` : ''}</p>
+    {(filters.categoryId !== null || filters.status !== null) && <div className="flex flex-wrap items-center gap-3">
+      <p className="m-0 text-small" role="status">{[filters.categoryId !== null ? category?.name ?? 'Categoria selecionada' : null, filters.status ? occurrenceStatusLabel(filters.status) : null].filter(Boolean).join(' · ')}{total !== undefined ? ` · ${total} relatos` : ''}</p>
       <Button variant="quiet" onClick={() => change({ categoryId: null, status: null })}>Limpar filtros</Button>
-    </div>
+    </div>}
+    {filters.categoryId === null && filters.status === null && total !== undefined && total > 0 && <p role="status" className="m-0 text-small">{total} relatos</p>}
   </div>
 }

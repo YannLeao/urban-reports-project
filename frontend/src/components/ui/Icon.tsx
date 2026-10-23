@@ -1,4 +1,10 @@
 const paths = {
+  trash: 'M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7',
+  gallery: 'M3 3h18v18H3V3ZM3 17l6-6 4 4 3-3 5 5M16 7h.01',
+  chevronLeft: 'M15 5l-7 7 7 7',
+  chevronRight: 'M9 5l7 7-7 7',
+  download: 'M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5',
+  frame: 'M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6',
   play: 'M8 4l12 8-12 8V4Z',
   camera: 'M4 7h4l2-3h4l2 3h4v13H4V7ZM16 13a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z',
   eye: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z',

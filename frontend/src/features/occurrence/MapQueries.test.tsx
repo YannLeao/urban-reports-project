@@ -10,10 +10,9 @@ import type { OccurrenceMarker } from './markers'
 
 const mapCallbacks = vi.hoisted(() => ({ move: undefined as ((view: { latitude: number; longitude: number; zoom: number }) => void) | undefined }))
 
-vi.mock('../location/OccurrenceMap', () => ({ OccurrenceMap: ({ items, onSelect, onGroup, refresh, onView }: {
-  items: OccurrenceMarker[]; onSelect?: (id: string) => void; onGroup?: (items: OccurrenceMarker[]) => void; refresh?: { run: () => void }; onView?: (view: { latitude: number; longitude: number; zoom: number }) => void
+vi.mock('../location/OccurrenceMap', () => ({ OccurrenceMap: ({ items, onSelect, onGroup, onView }: {
+  items: OccurrenceMarker[]; onSelect?: (id: string) => void; onGroup?: (items: OccurrenceMarker[]) => void; onView?: (view: { latitude: number; longitude: number; zoom: number }) => void
 }) => { mapCallbacks.move = onView; return <div aria-label="Mapa simulado">
-  <button onClick={refresh?.run}>Atualizar mapa</button>
   <button onClick={() => { onSelect?.(items[0].id); onView?.({ latitude: -8, longitude: -36, zoom: 14 }) }}>Selecionar durante redimensionamento</button>
   {items.map(item => <button key={item.id} onClick={() => onSelect?.(item.id)}>Pino {item.title}</button>)}
   <button onClick={() => onGroup?.(items)}>Abrir grupo simulado</button>
@@ -30,8 +29,11 @@ beforeEach(() => {
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} })
   vi.stubEnv('VITE_API_URL', 'https://api.example.com')
 })
+let currentClient: QueryClient
+async function refreshMarkers() { await act(async () => { await currentClient.refetchQueries({ predicate: query => query.queryKey.includes('markers') }) }) }
 function renderPage(path = '/ocorrencias?visao=mapa&pagina=3') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  currentClient = client
   const view = render(<QueryClientProvider client={client}><AuthProvider><MemoryRouter initialEntries={[path]}><App /></MemoryRouter></AuthProvider></QueryClientProvider>)
   return { client, ...view }
 }
@@ -70,10 +72,10 @@ test('selects overlapping reports and returns from detail to the same map, page 
 test('failed refresh preserves prior markers with explicit stale feedback and supports recovery', async () => {
   fetchMock.mockResolvedValueOnce(Response.json(set)).mockRejectedValueOnce(new TypeError('private detail')).mockResolvedValue(Response.json({ items: [], total: 2, located: 0, unlocated: 2 }))
   renderPage(); await screen.findByText('Há 2 relatos sem ponto no mapa.')
-  await userEvent.click(screen.getByRole('button', { name: 'Atualizar mapa' }))
+  await refreshMarkers()
   expect(await screen.findByRole('alert')).toHaveTextContent('dados anteriores')
   expect(screen.getByRole('button', { name: 'Pino Relato 60' })).toBeVisible()
-  await userEvent.click(screen.getByRole('button', { name: 'Atualizar mapa' }))
+  await refreshMarkers()
   expect(await screen.findByText('Os relatos ainda não têm localização no mapa.')).toBeVisible()
 })
 test('rejects a partial/inconsistent response instead of claiming the set is complete', async () => {
@@ -86,7 +88,7 @@ test('empty and initial network failures remain distinct and list is always acce
   fetchMock.mockRejectedValueOnce(new TypeError('network')).mockResolvedValue(Response.json({ items: [], total: 0, located: 0, unlocated: 0 }))
   renderPage(); await screen.findByRole('alert')
   expect(screen.getByRole('link', { name: 'Lista' })).toBeVisible()
-  await userEvent.click(screen.getByRole('button', { name: 'Atualizar mapa' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }))
   expect(await screen.findByText('Ainda não há relatos nesta consulta.')).toBeVisible()
 })
 test('HTML-like titles render as text in selection and links', async () => {
@@ -105,7 +107,7 @@ test('private map uses session identity, user-scoped cache and clears it on sess
   const call = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/api/occurrences/markers'))!
   expect(call[1]?.headers).toEqual({ Authorization: 'Bearer synthetic-token' })
   fetchMock.mockResolvedValueOnce(Response.json({ code: 'UNAUTHORIZED' }, { status: 401 }))
-  await userEvent.click(screen.getByRole('button', { name: 'Atualizar mapa' }))
+  await refreshMarkers()
   await screen.findByRole('heading', { name: 'Entrar' })
   await waitFor(() => expect(client.getQueryCache().findAll({ queryKey: ['private'] })).toHaveLength(0))
   expect(screen.queryByText(/63 relatos/)).toBeNull()
@@ -186,7 +188,7 @@ test('private selection reads only its own detail/photo with Bearer and releases
   expect(imageCall[1]?.headers).toEqual({ Authorization: 'Bearer synthetic-token' })
   expect(client.getQueryData(['private', person.id, 'occurrences', 'detail', markers[0].id])).toMatchObject({ title: 'Relato 0' })
   fetchMock.mockResolvedValueOnce(new Response(null, { status: 401 }))
-  await userEvent.click(screen.getByRole('button', { name: 'Atualizar mapa' }))
+  await refreshMarkers()
   await screen.findByRole('heading', { name: 'Entrar' })
   expect(client.getQueryCache().findAll({ queryKey: ['private'] })).toHaveLength(0)
   expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:selected-photo')

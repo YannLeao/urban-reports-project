@@ -43,6 +43,13 @@ reduz somente padding horizontal, mantendo o alvo mínimo; links usam o terceiro
 argumento de `buttonStyles(variant, className, 'compact')`. Uma ação principal
 por contexto.
 
+## IconButton
+
+`IconButton` compõe Button e Icon com nome acessível obrigatório (`label`),
+title, alvo fixo 44×44 e ícone decorativo. Loading mantém o mesmo tamanho,
+aria-busy e bloqueio nativo; sem símbolo adicional que expanda o controle.
+Use para ações locais reconhecíveis; ações principais conservam texto curto.
+
 ## Field, Input, Textarea e Select
 
 ```tsx
@@ -147,11 +154,12 @@ HTML, que contaria unidades UTF-16. Foto e conteúdo precedem ações e históri
 
 ## Localização confirmada
 
-`features/location/LocationPicker` compõe mapa, resumo textual, Input/Button e
-GPS opt-in. Clique confirma; coordenadas digitadas ou sugeridas exigem botão de
-confirmação. O catálogo oferece abertura explícita para não consultar terceiros
-antes da ação. Texto de erro associa Latitude e recebe foco pelo formulário.
-Sem tiles, a alternativa textual continua disponível. O mapa permite teclado,
+`features/location/LocationPicker` compõe mapa, resumo textual e Button. Clique
+confirma; GPS sugere e exige confirmação. No cadastro, tentativa única na primeira
+visita à etapa; edição usa ação voluntária. Não há inputs numéricos. Setas + Enter
+confirmam o centro por teclado; sugestão válida pode ser confirmada sem tiles.
+O catálogo abre o mapa explicitamente para não consultar terceiros antes da ação.
+Erro é associado ao fieldset e recebe foco conforme o formulário. O mapa permite teclado,
 zoom por controles e preserva rolagem por roda; sua altura responde ao layout.
 
 Leaflet fornece CSS próprio carregado sob demanda: exceção de integração de
@@ -239,15 +247,21 @@ A composição é coberta por NotificationsPage.test.tsx; não há novo componen
 
 ### Coleção de fotografias
 
-`PhotoCollectionPicker` reutiliza Button/Alert e tokens existentes para contador, prévias, remoção e reordenação acessível. Primeira foto é capa. `OccurrenceGallery` mantém foto inteira, posição e botões anterior/próxima apenas quando há múltiplas. Cards/mapas mantêm composição e capa original, sem baixar coleção inteira. Não gera thumbnails. [Contrato](../multiple-photos.md).
+`PhotoCollectionPicker` é o editor de uma foto ativa com faixa de miniaturas;
+chevrons só navegam, lixeira remove a ativa, capa e ordem têm ações separadas.
+URLs ficam em slots estáveis e são reutilizadas pelas miniaturas/revisão.
+`MediaPicker` centraliza seleção/validação e Alert; cadastro/edição só avançam por Continuar. Primeira foto é capa. `OccurrenceGallery` mantém foto inteira, posição e botões anterior/próxima apenas quando há múltiplas. Cards/mapas mantêm composição e capa original, sem baixar coleção inteira. Não gera thumbnails. [Contrato](../multiple-photos.md).
 
 
 ### Fotos ou vídeo
 
-`MediaPicker` compõe `PhotoCollectionPicker` e seleção única MP4. Botões Fotos/Vídeo
-usam aria-pressed e diálogo nativo de confirmação antes de limpar mídia escolhida.
-Cancelar preserva rascunho; a persistência só muda com sucesso do envio. Limites e
-recusa de MOV/HEVC ficam visíveis junto ao campo. Não há etapa de Wizard nova.
+`MediaPicker` compõe entrada grande Adicionar foto ou vídeo, menu curto de
+câmera (Fotografar/Gravar vídeo) e Galeria. Tipo é classificado a partir do lote,
+sem seletor prévio de modo. Inputs nativos escondidos são acionados por botões
+acessíveis; vídeo solicita capture=environment. Galeria aceita seleção múltipla,
+mas vídeo exige arquivo único. Troca de tipo válido pede confirmação; cancelamento
+e recusa preservam o rascunho. Formatos e limites ficam em ajuda expansível.
+Não há captura universal, gravação própria ou conversão de codec.
 
 `VideoPlaceholder` usa Icon/play, tokens existentes e duração textual, sem poster
 nem GET automático. `OccurrenceVideo` oferece Carregar vídeo e player responsivo
@@ -266,7 +280,7 @@ puro com fixture sintética, sem request. [Contrato e roteiro](../similar-occurr
 
 ## Registro em etapas
 
-[Wizard](../report-wizard.md) usa progresso textual “Etapa X de 4”, navegação
+[Wizard](../report-wizard.md) usa progresso compacto “X de 4 · Nome”, barra e navegação
 de retorno por botões sem semântica de tabs, título focável e hidden/inert para
 etapas inativas. Ações finais de semelhantes usam enviar/salvar conforme modo,
 com retry manual. Controle de localização com Icon location dentro do mapa usa
@@ -275,9 +289,10 @@ alvo mínimo de 44×44, nome/tooltip e estado busy; clique não confirma pino.
 ## Filtros de consultas
 
 `OccurrenceFilters` compõe Select Categoria/Estado com labels persistentes,
-Button Limpar filtros, resumo textual/total e Alert para URL ajustada ou catálogo
+Button Limpar filtros apenas com seleção ativa, resumo compacto/total e Alert para URL ajustada ou catálogo
 indisponível com retry. Uma coluna em mobile, duas quando couber. Lista/Mapa
-compartilham os mesmos critérios acima do conteúdo. Administração oferece
+compartilham critérios e usam Links em controle segmentado com ícones e alvo mínimo.
+Mapas têm localização/enquadramento internos com IconButton; sem refresh permanente. Administração oferece
 Fila de moderação/Todos os relatos antes dos selects, com aria-pressed; voltar
 à fila remove estado final e informa o ajuste. Usa tokens/componentes existentes.
 [Contrato e navegação](../occurrence-filters.md).
