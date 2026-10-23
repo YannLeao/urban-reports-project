@@ -41,8 +41,12 @@ evento. Não fabrica eventos para relatos sem histórico. Ver [ADR 0021](adr/002
 `/notificacoes` e sino são exclusivos de USER. A lista pagina de 20 em 20, exibe
 estado de leitura, horário e link para o relato. Marcar leitura atualiza o contador
 global e as páginas em cache. Consulta falha oferece retry; leitura falha permite
-repetir. A atualização é manual ou ao entrar na central, sem polling. O sino
-não promete aviso imediato enquanto a pessoa permanece em outra página.
+repetir. A consulta atualiza automaticamente a cada 120 segundos enquanto a aba
+estiver visível, inclusive pelo sino nas outras páginas de USER autenticado.
+Sino e primeira página compartilham a mesma chave; páginas diferentes mantêm
+consultas próprias. A central não tem botão permanente de atualização; Tentar
+novamente aparece em erro. Aba oculta pausa os ticks de rede e sessão encerrada
+interrompe consultas privadas. Não há push nem promessa de aviso imediato.
 401 encerra a sessão; 403/rede preservam credencial e permitem recuperação.
 
 `NotificationIntegrationTests` valida HTTP com cadeia real, autoria, paginação,
@@ -52,6 +56,7 @@ incluindo a notificação visível. `NotificationsPage.test.tsx` cobre contrato 
 Query/fetch/schema, sino, paginação, leitura, falhas e 401/403, sem API remota.
 
 No ambiente publicado, validar com contas sintéticas: ADMIN altera um relato,
-autor atualiza a central e lê o aviso; outro cidadão não o lista nem o marca.
+autor aguarda a atualização automática da central e lê o aviso; outro cidadão
+não o lista nem o marca.
 Rejeitar outro relato com explicação e conferir conteúdo, teclado e layout móvel.
 Registrar SHA, pipeline e evidências na MR; testes locais não comprovam deploy.

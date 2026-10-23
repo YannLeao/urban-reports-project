@@ -90,14 +90,15 @@ produção apenas para facilitar apresentação.
 `NotificationsAccess`, no shell de USER autenticado, abre `/notificacoes` com
 nome acessível e contagem total de não lidas, independente da página aberta.
 O badge mostra até 99+; o nome acessível preserva a contagem completa. Falha de
-consulta não inventa contagem zero. A central e o acesso em Minha conta exigem
+consulta não inventa contagem zero. A central e o sino exigem
 USER, com a mesma restrição no servidor; ADMIN/SUPER_ADMIN não herdam esse fluxo.
 
 A central usa sessão e cache privado por usuário/página, paginação de 20 itens,
-atualização manual, retry e marcação idempotente de leitura. Cada item mostra
-mensagem, horário, estado textual e link para o relato privado. Não há polling,
-push ou atualização em tempo real; entrar na central ou atualizar consulta o
-servidor novamente. Contrato: [notificações](notifications.md).
+atualização automática a cada 120 segundos, retry de erro e marcação idempotente
+de leitura. Cada item mostra mensagem, horário, estado textual e link para o
+relato privado. O sino mantém esse polling também nas outras páginas, com pausa
+em aba oculta; não há botão permanente Atualizar, push ou atualização em tempo
+real. Contrato: [notificações](notifications.md).
 
 `PasswordRecoveryAccess`, após a senha do login, continua como texto auxiliar
 “Recuperação de senha em breve”, sem href, submit ou e-mail simulado.
