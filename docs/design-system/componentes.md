@@ -260,7 +260,7 @@ câmera (Fotografar/Gravar vídeo) e Galeria. Tipo é classificado a partir do l
 sem seletor prévio de modo. Inputs nativos escondidos são acionados por botões
 acessíveis; vídeo solicita capture=environment. Galeria aceita seleção múltipla,
 mas vídeo exige arquivo único. Troca de tipo válido pede confirmação; cancelamento
-e recusa preservam o rascunho. Formatos e limites ficam em ajuda expansível.
+e recusa preservam o rascunho. Formatos e limites são validados na seleção e no envio.
 Não há captura universal, gravação própria ou conversão de codec.
 
 `VideoPlaceholder` usa Icon/play, tokens existentes e duração textual, sem poster
