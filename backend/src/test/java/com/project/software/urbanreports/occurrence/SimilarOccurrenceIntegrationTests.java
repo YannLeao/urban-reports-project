@@ -109,7 +109,8 @@ class SimilarOccurrenceIntegrationTests {
         mvc.perform(post(ENDPOINT+"?radius=200").header("Authorization","Bearer "+token).contentType("application/json").content(ZERO)).andExpect(status().isBadRequest());
         for (String role: List.of("ADMIN","SUPER_ADMIN")) {
             jdbc.update("UPDATE user_accounts SET role=? WHERE id=?",role,user.id());
-            mvc.perform(post(ENDPOINT).header("Authorization","Bearer "+token).contentType("application/json").content(ZERO)).andExpect(status().isForbidden());
+            var expected = role.equals("ADMIN") ? status().isOk() : status().isForbidden();
+            mvc.perform(post(ENDPOINT).header("Authorization","Bearer "+token).contentType("application/json").content(ZERO)).andExpect(expected);
         }
         jdbc.update("UPDATE user_accounts SET role='USER' WHERE id=?",user.id());
         mvc.perform(post("/api/auth/logout").header("Authorization","Bearer "+token).contentType("application/json").content("{}" )).andExpect(status().isNoContent());

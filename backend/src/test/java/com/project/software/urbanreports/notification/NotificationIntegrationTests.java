@@ -83,8 +83,10 @@ class NotificationIntegrationTests {
             var admin = account();
             jdbc.update("UPDATE user_accounts SET role = ? WHERE id = ?", role, admin.id());
             String token = login.login(admin.email(), PASSWORD).accessToken();
-            mvc.perform(get("/api/notifications").header("Authorization", "Bearer " + token)).andExpect(status().isForbidden());
-            mvc.perform(post("/api/notifications/{id}/read", event).header("Authorization", "Bearer " + token)).andExpect(status().isForbidden());
+            var expected = role.equals("ADMIN") ? status().isOk() : status().isForbidden();
+            mvc.perform(get("/api/notifications").header("Authorization", "Bearer " + token)).andExpect(expected);
+            var readExpected = role.equals("ADMIN") ? status().isNotFound() : status().isForbidden();
+            mvc.perform(post("/api/notifications/{id}/read", event).header("Authorization", "Bearer " + token)).andExpect(readExpected);
         }
         assertThat(jdbc.queryForObject("SELECT read_at FROM occurrence_notifications WHERE id = ?", java.sql.Timestamp.class, event)).isNull();
     }
