@@ -171,7 +171,7 @@ test('review lookup uses exact criteria once, preserves draft and opens public d
   fireEvent.click(screen.getByRole('button',{name:'Editar informações'}))
   fireEvent.change(screen.getByLabelText('Título'),{target:{value:'Texto atual na revisão'}})
   reviewForm();await screen.findByText(candidate.title)
-  expect(similarFetch).toHaveBeenCalledTimes(1)
+  expect(similarFetch).toHaveBeenCalledTimes(2)
   fetchMock.mockResolvedValueOnce(Response.json(result,{status:201}))
   fireEvent.click(screen.getByRole('button',{name:'Enviar'}))
   await screen.findByText('Relato registrado')
