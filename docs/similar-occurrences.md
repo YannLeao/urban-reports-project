@@ -7,8 +7,9 @@ até uma confirmação adicional explícita. Não há revisão adicional depois 
 
 ## Contrato
 
-`POST /api/occurrences/similar`, Bearer de USER ativo, sessão válida/revogável,
-`Content-Type: application/json`. Corpo até 8192 bytes, sem query string:
+`POST /api/occurrences/similar`, Bearer de USER ou ADMIN ativo, sessão válida/revogável,
+`Content-Type: application/json`. Corpo até 8192 bytes, sem query string.
+O endpoint exige papel USER ou ADMIN ativo e sessão válida/revogável:
 
 ```json
 {"categoryId":2,"latitude":-8.336,"longitude":-36.424,"excludeOccurrenceId":"00000000-0000-4000-8000-000000000001"}

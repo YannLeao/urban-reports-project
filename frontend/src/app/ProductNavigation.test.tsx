@@ -17,7 +17,7 @@ function mount(path = '/', role?: string) {
 }
 test.each([
   ['USER', ['Mapa', 'Relatar', 'Meus relatos', 'Conta'], ['Fila', 'Relatório', 'Administradores', 'Entrar']],
-  ['ADMIN', ['Fila', 'Relatório', 'Conta'], ['Relatar', 'Meus relatos', 'Administradores']],
+  ['ADMIN', ['Fila', 'Relatório', 'Relatar', 'Meus relatos', 'Notificações', 'Conta'], ['Administradores']],
   ['SUPER_ADMIN', ['Administradores', 'Conta'], ['Fila', 'Relatório', 'Relatar', 'Meus relatos']],
 ])('navigation and home for %s respect the exact role', async (role, allowed, absent) => {
   mount('/', role)
@@ -26,7 +26,7 @@ test.each([
   for (const name of allowed) expect(nav.getByRole('link', { name })).toBeVisible()
   for (const name of absent) expect(nav.queryByRole('link', { name })).toBeNull()
   expect(screen.queryByRole('link', { name: 'Criar conta' })).toBeNull()
-  if (role !== 'USER') expect(screen.queryByRole('link', { name: 'Relatar problema' })).toBeNull()
+  if (role === 'SUPER_ADMIN') expect(screen.queryByRole('link', { name: 'Relatar problema' })).toBeNull()
   else {
     expect(screen.getByRole('link', { name: /^Notificações/ })).toHaveAttribute('href', '/notificacoes')
   }

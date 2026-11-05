@@ -21,16 +21,25 @@ paralelismo 1, salt 16 bytes e hash 32 bytes, sem normalizar senhas.
 | GET `/api/public/occurrence-categories` | Público, somente id/name; GET exato |
 | GET `/api/occurrence-categories` | Sessão válida; oito categorias |
 | GET `/api/occurrences` e `/api/occurrences/{id}` | Sessão válida; somente autoria própria; detalhe alheio/inexistente retorna 404; [contrato](occurrence-query.md) |
-| POST `/api/occurrences` | Sessão válida, papel USER; multipart conforme [contrato](occurrence-registration.md); autor e PENDING definidos no servidor |
+| POST `/api/occurrences` | Sessão válida, papel USER ou ADMIN ativo; multipart conforme [contrato](occurrence-registration.md); autor e PENDING definidos no servidor |
 | GET/HEAD caminhos Swagger já existentes | Disponíveis somente com dev explícito; base/prod retornam 404 |
 | GET/POST `/api/super-admin/admins` e subrotas | SUPER_ADMIN ativo; gestão/convites/desativação |
 | GET/POST `/api/admin/occurrences` e subrotas | ADMIN ativo; fila, detalhe, imagem e transições |
 | GET `/api/admin/reports/occurrences` | ADMIN ativo exato; agregados privados, no-store; [contrato](occurrence-report.md) |
-| GET `/api/notifications` | USER ativo; somente notificações próprias e contagem global de não lidas |
-| POST `/api/notifications/{id}/read` | USER ativo; revalida conta/sessão sob lock; leitura própria idempotente |
+| GET `/api/notifications` | USER ou ADMIN ativo; somente notificações próprias e contagem global de não lidas |
+| POST `/api/notifications/{id}/read` | USER ou ADMIN ativo; revalida conta/sessão sob lock; leitura própria idempotente |
 | POST `/api/auth/admin-activations` | Público, JSON limitado; confirmação de convite, sem sessão automática |
 | Storage técnico, Actuator, demais caminhos e `/error` direto | denyAll; 401 anônimo, 403 autenticado |
 | Dispatch interno ERROR | Preserva processamento/status original |
+
+### Registro por ADMIN
+
+ADMIN ativo pode registrar ocorrências, consultar semelhantes, acompanhar e editar
+os próprios relatos, além de receber e marcar suas notificações. Seus relatos não
+entram na fila de moderação e transições sobre eles são recusadas para evitar
+conflito de interesse. SUPER_ADMIN não herda permissões de USER ou ADMIN e não
+pode registrar, consultar/editar relatos próprios ou receber notificações por
+essas rotas.
 
 Login recebe apenas email/password (8 KiB no máximo), normaliza o e-mail pela
 mesma regra do cadastro e usa matches na senha exata, limitada a 256 unidades
@@ -179,7 +188,7 @@ exigem parada coordenada, com recuperação por avanço em vez de desfazer migra
 ## Sugestões por proximidade
 
 O formulário de cadastro/edição oferece revisão informativa antes da gravação.
-`POST /api/occurrences/similar` é consulta JSON exclusiva de USER ativo, sem upload,
+`POST /api/occurrences/similar` é consulta JSON de USER ou ADMIN ativo, sem upload,
 com 100 m/mesma categoria/ativos/até cinco e exclusão própria na edição.
 Contrato, minimização, falhas, integração futura e roteiro em
 [sugestões de relatos próximos](similar-occurrences.md).

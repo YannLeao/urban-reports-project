@@ -39,7 +39,7 @@ public class ModerationService {
             access.lock(actor, AccountRole.ADMIN);
             AdminProvisioningService.checkPage(page, size);
             var criteria = filters.parse(params, OccurrenceFilters.Context.ADMIN);
-            var result = occurrences.findAll(criteria.specification(OccurrenceFilters.Context.ADMIN, null),
+            var result = occurrences.findAll(criteria.specification(OccurrenceFilters.Context.ADMIN, actor.userId()),
                     PageRequest.of(page, size, Sort.by("createdAt", "id")));
             return new Queue(result.map(OccurrenceResponse::administrative).getContent(), page, size, result.getTotalElements(), result.getTotalPages());
         });
@@ -64,6 +64,7 @@ public class ModerationService {
             access.lock(actor, AccountRole.ADMIN);
             var command = input.validated();
             var occurrence = occurrences.lockById(id).orElseThrow(() -> new OccurrenceNotFoundException(id));
+            if (occurrence.getAuthorId().equals(actor.userId())) throw new org.springframework.security.access.AccessDeniedException("Access denied");
             command.check(occurrence.getStatus(), occurrence.getVersion(), match);
             var previous = occurrence.getStatus();
             occurrence.moderate(command.target());

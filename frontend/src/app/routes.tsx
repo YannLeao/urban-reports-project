@@ -45,7 +45,7 @@ export function AppRoutes() {
           <Route path="/administracao/relatos" element={<ModerationQueuePage />} />
           <Route path="/administracao/relatos/:id" element={<ModerationDetailPage />} />
         </Route>
-        <Route element={<RoleRoute role="USER" />}>
+        <Route element={<RoleRoute role={['USER', 'ADMIN']} />}>
         <Route path="/notificacoes" element={<NotificationsPage />} />
         <Route path="/registrar-ocorrencia" element={<ReportOccurrencePage />} />
         <Route path="/meus-relatos" element={<MyReportsPage />} />

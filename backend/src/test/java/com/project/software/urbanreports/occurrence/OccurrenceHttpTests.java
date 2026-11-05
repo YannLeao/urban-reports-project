@@ -65,6 +65,18 @@ class OccurrenceHttpTests {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM occurrence_notification_email_deliveries", Long.class)).isEqualTo(initial);
     }
 
+    @Test void activeAdminCanRegisterEditListAndQuerySimilarOccurrences() throws Exception {
+        jdbc.update("UPDATE user_accounts SET role='ADMIN' WHERE id=?", author);
+        var created = upload(valid(), token);
+        assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
+        var id = mapper.readTree(created.body()).get("id").asString();
+        assertThat(action("/api/occurrences/" + id, "GET", token, null).statusCode()).isEqualTo(200);
+        assertThat(multipart("/api/occurrences/" + id, "PUT", valid(), token, "\"0\"").statusCode()).isEqualTo(200);
+        assertThat(json("/api/occurrences/similar",
+                Map.of("categoryId", 1, "latitude", -8.336, "longitude", -36.424), token).statusCode()).isEqualTo(200);
+        assertThat(action("/api/notifications", "GET", token, null).statusCode()).isEqualTo(200);
+    }
+
     @Test void locationContractRejectsInvalidPairsBeforeUpload() throws Exception {
         var absent = valid(); absent.removeIf(part -> List.of("latitude", "longitude").contains(part.name()));
         reject(absent, 400);
@@ -820,7 +832,7 @@ class OccurrenceHttpTests {
     HttpResponse<String> send(HttpRequest.Builder builder) throws Exception {
         return client.send(builder.timeout(Duration.ofSeconds(30)).build(), HttpResponse.BodyHandlers.ofString());
     }
-    HttpResponse<String> json(String path, Map<String, String> body, String credential) throws Exception {
+    HttpResponse<String> json(String path, Map<String, ?> body, String credential) throws Exception {
         var request = HttpRequest.newBuilder(uri(path)).header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(body)));
         if (credential != null) request.header("Authorization", "Bearer " + credential);

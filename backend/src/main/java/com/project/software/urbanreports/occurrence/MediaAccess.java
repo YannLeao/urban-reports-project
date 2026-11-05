@@ -22,7 +22,7 @@ public class MediaAccess {
             access.check(actor, AccountRole.ADMIN);
             report = reports.findById(id).orElseThrow(() -> new OccurrenceNotFoundException(id));
         } else {
-            access.check(actor, AccountRole.USER);
+            access.checkAny(actor, AccountRole.USER, AccountRole.ADMIN);
             report = reports.findByIdAndAuthorId(id, actor.userId()).orElseThrow(() -> new OccurrenceNotFoundException(id));
         }
         var item = report.getMedia().stream().filter(m -> m.getId().equals(mediaId)).findFirst()
