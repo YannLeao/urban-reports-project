@@ -18,6 +18,7 @@ function Example() {
 }
 it('classifies gallery/capture, confirms type changes and preserves previous selection on cancel/invalid batches', () => {
   render(<Example />)
+  expect(screen.queryByText('Formatos e limites')).not.toBeInTheDocument()
   const input = screen.getByLabelText('Fotos ou vídeo da galeria')
   const file = new File(['synthetic'], 'synthetic.mp4', { type: 'video/mp4' })
   fireEvent.change(input, { target: { files: [file] } })

@@ -148,8 +148,8 @@ navegador/aparelho decide o caminho efetivo. Não há gravador próprio nem gara
 de MP4 H.264 pela câmera. MOV/HEVC e lotes mistos/múltiplos vídeos são recusados
 localmente; integridade/codec/duração completos continuam sendo validados no servidor.
 Troca de tipo válido pede confirmação, cancelamento preserva o conjunto anterior.
-Seleção nunca muda etapa; Continuar é explícito. Restrições completas ficam em
-Formatos e limites; nenhum input nativo visível impõe largura ao layout.
+Seleção nunca muda etapa; Continuar é explícito. Restrições completas são
+validadas na seleção e no envio; nenhum input nativo visível impõe largura ao layout.
 
 ## Runtime, validação local e roteiro manual
 
