@@ -407,7 +407,7 @@ test('visited media stays mounted: private cover preview is reused in review and
   fireEvent.click(screen.getByRole('button',{name:'Continuar'}));fireEvent.click(screen.getByRole('button',{name:'Continuar'}))
   await screen.findByRole('option',{name:'Iluminação pública'})
   fireEvent.click(screen.getByRole('button',{name:'Revisar'}))
-  expect(screen.getByRole('img',{name:'Capa do relato em revisão'})).toHaveAttribute('src','blob:private-photo')
+  expect(screen.getByRole('img',{name:'Foto 1 de 1 do relato em revisão (capa)'})).toHaveAttribute('src','blob:private-photo')
   fireEvent.click(screen.getByRole('button',{name:'Editar mídia'}))
   expect(screen.getByRole('img',{name:`Foto do problema: ${report.title}`})).toHaveAttribute('src','blob:private-photo')
   expect(downloads()).toBe(1);expect(URL.revokeObjectURL).not.toHaveBeenCalled()
