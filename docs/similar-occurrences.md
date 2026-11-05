@@ -52,7 +52,9 @@ reutiliza a revisão atual; mudar categoria/ponto/usuário descarta resultado e 
 `SimilarOccurrencesReview` apresenta carregamento, sucesso vazio, sugestões,
 indisponibilidade e legado sem ponto. Oferece “Revisar meu relato” e confirmação
 explícita; com sugestões, “É outro relato, enviar”/“É outro relato, salvar”. Falha auxiliar oferece
-“Consultar novamente” e “Enviar mesmo assim”/“Salvar mesmo assim”. Atualização manual também é oferecida após sucesso. Durante carregamento, confirmação
+“Enviar mesmo assim”/“Salvar mesmo assim”, sem bloquear a conclusão. Não há ação
+manual de retry na revisão: sair para uma etapa anterior e avançar novamente reabre
+a revisão e dispara uma nova consulta automaticamente. Durante carregamento, confirmação
 fica indisponível. 403 informa falta de acesso, sem bypass; 401 encerra sessão.
 Enter apenas abre revisão. Guarda síncrona impede dupla gravação; handler final
 revalida campos, mídia pronta e critérios. Textos, File/ordem/capa, ponto e versão
@@ -92,7 +94,8 @@ storage de teste conforme guias de registro/segurança. Não apontar para produ�
    original mesmo após leitura de detalhe em segundo plano. Legado sem ponto
    informa não execução e ainda permite salvar sem coordenadas.
 5. Simular rede/503/timeout/JSON inválido somente em fetch/proxy local controlado:
-   erro distinto de vazio; retry manual e envio explícito preservam dados. 401 deve
+   erro distinto de vazio; voltar e avançar novamente reconsulta, e o envio explícito
+   preserva dados. 401 deve
    encerrar sessão, 403 mantê-la e mostrar falta de acesso. Falha/resultado incerto
    de escrita não pode gerar repetição automática.
 6. Rejeitar/excluir candidato após busca: abrir detalhe/mídia deve retornar 404.
