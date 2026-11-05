@@ -114,6 +114,9 @@
   Chaves RSA externas são obrigatórias em todos os perfis (docs/security.md).
   Login e recuperação usam lock da conta antes de alterar sessões; revogação
   global exige transação do chamador conforme docs/password-recovery-integration.md.
+  Recuperação usa executor Spring limitado, reserva antes de emissão, sem retries;
+  origem dedicada RECOVERY_FRONTEND_ORIGIN e limites locais/proxies explícitos
+  seguem o mesmo guia. Não reutilizar a fila de notificações para segredos.
   Frontend guarda só token/expiração em sessionStorage; consultas privadas usam
   `['private', userId, ...]`, geração do contexto e cancelamento. 401 encerra sessão,
   403/rede não. Logout falho preserva token para repetir.

@@ -18,6 +18,8 @@ import { OccurrenceDetailPage } from '../pages/OccurrenceDetailPage'
 import { PublicOccurrencesPage } from '../pages/PublicOccurrencesPage'
 import { PublicOccurrenceDetailPage } from '../pages/PublicOccurrenceDetailPage'
 import { NotificationsPage } from '../pages/NotificationsPage'
+import { PasswordRecoveryRequestPage } from '../pages/PasswordRecoveryRequestPage'
+import { PasswordResetPage } from '../pages/PasswordResetPage'
 
 const DesignSystemPage = import.meta.env.DEV
   ? lazy(() => import('../pages/dev/DesignSystemPage'))
@@ -34,6 +36,8 @@ export function AppRoutes() {
       <Route path="/ocorrencias/:id" element={<PublicOccurrenceDetailPage />} />
       <Route path="/prova-imagem" element={ImageProofPage ? <Suspense fallback={<p role="status">Carregando ferramenta…</p>}><ImageProofPage /></Suspense> : <NotFoundPage />} />
       <Route path="/entrar" element={<LoginPage />} />
+      <Route path="/esqueci-minha-senha" element={<PasswordRecoveryRequestPage />} />
+      <Route path="/redefinir-senha" element={<PasswordResetPage />} />
       <Route path="/ativar-administrador" element={<AdminActivationPage />} />
       <Route element={<PrivateRoute />}>
         <Route path="/minha-conta" element={<AccountPage />} />

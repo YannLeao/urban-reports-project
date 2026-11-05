@@ -57,16 +57,17 @@ await test('generated routes serve files first, reject absent assets and route p
     version: z.literal(3),
     routes: z.array(z.union([
       z.object({ handle: z.literal('filesystem') }),
-      z.object({ src: z.string(), status: z.number().optional(), dest: z.string().optional() }),
+      z.object({ src: z.string(), status: z.number().optional(), dest: z.string().optional(), continue: z.boolean().optional(), headers: z.record(z.string(), z.string()).optional() }),
     ])),
   }).parse(JSON.parse(await readFile(join(root, '.vercel/output/config.json'), 'utf8')))
   assert.equal(version, 3)
+  assert.deepEqual(routes[0], { src: '/.*', headers: { 'Referrer-Policy': 'no-referrer' }, continue: true })
   // Contract simulation, not a substitute for the Vercel remote routing check.
   function resolve(path: string) {
     for (const route of routes) {
       if ('handle' in route) {
         if (['/index.html', '/assets/app.js'].includes(path)) return path
-      } else if (new RegExp(`^(?:${route.src})$`).test(path)) return route.status ?? route.dest
+      } else if (!route.continue && new RegExp(`^(?:${route.src})$`).test(path)) return route.status ?? route.dest
     }
   }
   assert.equal(resolve('/assets/app.js'), '/assets/app.js')

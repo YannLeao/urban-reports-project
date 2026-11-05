@@ -100,8 +100,7 @@ relato privado. O sino mantém esse polling também nas outras páginas, com pau
 em aba oculta; não há botão permanente Atualizar, push ou atualização em tempo
 real. Contrato: [notificações](notifications.md).
 
-`PasswordRecoveryAccess`, após a senha do login, continua como texto auxiliar
-“Recuperação de senha em breve”, sem href, submit ou e-mail simulado.
+`PasswordRecoveryAccess`, após a senha do login, é o link “Esqueci minha senha” para `/esqueci-minha-senha`. A solicitação mostra sempre a mesma confirmação, exista ou não a conta, e permite solicitar novamente após 60 segundos locais; o backend aplica limites próprios. `/redefinir-senha#token=…` lê o token do fragmento, o remove da URL e o mantém só em memória.
 
 Seleção de fotografias no produto usa `PhotoCollectionPicker` (1–5, ordenação/capa), reutilizado no Wizard; detalhes usam `OccurrenceGallery`. Prova singular permanece independente. [Contrato, roteiro e limites](multiple-photos.md).
 

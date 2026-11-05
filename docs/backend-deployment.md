@@ -263,3 +263,27 @@ Não instalar Node/navegador/fontes do SO na imagem. Antes de publicar, conferir
 Uma geração por instância e limites de saída não limitam todo o heap: medir no
 container alvo. Publicar backend antes do frontend e homologar download autorizado
 sem acessar dados reais para teste. Sem variáveis novas, migrations ou R2.
+
+## Recuperação de senha
+
+Configurar `RECOVERY_FRONTEND_ORIGIN=https://project-piec-4.vercel.app` no Render;
+chave dedicada ausente conserva fallback `ADMIN_FRONTEND_ORIGIN`, mas vazia ou
+inválida impede emissão. Compartilha Brevo/remetente/timeouts; não usar VITE_*.
+Defaults: dois workers, fila oito, shutdown 30 s; deadline HTTP deve caber na
+espera de shutdown. E-mail tem 60 s/cinco admissões por hora; pedido/reset têm
+mapas separados por origem, 30/10 min, teto 10000 entradas por mapa. Configuração,
+faixas e roteiro completo no [guia de recuperação](password-recovery-integration.md).
+
+Confirmar uma instância efetiva e comportamento do encerramento da plataforma.
+Fila/limites são locais; restart perde trabalho e contadores. Sem retries.
+`server.forward-headers-strategy=NONE` e `RECOVERY_TRUSTED_PROXIES` vazia usam peer
+da conexão. Atrás do Render isso pode agregar usuários. Antes de configurar CIDRs,
+confirmar cadeia, peers confiáveis e restrição de acesso direto; não confiar em
+X-Forwarded-For ou redes privadas genéricas por suposição. A topologia remota não
+é comprovada pelo Compose. Não alterar globalmente estratégia de forwarded headers
+para contornar essa conferência sem revisar o resolvedor.
+
+Publicar backend/V15 antes do frontend, conforme revisão/pipeline. Homologar
+recebimento/tracking com caixa autorizada, senha nova/antiga, revogação de sessões,
+link antigo/consumido e expiração; 202/aceite Brevo não comprovam recebimento.
+Sem token/link/credencial em evidências. Pendências mantêm Refs #20.

@@ -19,11 +19,12 @@ import org.slf4j.spi.LoggingEventBuilder;
 /** Request-local, explicit context. Never stores messages, responses or throwables. */
 public final class EmailObservation {
     public static final String LOGGER = "com.project.software.urbanreports.email.observability";
-    public enum Operation { GENERIC, ADMIN_INVITATION, ADMIN_RESEND, OCCURRENCE_NOTIFICATION }
-    public enum Stage { PREPARATION, VALIDATION, SERIALIZATION, DISPATCH, RESPONSE_VALIDATION }
+    public enum Operation { GENERIC, ADMIN_INVITATION, ADMIN_RESEND, OCCURRENCE_NOTIFICATION, PASSWORD_RECOVERY }
+    public enum Stage { PREPARATION, ADMISSION, SUBMISSION, EXECUTION, VALIDATION, SERIALIZATION, DISPATCH, RESPONSE_VALIDATION }
     public enum Reason {
         accepted, configuration_missing, configuration_invalid, activation_link_preparation_failed,
-        notification_link_preparation_failed,
+        notification_link_preparation_failed, recovery_configuration_invalid, recovery_capacity_exhausted,
+        recovery_submission_rejected, recovery_task_failed, recovery_shutdown,
         serialization_failed, dns_resolution_failed, connect_timeout, connect_failed,
         tls_handshake_failed, tls_certificate_validation_failed, request_deadline_exceeded,
         cancelled, interrupted, provider_http_rejected, response_invalid_json,
@@ -41,6 +42,7 @@ public final class EmailObservation {
     /** sendId must be freshly generated, independent of domain identities. */
     public EmailObservation(Operation operation, UUID sendId) { this.operation = operation; this.id = sendId; }
     public UUID sendId() { return id; }
+    public boolean completed() { return completed; }
     public void stage(Stage stage) { this.stage = stage; }
     public void dispatch() {
         stage = Stage.DISPATCH;

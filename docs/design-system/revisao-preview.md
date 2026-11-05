@@ -23,8 +23,7 @@ pessoais e as capturas da referência de feedback, mantida em pasta temporária.
   GPS sugerido uma vez na primeira visita à localização do cadastro, com confirmação
   explícita e controle integrado ao mapa; edição usa tentativa voluntária. O formulário
   real tem quatro etapas, com semelhantes na revisão e sem inputs de coordenadas.
-- Convite administrativo de 24 horas, uso único. Recuperação de senha é uma
-  integração futura; seus exemplos não comprovam rota funcional ou envio de e-mail.
+- Convite administrativo de 24 horas, uso único. Recuperação de senha tem rotas reais (`/esqueci-minha-senha` e `/redefinir-senha`); os exemplos deste preview não as substituem nem comprovam envio de e-mail.
 - Histórico contém transições de moderação. Criação é um dado do relato, sem
   evento administrativo inventado. Estados não expressam prioridade.
 - Relatório tem três indicadores. “Sem dados” aparece em variante de média sem

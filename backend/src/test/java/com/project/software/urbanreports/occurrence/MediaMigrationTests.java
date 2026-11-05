@@ -25,7 +25,7 @@ class MediaMigrationTests {
         jdbc.update("INSERT INTO " + schema + ".user_accounts(id,name,email,password_hash,role,created_at,updated_at) VALUES (?, 'Pessoa', 'video@example.com', 'hash', 'USER', now(), now())", author);
         jdbc.update("INSERT INTO " + schema + ".occurrences(id,author_id,category_id,title,neighborhood,reference,created_at) VALUES (?, ?, 1, 'Poste apagado', 'Centro', 'Praça central', now())", report, author);
         jdbc.update("INSERT INTO " + schema + ".occurrence_media(id,occurrence_id,object_key,kind,position) VALUES (?,?,?,'IMAGE',0)",media,report,photoKey);
-        assertThat(Flyway.configure().dataSource(source).schemas(schema).defaultSchema(schema).load().migrate().migrationsExecuted).isEqualTo(1);
+        assertThat(Flyway.configure().dataSource(source).schemas(schema).defaultSchema(schema).load().migrate().migrationsExecuted).isEqualTo(2);
         assertThat(jdbc.queryForMap("SELECT * FROM "+schema+".occurrence_media WHERE id=?",media)).containsEntry("object_key",photoKey).containsEntry("size_bytes",null);
         var transaction = new org.springframework.transaction.support.TransactionTemplate(manager);
         assertThatThrownBy(() -> transaction.execute(status -> {
@@ -58,7 +58,7 @@ class MediaMigrationTests {
         for (UUID id : java.util.List.of(first, ambiguous)) jdbc.update("INSERT INTO " + schema + ".occurrences(id,author_id,category_id,title,neighborhood,reference,image_key,created_at) VALUES (?, ?, 1, 'Poste apagado', 'Centro', 'Praça central', ?, now())", id, author, id.equals(first) ? key : "historical-unknown-key");
         jdbc.update("INSERT INTO " + schema + ".image_upload_journal(image_key,state,created_at,next_attempt_at) VALUES (?, 'LINKED', now(), now())", key);
         var upgraded = Flyway.configure().dataSource(source).schemas(schema).defaultSchema(schema).load();
-        assertThat(upgraded.migrate().migrationsExecuted).isEqualTo(2);
+        assertThat(upgraded.migrate().migrationsExecuted).isEqualTo(3);
         var row = jdbc.queryForMap("SELECT * FROM " + schema + ".occurrence_media WHERE occurrence_id=?", first);
         assertThat(row).containsEntry("object_key", key).containsEntry("position", 0).containsEntry("kind", "IMAGE")
                 .containsEntry("content_type", "image/png").containsEntry("size_bytes", null);

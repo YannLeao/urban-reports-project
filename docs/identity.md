@@ -11,7 +11,7 @@ papéis para USER/ADMIN/SUPER_ADMIN e status de conta. Cidadãos existentes e no
 continuam ACTIVE; só ADMIN pode aguardar ativação ou ser desativado. Hibernate
 permanece em validate. Provisionamento, token próprio de ativação, envio HTTPS Brevo e
 bootstrap estão no [guia administrativo](admin-provisioning.md). Não existe seed
-nem promoção pública. Recuperação de senha continua sendo uma integração futura.
+nem promoção pública. A recuperação de senha por e-mail está descrita no [guia de recuperação](password-recovery-integration.md).
 
 ## Validação e normalização
 
@@ -125,8 +125,9 @@ publicada faltar, usar Refs #34 e Refs #19, sem fechar as issues.
 Login/recuperação reutilizam conta, canonicalEmail e PasswordEncoder. Login,
 /me e logout estão descritos em [segurança](security.md); sessões estão em V3,
 sem alterar V2 aplicada. Login não aplica o mínimo de senha de cadastro.
-O [guia para recuperação](password-recovery-integration.md) define lock da conta,
-troca de hash e revogação atômica. Recuperação ainda não tem rotas; os convites
-administrativos já usam Brevo HTTPS conforme o guia de provisionamento.
+O [guia para recuperação](password-recovery-integration.md) define configuração
+dedicada `RECOVERY_FRONTEND_ORIGIN` (fallback administrativo somente se ausente),
+executor limitado após commit, limites locais por e-mail/origem e lock da conta,
+troca de hash e revogação atômica. Recuperação tem rotas de solicitação e redefinição (`/api/auth/password-recovery-requests` e `/api/auth/password-resets`), e seus e-mails, como os convites administrativos, usam Brevo HTTPS conforme o guia de provisionamento.
 O [ADR 0011](adr/0011-adotar-sessoes-jwt-revogaveis.md) atualiza CSRF e sessões;
 o ADR 0010 preserva o histórico do compromisso de exposição de conta no 409.
