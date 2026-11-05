@@ -42,8 +42,7 @@ entrar e preserva o destino seguro recebido do login.
 
 A [central de notificações](notifications.md) substitui o acesso de preparação
 pelo sino funcional para USER, com contagem global de não lidas e lista paginada.
-A recuperação de senha continua como acesso indisponível; sua integração deve
-usar PasswordField para novas senhas quando houver destino real.
+A recuperação de senha tem acesso real no login (`/esqueci-minha-senha`) e redefinição em `/redefinir-senha`, ambas com PasswordField para as novas senhas.
 
 ## Consulta e acompanhamento
 

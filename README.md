@@ -17,6 +17,8 @@ reutilizando o design system aprovado Alô Cidade. `/status`, `/prova-imagem` e
 links no produto. Health da API e endpoints técnicos de storage mantêm seus contratos. Cadastro de cidadão em `/cadastro` persiste contas reais, sem login
 automático.
 Login em `/entrar` e sessão revogável em `/minha-conta` estão implementados.
+A [recuperação de senha](docs/password-recovery-integration.md) usa link de uso único
+por 30 minutos, envio Brevo limitado em memória e confirmação pública genérica.
 As consultas pública e própria oferecem [Lista/Mapa e pinos](docs/occurrence-maps.md),
 com localização nos detalhes e legado sem ponto preservado.
 A [consulta privada de relatos](docs/occurrence-query.md) oferece listagem e

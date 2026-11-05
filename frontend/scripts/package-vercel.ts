@@ -7,6 +7,7 @@ import type { Artifact } from './artifact.ts'
 export const routing = {
   version: 3,
   routes: [
+    { src: '/.*', headers: { 'Referrer-Policy': 'no-referrer' }, continue: true },
     { handle: 'filesystem' },
     { src: '/assets(?:/.*)?', status: 404 },
     { src: '/.*\\.[^/]+/?', status: 404 },

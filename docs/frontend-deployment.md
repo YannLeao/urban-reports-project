@@ -269,3 +269,14 @@ Sem biblioteca PDF no bundle, variável nova ou header CORS exposto adicional.
 Conferir [roteiro de download](occurrence-report.md#roteiro-manual-do-pdf) na origem
 canônica: ADMIN, erro, busy, cancelamento e arquivo abrindo em leitor. Build sozinho
 não comprova download ou validação visual do PDF.
+
+## Recuperação de senha publicada
+
+O artefato Vercel aplica `Referrer-Policy: no-referrer` antes do roteamento SPA;
+Nginx local e a meta referrer global preservam a política. Teste de empacotamento
+confere a regra, mas o header efetivo depende da publicação e overrides da Vercel.
+Conferir header nas rotas `/esqueci-minha-senha` e `/redefinir-senha`, link recebido
+íntegro, fragmento removido e ausência de analytics capturando o segredo. Não
+compartilhar link válido como evidência. Backend deve estar publicado e com
+`RECOVERY_FRONTEND_ORIGIN=https://project-piec-4.vercel.app` configurada primeiro.
+[Limites, roteiro manual e homologação](password-recovery-integration.md).

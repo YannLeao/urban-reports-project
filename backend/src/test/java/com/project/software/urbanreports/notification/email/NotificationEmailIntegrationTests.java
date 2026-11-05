@@ -84,7 +84,7 @@ class NotificationEmailIntegrationTests {
             jdbc.update("INSERT INTO occurrence_history VALUES (?, ?, 'PENDING', 'IN_ANALYSIS', ?, '2020-01-01', NULL, 1)", old, report, account);
         });
         var upgrade = org.flywaydb.core.Flyway.configure().dataSource(source).schemas(schema).defaultSchema(schema).load();
-        assertThat(upgrade.migrate().migrationsExecuted).isEqualTo(3);
+        assertThat(upgrade.migrate().migrationsExecuted).isEqualTo(4);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema + ".occurrence_notification_email_deliveries", Integer.class)).isZero();
         new TransactionTemplate(manager).executeWithoutResult(tx -> {
             jdbc.execute("SET LOCAL search_path TO " + schema);

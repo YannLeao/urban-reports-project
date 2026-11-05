@@ -28,6 +28,8 @@ paralelismo 1, salt 16 bytes e hash 32 bytes, sem normalizar senhas.
 | GET `/api/admin/reports/occurrences` | ADMIN ativo exato; agregados privados, no-store; [contrato](occurrence-report.md) |
 | GET `/api/notifications` | USER ativo; somente notificações próprias e contagem global de não lidas |
 | POST `/api/notifications/{id}/read` | USER ativo; revalida conta/sessão sob lock; leitura própria idempotente |
+| POST `/api/auth/password-recovery-requests` | Público, JSON até 8 KiB; 202 genérico para formato válido, inclusive supressão; no-store |
+| POST `/api/auth/password-resets` | Público, JSON até 8 KiB; token próprio de uso único/30 min; 200 no sucesso, 400 no link inválido, 429 por origem; no-store |
 | POST `/api/auth/admin-activations` | Público, JSON limitado; confirmação de convite, sem sessão automática |
 | Storage técnico, Actuator, demais caminhos e `/error` direto | denyAll; 401 anônimo, 403 autenticado |
 | Dispatch interno ERROR | Preserva processamento/status original |
@@ -125,9 +127,12 @@ Falha de logout preserva a credencial e permite repetir sem anunciar sucesso.
 Geração do contexto impede resposta tardia de restaurar identidade ou apagar
 sessão nova. Consultas futuras usam `['private', userId, ...]` e AbortSignal;
 não persistir caches privados. Retorno do guard aceita apenas pathname interno
-sem escapes/query/autoridade. Recuperação futura: [contrato de integração](password-recovery-integration.md).
+sem escapes/query/autoridade. Recuperação por e-mail: [contrato de integração](password-recovery-integration.md).
 
-**Não há rate limit implementado.** CORS, CSRF e Argon2 não impedem tentativas
+**Login ainda não tem rate limit.** A recuperação tem limites locais de pedido
+por e-mail/origem e de reset por origem, mapas com teto/expiração e executor
+limitado; parâmetros, proxy confiável e limites de restart/réplicas estão no
+[guia de recuperação](password-recovery-integration.md). CORS, CSRF e Argon2 não impedem tentativas
 automatizadas; não alegar proteção contra brute force. Não há bloqueio permanente
 de conta. Definir limitação de tentativas e medir Argon2 sob carga no ambiente
 publicado continuam necessidades operacionais.
