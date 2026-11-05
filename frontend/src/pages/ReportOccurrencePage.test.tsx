@@ -207,9 +207,12 @@ test.each(['network','503','schema'])('auxiliary %s is distinct from empty and a
   fetchMock.mockResolvedValueOnce(Response.json(result,{status:201}))
   fireEvent.click(screen.getByRole('button',{name:'Enviar mesmo assim'}));await screen.findByText('Relato registrado')
 })
-test('manual lookup refresh is available after success, without writing',async()=>{
+test('lookup refreshes automatically after leaving and reopening review, without writing',async()=>{
   await fill();reviewForm();await screen.findByText('Não encontramos relatos semelhantes nesta consulta')
-  fireEvent.click(screen.getByRole('button',{name:'Consultar novamente'}));await waitFor(()=>expect(similarFetch).toHaveBeenCalledTimes(2))
+  expect(screen.queryByRole('button',{name:'Consultar novamente'})).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button',{name:'Editar informações'}))
+  fireEvent.click(screen.getByRole('button',{name:'Revisar'}))
+  await waitFor(()=>expect(similarFetch).toHaveBeenCalledTimes(2))
   expect(fetchMock).toHaveBeenCalledTimes(2)
 })
 test.each([401,403])('lookup %s respects auth contracts',async status=>{

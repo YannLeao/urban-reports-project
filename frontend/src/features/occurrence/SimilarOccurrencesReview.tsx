@@ -10,17 +10,23 @@ export function SimilarOccurrencesReview({ criteria, visible, busy, onReview, on
   criteria: SimilarCriteria | null; visible: boolean; busy: boolean; onReview: () => void; onConfirm: () => void; editing?: boolean; wizard?: boolean
 }) {
   const query = useSimilarOccurrences(criteria, visible)
+  const { data, isError, refetch } = query
+  const wasVisible = useRef(false)
+  useEffect(() => {
+    if (visible && !wasVisible.current && criteria && (data || isError)) void refetch()
+    wasVisible.current = visible
+  }, [criteria, data, isError, refetch, visible])
   const authError = query.error instanceof PrivateRequestError ? query.error.status : null
   const status = !criteria ? 'not-executed' : query.isFetching || query.isPending ? 'loading' : authError === 403 ? 'forbidden'
-    : authError === 401 ? 'unauthorized' : query.isError ? 'unavailable' : query.data?.items.length ? 'candidates' : 'empty'
-  return <SimilarOccurrencesPanel status={status} result={query.data} visible={visible} busy={busy}
-    onReview={onReview} onConfirm={onConfirm} onRetry={() => { void query.refetch() }} editing={editing} wizard={wizard} />
+    : authError === 401 ? 'unauthorized' : isError ? 'unavailable' : data?.items.length ? 'candidates' : 'empty'
+  return <SimilarOccurrencesPanel status={status} result={data} visible={visible} busy={busy}
+    onReview={onReview} onConfirm={onConfirm} editing={editing} wizard={wizard} />
 }
 
-export function SimilarOccurrencesPanel({ status, result, visible, busy, onReview, onConfirm, onRetry, editing = false, wizard = false }: {
+export function SimilarOccurrencesPanel({ status, result, visible, busy, onReview, onConfirm, editing = false, wizard = false }: {
   status: 'not-executed' | 'loading' | 'forbidden' | 'unauthorized' | 'unavailable' | 'candidates' | 'empty'
   result?: SimilarResult; visible: boolean; busy: boolean
-  onReview: () => void; onConfirm: () => void; onRetry: () => void; editing?: boolean; wizard?: boolean
+  onReview: () => void; onConfirm: () => void; editing?: boolean; wizard?: boolean
 }) {
   const panel = useRef<HTMLDivElement>(null)
   useEffect(() => { if (visible && !wizard) panel.current?.focus() }, [visible, wizard])
@@ -46,7 +52,6 @@ export function SimilarOccurrencesPanel({ status, result, visible, busy, onRevie
     </>}
     <div className="mt-4 flex flex-wrap gap-3">
       <Button type="button" variant="secondary" disabled={busy} onClick={onReview}>Revisar meu relato</Button>
-      {!forbidden && status !== 'not-executed' && <Button type="button" variant="secondary" disabled={busy || loading} onClick={onRetry}>Consultar novamente</Button>}
       {!forbidden && <Button type="button" disabled={busy || loading} onClick={onConfirm}>
         {wizard ? (status === 'unavailable' ? editing ? 'Salvar mesmo assim' : 'Enviar mesmo assim' : status === 'candidates' ? editing ? 'Salvar' : 'Enviar' : editing ? 'Salvar' : 'Enviar') : status === 'unavailable' ? 'Enviar mesmo assim' : status === 'candidates' ? 'É outro relato, continuar' : 'Confirmar envio'}
       </Button>}
