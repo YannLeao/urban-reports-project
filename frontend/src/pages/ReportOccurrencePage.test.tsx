@@ -114,7 +114,8 @@ test('decoded photos stay until Continue; going back permits additions/order/cov
   fireEvent.click(screen.getByRole('button',{name:'Continuar'}))
   expect(screen.getByLabelText('Título')).toHaveValue('  Poste apagado 💡  ')
   reviewForm(); await screen.findByText('Não encontramos relatos semelhantes nesta consulta')
-  expect(screen.getByRole('img',{name:'Capa do relato em revisão'})).toBeVisible()
+  expect(screen.getByRole('img',{name:'Foto 1 de 2 do relato em revisão (capa)'})).toBeVisible()
+  expect(screen.getByRole('img',{name:'Foto 2 de 2 do relato em revisão'})).toBeVisible()
   expect(fetchMock).toHaveBeenCalledTimes(2)
 })
 test('step validation, keyboard submit and future-step controls cannot bypass required point or fields', async () => {
