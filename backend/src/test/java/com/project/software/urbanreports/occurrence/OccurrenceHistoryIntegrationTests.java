@@ -90,13 +90,16 @@ class OccurrenceHistoryIntegrationTests {
     @Test void rejectedIsAbsentFromAllPublicSurfacesAndAuthorHistoryHidesModeratorIdentity() throws Exception {
         var author = account();
         var moderator = account();
+        var administrator = account();
+        jdbc.update("UPDATE user_accounts SET role = 'ADMIN' WHERE id = ?", administrator.id());
+        String adminToken = login.login(administrator.email(), "synthetic test password long").accessToken();
         var report = report(author.id());
         append(report.getId(), moderator.id(), "Justificativa válida", 1);
         jdbc.update("UPDATE occurrences SET status = 'REJECTED', version = 1 WHERE id = ?", report.getId());
         for (String path : new String[] {"/api/public/occurrences/{id}", "/api/public/occurrences/{id}/image"})
-            mvc.perform(get(path, report.getId())).andExpect(status().isNotFound())
+            mvc.perform(get(path, report.getId()).header("Authorization", "Bearer " + adminToken)).andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.code").value("OCCURRENCE_NOT_FOUND"));
-        mvc.perform(get("/api/public/occurrences").param("size", "50"))
+        mvc.perform(get("/api/public/occurrences").header("Authorization", "Bearer " + adminToken).param("size", "50"))
                 .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString(report.getId().toString()))));
         var detail = service.findById(author.id(), report.getId());
         assertThat(detail.history()).singleElement().satisfies(event -> {

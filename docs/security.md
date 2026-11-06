@@ -21,6 +21,7 @@ paralelismo 1, salt 16 bytes e hash 32 bytes, sem normalizar senhas.
 | GET `/api/public/occurrence-categories` | Público, somente id/name; GET exato |
 | GET `/api/occurrence-categories` | Sessão válida; oito categorias |
 | GET `/api/occurrences` e `/api/occurrences/{id}` | Sessão válida; somente autoria própria; detalhe alheio/inexistente retorna 404; [contrato](occurrence-query.md) |
+| GET `/api/public/occurrences` e subrotas | ADMIN ativo; área geral não é pública |
 | POST `/api/occurrences` | Sessão válida, papel USER ou ADMIN ativo; multipart conforme [contrato](occurrence-registration.md); autor e PENDING definidos no servidor |
 | GET/HEAD caminhos Swagger já existentes | Disponíveis somente com dev explícito; base/prod retornam 404 |
 | GET/POST `/api/super-admin/admins` e subrotas | SUPER_ADMIN ativo; gestão/convites/desativação |
@@ -169,8 +170,8 @@ Contrato e precondições: [gestão de relatos](occurrence-query.md).
 
 ## Marcadores de ocorrências
 
-GET `/api/public/occurrences/markers` é anônimo e usa a mesma elegibilidade
-pública (sem REJECTED), sem campos pessoais/versão/storage/histórico. GET
+GET `/api/public/occurrences/markers` exige ADMIN ativo e usa a mesma elegibilidade
+geral (sem REJECTED), sem campos pessoais/versão/storage/histórico. GET
 `/api/occurrences/markers` exige sessão revogável e deriva autor da identidade;
 parâmetros de userId não autorizam leitura. As rotas literais reutilizam matchers
 GET existentes, com negação por padrão preservada. Cada conjunto/contagem vem de

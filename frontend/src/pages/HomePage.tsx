@@ -17,9 +17,8 @@ export function HomePage() {
       <span className="text-title font-bold">Alô Cidade<br /><span className="text-base font-medium">Sua comunidade no mapa.</span></span>
     </div>
     {role === 'SUPER_ADMIN' ? <LogoutActions /> : <div className="grid gap-3 sm:grid-cols-2">
-      <Link className={buttonStyles(panel ? 'secondary' : 'primary')} to="/ocorrencias?visao=mapa"><Icon name="map" />Ver no mapa</Link>
       {panel ? <Link className={buttonStyles()} to={panel}><Icon name="list" />Abrir moderação</Link>
-        : <Link className={buttonStyles('secondary')} to="/registrar-ocorrencia"><Icon name="plus" />Relatar problema</Link>}
+        : <Link className={buttonStyles('primary')} to="/registrar-ocorrencia"><Icon name="plus" />Relatar problema</Link>}
     </div>}
   </section>
 }

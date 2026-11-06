@@ -16,7 +16,7 @@ function mount(path = '/', role?: string) {
   return render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><AuthProvider><MemoryRouter initialEntries={[path]}><App /></MemoryRouter></AuthProvider></QueryClientProvider>)
 }
 test.each([
-  ['USER', ['Mapa', 'Relatar', 'Meus relatos', 'Conta'], ['Fila', 'Relatório', 'Administradores', 'Entrar']],
+  ['USER', ['Relatar', 'Meus relatos', 'Conta'], ['Mapa', 'Fila', 'Relatório', 'Administradores', 'Entrar']],
   ['ADMIN', ['Fila', 'Relatório', 'Relatar', 'Meus relatos', 'Notificações', 'Conta'], ['Administradores']],
   ['SUPER_ADMIN', ['Administradores', 'Conta'], ['Fila', 'Relatório', 'Relatar', 'Meus relatos']],
 ])('navigation and home for %s respect the exact role', async (role, allowed, absent) => {
@@ -37,7 +37,6 @@ test.each([
     expect(main.queryAllByRole('link')).toHaveLength(0)
     expect(nav.getByRole('link', { name: 'Administradores' })).toHaveAttribute('href', '/administracao/contas')
   } else {
-    expect(main.getByRole('link', { name: 'Ver no mapa' })).toHaveAttribute('href', '/ocorrencias?visao=mapa')
     if (role === 'ADMIN') expect(main.getByRole('link', { name: 'Abrir moderação' })).toHaveAttribute('href', '/administracao/relatos')
   }
 })
@@ -80,7 +79,6 @@ test('visitor reporting intent survives login and uses the guarded registration 
   expect(nav.getByRole('link', { name: 'Relatar' })).toHaveAttribute('aria-current', 'page')
 })
 test.each([
-  ['/ocorrencias/3e85aa3d-19e3-42a3-8861-c435ff5908af', undefined, 'Mapa'],
   ['/meus-relatos/3e85aa3d-19e3-42a3-8861-c435ff5908af/editar', 'USER', 'Meus relatos'],
   ['/administracao/relatos/3e85aa3d-19e3-42a3-8861-c435ff5908af', 'ADMIN', 'Fila'],
 ])('detail section remains active at %s', async (path, role, name) => {

@@ -98,7 +98,7 @@ manual de tentar novamente; sair da página cancela a requisição em andamento.
 `/prova-imagem` é ferramenta de desenvolvimento por URL direta, sem upload ou
 dependência de API; veja [contrato, validações e roteiro](image-selection-proof.md).
 
-`/` é a entrada de produto; `/ocorrencias?visao=mapa` abre consulta pública.
+`/` é a entrada de produto; consultas gerais ficam disponíveis apenas ao ADMIN.
 `/status`, `/prova-imagem` e `/dev/design-system` têm importação condicional DEV:
 no bundle de produção mostram não encontrado e seus módulos não são incluídos.
 Health da API permanece intacto. Links usam React Router declarativo, sem SSR

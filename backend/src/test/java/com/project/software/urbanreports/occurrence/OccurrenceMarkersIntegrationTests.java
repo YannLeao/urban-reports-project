@@ -31,7 +31,10 @@ class OccurrenceMarkersIntegrationTests {
     static final String PASSWORD = "synthetic marker test password";
 
     @Test void completeSetsCountsPrivacyAndVisibilityUseRealSessionsAndPostgres() throws Exception {
-        mvc.perform(get("/api/public/occurrences/markers")).andExpect(status().isOk())
+        var administrator = account();
+        jdbc.update("UPDATE user_accounts SET role='ADMIN' WHERE id=?", administrator.id());
+        String adminToken = login(administrator.email());
+        mvc.perform(get("/api/public/occurrences/markers").header("Authorization", "Bearer " + adminToken)).andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(0)).andExpect(jsonPath("$.items").isEmpty());
         var first = account(); var other = account();
         String firstToken = login(first.email()), otherToken = login(other.email());
@@ -39,7 +42,7 @@ class OccurrenceMarkersIntegrationTests {
         mvc.perform(get("/api/occurrences/markers").header("Authorization", "Bearer " + firstToken))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(0));
         var zero = report(first.id(), 1, new GeographicPoint(0, 0));
-        mvc.perform(get("/api/public/occurrences/markers")).andExpect(status().isOk())
+        mvc.perform(get("/api/public/occurrences/markers").header("Authorization", "Bearer " + adminToken)).andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(1)).andExpect(jsonPath("$.located").value(1))
                 .andExpect(jsonPath("$.items[0].latitude").value(0)).andExpect(jsonPath("$.items[0].longitude").value(0));
         for (int i = 0; i < 60; i++) report(first.id(), i % 8 + 1, new GeographicPoint(-23.550520123456, -46.633308987654));
@@ -50,7 +53,7 @@ class OccurrenceMarkersIntegrationTests {
         jdbc.update("UPDATE occurrences SET status = 'RESOLVED' WHERE id = ?", resolved.getId());
         var analysis = report(other.id(), 7, new GeographicPoint(0, 180));
         jdbc.update("UPDATE occurrences SET status = 'IN_ANALYSIS' WHERE id = ?", analysis.getId());
-        String publicBody = mvc.perform(get("/api/public/occurrences/markers")).andExpect(status().isOk())
+        String publicBody = mvc.perform(get("/api/public/occurrences/markers").header("Authorization", "Bearer " + adminToken)).andExpect(status().isOk())
                 .andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(jsonPath("$.total").value(64)).andExpect(jsonPath("$.located").value(63))
                 .andExpect(jsonPath("$.unlocated").value(1)).andExpect(jsonPath("$.items.length()").value(63))
@@ -64,7 +67,7 @@ class OccurrenceMarkersIntegrationTests {
         assertThat(publicBody).contains("-23.550520123456", "-46.633308987654");
         mvc.perform(get("/api/public/occurrences/{id}", rejected.getId())).andExpect(status().isNotFound());
         mvc.perform(get("/api/public/occurrences/{id}/image", rejected.getId())).andExpect(status().isNotFound());
-        mvc.perform(get("/api/public/occurrences").param("size", "20")).andExpect(status().isOk())
+        mvc.perform(get("/api/public/occurrences").header("Authorization", "Bearer " + adminToken).param("size", "20")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(20)).andExpect(jsonPath("$.totalItems").value(64));
         String owned = mvc.perform(get("/api/occurrences/markers").param("userId", other.id().toString()).header("Authorization", "Bearer " + firstToken))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(63))
@@ -75,9 +78,9 @@ class OccurrenceMarkersIntegrationTests {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(2)).andExpect(jsonPath("$.located").value(2));
         mvc.perform(delete("/api/occurrences/{id}", zero.getId()).header("Authorization", "Bearer " + firstToken).header("If-Match", "\"0\""))
                 .andExpect(status().isNoContent());
-        mvc.perform(get("/api/public/occurrences/markers")).andExpect(status().isOk())
+        mvc.perform(get("/api/public/occurrences/markers").header("Authorization", "Bearer " + adminToken)).andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(63)).andExpect(jsonPath("$.located").value(62));
-        mvc.perform(get("/api/public/occurrences/{id}", zero.getId())).andExpect(status().isNotFound());
+        mvc.perform(get("/api/public/occurrences/{id}", zero.getId()).header("Authorization", "Bearer " + adminToken)).andExpect(status().isNotFound());
         mvc.perform(post("/api/auth/logout").contentType("application/json").content("{}").header("Authorization", "Bearer " + firstToken))
                 .andExpect(status().isNoContent());
         mvc.perform(get("/api/occurrences/markers").header("Authorization", "Bearer " + firstToken)).andExpect(status().isUnauthorized());

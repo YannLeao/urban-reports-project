@@ -1,8 +1,7 @@
 # Navegação e composições do frontend
 
 O produto Alô Cidade usa a identidade, tokens, Figtree e pinos do design system
-Alô Cidade. A entrada `/` é curta: “Ver no mapa” abre
-`/ocorrencias?visao=mapa`; “Relatar problema” abre a rota protegida do registro.
+Alô Cidade. A entrada `/` oferece “Relatar problema”, rota protegida do registro.
 Visitante segue para `/entrar` com retorno interno validado por `safeReturnPath`.
 USER retorna ao registro após login. ADMIN recebe Abrir moderação na home;
 SUPER_ADMIN tem somente Sair na área de ações da home e acessa a gestão de
@@ -12,16 +11,16 @@ administradores exclusivamente pela navbar, sem chamada para criar relato.
 
 | Sessão | Navegação principal | Complemento |
 | --- | --- | --- |
-| Visitante | Mapa, Relatar, Entrar | Marca abre início |
-| USER | Mapa, Relatar, Meus relatos, Conta | Sino de notificações no cabeçalho |
-| ADMIN | Fila, Relatório, Conta | Marca abre início |
+| Visitante | Relatar, Entrar | Marca abre início |
+| USER | Relatar, Meus relatos, Conta | Sino de notificações no cabeçalho |
+| ADMIN | Fila, Relatório, Relatar, Meus relatos, Notificações, Conta | Consultas gerais somente na administração |
 | SUPER_ADMIN | Administradores, Conta | Marca abre início |
 
 `src/app/ProductNavigation.tsx` tem uma única navegação: barra inferior no mobile,
 cabeçalho no desktop. Ícones decorativos acompanham rótulos visíveis. NavLink
 marca a seção, incluindo detalhes/edição, por pathname; query não muda o universo.
-O destino Mapa abre consulta pública em modo mapa mesmo quando a seção atual
-está em Lista. Guards de papel continuam exatos, sem herança administrativa.
+Não há destino público de mapa/lista de ocorrências. Guards de papel continuam
+exatos, sem herança administrativa; consultas gerais ficam restritas à administração.
 Logout permanece na conta dos três papéis e também na home de SUPER_ADMIN,
 com confirmação real da API e possibilidade de retry. `features/auth/LogoutActions`
 compartilha busy, erro e foco, delegando revogação/limpeza ao AuthProvider.
@@ -39,7 +38,7 @@ com várias linhas; marca permanece link de início. Skip link e main são prese
 `src/app/AppLayout.tsx` escolhe a composição por rota:
 
 - `reading`: entrada, formulários, listas e detalhes, com `max-w-reading`.
-- `map`: consultas pública/própria com `visao=mapa`, com `max-w-app`.
+- `map`: consultas próprias ou administrativas com `visao=mapa`, com `max-w-app`.
 - `panel`: `/administracao/*`, com `max-w-app`.
 - `account`: exceção apenas para `/minha-conta`, com `max-w-app`, alinhando as
   bordas úteis ao cabeçalho sem duplicar o padding horizontal do shell.

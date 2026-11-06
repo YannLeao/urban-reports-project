@@ -19,6 +19,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.ObjectMapper;
@@ -46,11 +47,22 @@ class PublicOccurrenceIntegrationTests {
     @Autowired RegistrationService registration;
     @Autowired OccurrenceRepository occurrences;
     @Autowired OccurrenceCategoryRepository categories;
+    @Autowired JdbcTemplate jdbc;
     @MockitoBean Clock clock;
+    String adminToken;
 
     @BeforeEach
     void time() {
         when(clock.instant()).thenReturn(NOW);
+        var admin = registration.register(new RegistrationRequest("Admin teste", UUID.randomUUID() + "@example.com", PASSWORD));
+        jdbc.update("UPDATE user_accounts SET role = 'ADMIN' WHERE id = ?", admin.id());
+        try {
+            adminToken = mapper.readTree(mvc.perform(post("/api/auth/login").contentType("application/json")
+                    .content(mapper.writeValueAsString(java.util.Map.of("email", admin.email(), "password", PASSWORD))))
+                    .andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).get("accessToken").asString();
+        } catch (Exception exception) {
+            throw new IllegalStateException(exception);
+        }
     }
 
     @Test
@@ -60,14 +72,14 @@ class PublicOccurrenceIntegrationTests {
         var first = occurrence(firstAuthor, "Calçada quebrada na praça", FUTURE.plusSeconds(10));
         var second = occurrence(secondAuthor, "Lixo acumulado na esquina", FUTURE.plusSeconds(20));
 
-        String list = body(mvc.perform(get("/api/public/occurrences").param("size", "50"))
+        String list = body(mvc.perform(get("/api/public/occurrences").header("Authorization", "Bearer " + adminToken).param("size", "50"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Cache-Control", "no-store")));
         assertThat(ids(list)).contains(first.getId().toString(), second.getId().toString());
         assertNoPrivateData(list, firstAuthor, first);
         assertNoPrivateData(list, secondAuthor, second);
 
-        String detail = body(mvc.perform(get("/api/public/occurrences/{id}", first.getId()))
+        String detail = body(mvc.perform(get("/api/public/occurrences/{id}", first.getId()).header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(jsonPath("$.id").value(first.getId().toString()))
@@ -87,7 +99,7 @@ class PublicOccurrenceIntegrationTests {
         var tieA = occurrence(author, "Empate número um", FUTURE.plusSeconds(50));
         var tieB = occurrence(author, "Empate número dois", FUTURE.plusSeconds(50));
 
-        List<String> ids = ids(body(mvc.perform(get("/api/public/occurrences").param("size", "50"))
+        List<String> ids = ids(body(mvc.perform(get("/api/public/occurrences").header("Authorization", "Bearer " + adminToken).param("size", "50"))
                 .andExpect(status().isOk())));
         var tied = Stream.of(tieA, tieB).map(o -> o.getId().toString())
                 .sorted(Comparator.reverseOrder()).toList();
@@ -103,14 +115,14 @@ class PublicOccurrenceIntegrationTests {
         for (int i = 0; i < 3; i++) {
             occurrence(author, "Ocorrência de paginação " + i, FUTURE.plusSeconds(300 + i));
         }
-        mvc.perform(get("/api/public/occurrences").param("page", "0").param("size", "2"))
+        mvc.perform(get("/api/public/occurrences").header("Authorization", "Bearer " + adminToken).param("page", "0").param("size", "2"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.page").value(0))
                 .andExpect(jsonPath("$.size").value(2))
                 .andExpect(jsonPath("$.items", org.hamcrest.Matchers.hasSize(2)))
                 .andExpect(jsonPath("$.totalItems").isNumber())
                 .andExpect(jsonPath("$.totalPages").isNumber());
-        mvc.perform(get("/api/public/occurrences"))
+        mvc.perform(get("/api/public/occurrences").header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.size").value(20));
     }
@@ -119,11 +131,11 @@ class PublicOccurrenceIntegrationTests {
     void invalidPagingAndIdentifiersAreRejectedWithTheStandardError() throws Exception {
         String[][] invalid = {{"page", "-1"}, {"size", "0"}, {"size", "51"}, {"page", "abc"}, {"size", "abc"}};
         for (String[] parameter : invalid) {
-            mvc.perform(get("/api/public/occurrences").param(parameter[0], parameter[1]))
+            mvc.perform(get("/api/public/occurrences").header("Authorization", "Bearer " + adminToken).param(parameter[0], parameter[1]))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
         }
-        mvc.perform(get("/api/public/occurrences/{id}", "not-a-uuid"))
+        mvc.perform(get("/api/public/occurrences/{id}", "not-a-uuid").header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
     }
@@ -132,7 +144,7 @@ class PublicOccurrenceIntegrationTests {
     void missingOccurrenceReturnsNotFoundWithoutRequiringLogin() throws Exception {
         UUID missing = UUID.randomUUID();
         for (String path : List.of("/api/public/occurrences/{id}", "/api/public/occurrences/{id}/image")) {
-            mvc.perform(get(path, missing))
+            mvc.perform(get(path, missing).header("Authorization", "Bearer " + adminToken))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.code").value("OCCURRENCE_NOT_FOUND"));
         }
@@ -145,8 +157,8 @@ class PublicOccurrenceIntegrationTests {
         mvc.perform(get("/api/occurrences")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/occurrences/{id}", report.getId())).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/occurrences/{id}/image", report.getId())).andExpect(status().isUnauthorized());
-        mvc.perform(post("/api/public/occurrences")).andExpect(status().is4xxClientError());
-        mvc.perform(delete("/api/public/occurrences/{id}", report.getId())).andExpect(status().is4xxClientError());
+        mvc.perform(post("/api/public/occurrences")).andExpect(status().isForbidden());
+        mvc.perform(delete("/api/public/occurrences/{id}", report.getId())).andExpect(status().isForbidden());
     }
 
     private void assertNoPrivateData(String json, RegistrationResponse author, Occurrence occurrence) {

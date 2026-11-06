@@ -48,22 +48,22 @@ class OccurrenceFiltersIntegrationTests {
                 """, a.id(), b.id());
         jdbc.update("INSERT INTO occurrence_media(id,occurrence_id,object_key,kind,position) SELECT gen_random_uuid(), id, 'occurrences/' || gen_random_uuid() || '.png','IMAGE',0 FROM occurrences");
         });
-        mvc.perform(get("/api/public/occurrences")).andExpect(status().isOk())
+        mvc.perform(publicGet("/api/public/occurrences", adminToken)).andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalItems").value(3072)).andExpect(jsonPath("$.items.length()").value(20));
         for (int category = 1; category <= 8; category++) {
-            mvc.perform(get("/api/public/occurrences").param("categoryId", "" + category)).andExpect(status().isOk())
+            mvc.perform(publicGet("/api/public/occurrences", adminToken).param("categoryId", "" + category)).andExpect(status().isOk())
                     .andExpect(jsonPath("$.totalItems").value(384));
             for (String state : List.of("PENDING", "IN_ANALYSIS", "RESOLVED")) {
-                mvc.perform(get("/api/public/occurrences").param("categoryId", "" + category).param("status", state))
+                mvc.perform(publicGet("/api/public/occurrences", adminToken).param("categoryId", "" + category).param("status", state))
                         .andExpect(status().isOk()).andExpect(jsonPath("$.totalItems").value(128));
             }
         }
-        mvc.perform(get("/api/public/occurrences").param("status", "RESOLVED")).andExpect(status().isOk())
+        mvc.perform(publicGet("/api/public/occurrences", adminToken).param("status", "RESOLVED")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalItems").value(1024));
         Set<String> pages = new HashSet<>();
         List<String> ordered = new ArrayList<>();
         for (int page = 0; page < 7; page++) {
-            var json = mapper.readTree(mvc.perform(get("/api/public/occurrences").param("categoryId", "2").param("status", "IN_ANALYSIS")
+            var json = mapper.readTree(mvc.perform(publicGet("/api/public/occurrences", adminToken).param("categoryId", "2").param("status", "IN_ANALYSIS")
                     .param("page", "" + page)).andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
                     .andExpect(jsonPath("$.totalPages").value(7)).andExpect(jsonPath("$.totalItems").value(128))
                     .andExpect(jsonPath("$.items.length()").value(page == 6 ? 8 : 20)).andReturn().getResponse().getContentAsString());
@@ -71,7 +71,7 @@ class OccurrenceFiltersIntegrationTests {
         }
         assertThat(pages).hasSize(128);
         assertThat(ordered).containsExactlyElementsOf(jdbc.queryForList("SELECT id::text FROM occurrences WHERE category_id=2 AND status='IN_ANALYSIS' ORDER BY created_at DESC,id DESC", String.class));
-        var markers = mapper.readTree(mvc.perform(get("/api/public/occurrences/markers").param("categoryId", "2").param("status", "IN_ANALYSIS"))
+        var markers = mapper.readTree(mvc.perform(publicGet("/api/public/occurrences/markers", adminToken).param("categoryId", "2").param("status", "IN_ANALYSIS"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(128)).andReturn().getResponse().getContentAsString());
         Set<String> located = new HashSet<>(); markers.get("items").forEach(item -> located.add(item.get("id").asString()));
         assertThat(located.size()).isGreaterThan(50);
@@ -79,7 +79,7 @@ class OccurrenceFiltersIntegrationTests {
         assertThat(markers.get("unlocated").asInt()).isPositive();
         var legacy = jdbc.queryForList("SELECT id::text FROM occurrences WHERE category_id=2 AND status='IN_ANALYSIS' AND latitude IS NULL", String.class);
         pages.removeAll(legacy); assertThat(located).containsExactlyInAnyOrderElementsOf(pages);
-        mvc.perform(get("/api/public/occurrences").param("categoryId", "2").param("status", "IN_ANALYSIS").param("page", "10"))
+        mvc.perform(publicGet("/api/public/occurrences", adminToken).param("categoryId", "2").param("status", "IN_ANALYSIS").param("page", "10"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.items").isEmpty()).andExpect(jsonPath("$.totalItems").value(128));
         for (String state : List.of("PENDING", "IN_ANALYSIS", "RESOLVED", "REJECTED")) {
             mvc.perform(get("/api/occurrences").header("Authorization", "Bearer " + userToken).param("categoryId", "2")
@@ -116,10 +116,10 @@ class OccurrenceFiltersIntegrationTests {
             for (String key : List.of("categoryId", "status", "scope")) mvc.perform(get(path).header("Authorization", "Bearer " + adminToken).param(key, "1", "2"))
                     .andExpect(status().isBadRequest()).andExpect(jsonPath("$.fieldErrors." + key).isArray());
         }
-        for (String path : List.of("/api/public/occurrences", "/api/public/occurrences/markers")) mvc.perform(get(path).param("status", "REJECTED")).andExpect(status().isBadRequest());
+        for (String path : List.of("/api/public/occurrences", "/api/public/occurrences/markers")) mvc.perform(publicGet(path, adminToken).param("status", "REJECTED")).andExpect(status().isBadRequest());
         var rejected = jdbc.queryForObject("SELECT id FROM occurrences WHERE status='REJECTED' LIMIT 1", UUID.class);
-        mvc.perform(get("/api/public/occurrences/{id}", rejected)).andExpect(status().isNotFound());
-        mvc.perform(get("/api/public/occurrences/{id}/image", rejected)).andExpect(status().isNotFound());
+        mvc.perform(publicGet("/api/public/occurrences/{id}", adminToken, rejected)).andExpect(status().isNotFound());
+        mvc.perform(publicGet("/api/public/occurrences/{id}/image", adminToken, rejected)).andExpect(status().isNotFound());
         String catalog = mvc.perform(get("/api/public/occurrence-categories")).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(8))
                 .andReturn().getResponse().getContentAsString();
         assertThat(catalog).isEqualTo(mvc.perform(get("/api/occurrence-categories").header("Authorization", "Bearer " + userToken)).andReturn().getResponse().getContentAsString());
@@ -132,13 +132,13 @@ class OccurrenceFiltersIntegrationTests {
         mvc.perform(get("/api/occurrences").header("Authorization", "Bearer " + userToken).param("status", "REJECTED")).andExpect(status().isUnauthorized());
         explain(a.id());
         jdbc.update("UPDATE occurrences SET latitude=NULL,longitude=NULL WHERE category_id=2 AND status='IN_ANALYSIS'");
-        mvc.perform(get("/api/public/occurrences/markers").param("categoryId", "2").param("status", "IN_ANALYSIS"))
+        mvc.perform(publicGet("/api/public/occurrences/markers", adminToken).param("categoryId", "2").param("status", "IN_ANALYSIS"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(128)).andExpect(jsonPath("$.located").value(0))
                 .andExpect(jsonPath("$.unlocated").value(128)).andExpect(jsonPath("$.items").isEmpty());
         jdbc.update("DELETE FROM occurrences WHERE category_id=2 AND status='IN_ANALYSIS'");
-        mvc.perform(get("/api/public/occurrences/markers").param("categoryId", "2").param("status", "IN_ANALYSIS"))
+        mvc.perform(publicGet("/api/public/occurrences/markers", adminToken).param("categoryId", "2").param("status", "IN_ANALYSIS"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(0)).andExpect(jsonPath("$.located").value(0)).andExpect(jsonPath("$.unlocated").value(0));
-        mvc.perform(get("/api/public/occurrences").param("categoryId", "2").param("status", "IN_ANALYSIS"))
+        mvc.perform(publicGet("/api/public/occurrences", adminToken).param("categoryId", "2").param("status", "IN_ANALYSIS"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.totalItems").value(0)).andExpect(jsonPath("$.items").isEmpty());
     }
     void explain(UUID author) throws Exception {
@@ -171,5 +171,8 @@ class OccurrenceFiltersIntegrationTests {
     String login(String email) throws Exception {
         return mapper.readTree(mvc.perform(post("/api/auth/login").contentType("application/json")
                 .content(mapper.writeValueAsString(Map.of("email",email,"password",PASSWORD)))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).get("accessToken").asString();
+    }
+    org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder publicGet(String path, String token, Object... variables) {
+        return get(path, variables).header("Authorization", "Bearer " + token);
     }
 }

@@ -22,7 +22,8 @@ beforeEach(() => {
   sessionStorage.clear(); vi.stubEnv('VITE_API_URL', 'https://api.example.com'); fetchMock.mockReset(); vi.stubGlobal('fetch', fetchMock)
 })
 test('public controls combine filters, reset page once and preserve URL view and viewport on clear', async () => {
-  fetchMock.mockImplementation(async url => String(url).endsWith('/occurrence-categories') ? Response.json(catalog) : Response.json(page()))
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ accessToken: 'synthetic-token', expiresAt: new Date(Date.now() + 1800000).toISOString() }))
+  fetchMock.mockImplementation(async url => String(url).endsWith('/auth/me') ? Response.json(person) : String(url).endsWith('/occurrence-categories') ? Response.json(catalog) : Response.json(page()))
   mount('/ocorrencias?pagina=3&lat=0&lng=0&zoom=12')
   await screen.findByRole('option', { name: 'Buraco ou pavimentação' })
   await userEvent.selectOptions(screen.getByLabelText('Categoria'), '2')
@@ -37,7 +38,8 @@ test('public controls combine filters, reset page once and preserve URL view and
 })
 test('invalid initial URL is warned and canonicalized before any invalid request; catalogue failure retries', async () => {
   let fail = true
-  fetchMock.mockImplementation(async url => String(url).endsWith('/occurrence-categories') ? (fail ? Promise.reject(new Error('network')) : Response.json(catalog)) : Response.json(page([])))
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ accessToken: 'synthetic-token', expiresAt: new Date(Date.now() + 1800000).toISOString() }))
+  fetchMock.mockImplementation(async url => String(url).endsWith('/auth/me') ? Response.json(person) : String(url).endsWith('/occurrence-categories') ? (fail ? Promise.reject(new Error('network')) : Response.json(catalog)) : Response.json(page([])))
   mount('/ocorrencias?categoria=2&categoria=3&estado=REJECTED&visao=lista')
   expect(await screen.findByText('Filtros inválidos foram ajustados para opções permitidas.')).toBeVisible()
   expect(await screen.findByText(/Não conseguimos carregar as categorias/)).toBeVisible()
@@ -60,7 +62,9 @@ test('admin ALL enables final states and switching to queue clears only incompat
 })
 test('late selection A cannot replace B; B failure shows no cards from A and retry keeps criteria', async () => {
   let finishA: ((response: Response) => void) | undefined
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ accessToken: 'synthetic-token', expiresAt: new Date(Date.now() + 1800000).toISOString() }))
   fetchMock.mockImplementation(async url => {
+    if (String(url).endsWith('/auth/me')) return Response.json(person)
     if (String(url).endsWith('/occurrence-categories')) return Response.json(catalog)
     if (String(url).includes('categoryId=2')) return Response.json({ code: 'UNAVAILABLE' }, { status: 503 })
     return new Promise<Response>(resolve => { finishA = resolve })
@@ -77,8 +81,9 @@ test('late selection A cannot replace B; B failure shows no cards from A and ret
 })
 
 test('list detail and its map link preserve active filters and page context', async () => {
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ accessToken: 'synthetic-token', expiresAt: new Date(Date.now() + 1800000).toISOString() }))
   fetchMock.mockImplementation(async url => String(url).endsWith('/occurrence-categories') ? Response.json(catalog)
-    : String(url).includes('/occurrences?') ? Response.json(page()) : Response.json(item))
+    : String(url).endsWith('/auth/me') ? Response.json(person) : String(url).includes('/occurrences?') ? Response.json(page()) : Response.json(item))
   mount('/ocorrencias?categoria=1&estado=PENDING&pagina=2')
   await userEvent.click(await screen.findByRole('link', { name: item.title }))
   expect(await screen.findByRole('link', { name: 'Ver mapa dos relatos' })).toHaveAttribute('href', '/ocorrencias?categoria=1&estado=PENDING&pagina=2&visao=mapa')

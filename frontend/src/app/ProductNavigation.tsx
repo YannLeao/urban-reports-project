@@ -17,7 +17,6 @@ export function ProductNavigation() {
     { to: '/notificacoes', label: 'Notificações', icon: 'bell' },
     { to: '/minha-conta', label: 'Conta', icon: 'user' },
   ] : [
-    { to: '/ocorrencias?visao=mapa', label: 'Mapa', icon: 'map' },
     { to: '/registrar-ocorrencia', label: 'Relatar', icon: 'plus' },
     ...(role === 'USER' ? [
       { to: '/meus-relatos', label: 'Meus relatos', icon: 'list' } as Destination,

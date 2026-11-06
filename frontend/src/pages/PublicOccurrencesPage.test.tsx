@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router'
 import { beforeEach, expect, test, vi } from 'vitest'
 import App from '../App'
 import { AuthProvider } from '../features/auth/AuthProvider'
+import { STORAGE_KEY } from '../features/auth/auth'
 
 const item = {
   id: '3e85aa3d-19e3-42a3-8861-c435ff5908af', categoryId: 1,
@@ -20,13 +21,19 @@ const publicCalls = () => fetchMock.mock.calls.filter(([url]) => String(url).inc
 beforeEach(() => {
   sessionStorage.clear()
   fetchMock.mockReset()
-  vi.stubGlobal('fetch', (url: Parameters<typeof fetch>[0], init?: RequestInit) => String(url).endsWith('/api/public/occurrence-categories') ? Promise.resolve(Response.json([{ id: 1, name: 'Iluminação pública' }, { id: 2, name: 'Buraco ou pavimentação' }])) : fetchMock(url, init))
+  vi.stubGlobal('fetch', (url: Parameters<typeof fetch>[0], init?: RequestInit) => String(url).endsWith('/api/public/occurrence-categories') ? Promise.resolve(Response.json([{ id: 1, name: 'Iluminação pública' }, { id: 2, name: 'Buraco ou pavimentação' }])) : String(url).endsWith('/auth/me') ? Promise.resolve(Response.json({ id: 'a50062d3-9ac2-4e70-86fa-eac5249f4d0c', name: 'Admin', email: 'admin@example.com', role: 'ADMIN' })) : fetchMock(url, init))
   vi.stubEnv('VITE_API_URL', 'https://api.example.com')
 })
 function renderPage(path: string) {
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ accessToken: 'admin-token', expiresAt: new Date(Date.now() + 1800000).toISOString() }))
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(<QueryClientProvider client={client}><AuthProvider><MemoryRouter initialEntries={[path]}><App /></MemoryRouter></AuthProvider></QueryClientProvider>)
 }
+
+test('visitante não acessa a área de relatos gerais', async () => {
+  render(<QueryClientProvider client={new QueryClient()}><AuthProvider><MemoryRouter initialEntries={['/ocorrencias']}><App /></MemoryRouter></AuthProvider></QueryClientProvider>)
+  expect(await screen.findByRole('heading', { name: 'Entrar' })).toBeVisible()
+})
 
 test('lista pública carrega sem credenciais e liga ao detalhe', async () => {
   fetchMock.mockImplementation(async () => Response.json(pageOf([item])))

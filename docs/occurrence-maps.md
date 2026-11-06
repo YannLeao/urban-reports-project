@@ -1,7 +1,9 @@
 # Mapas nas consultas e nos detalhes
 
 A #44 complementa a [localização confirmada da #43](occurrence-location.md).
-`/ocorrencias?visao=mapa` funciona anonimamente, sem depender de GPS.
+O mapa geral não é público: as rotas e links de consulta foram removidos do
+percurso de visitantes e cidadãos. A API de ocorrências gerais exige ADMIN;
+`/meus-relatos?visao=mapa` permanece restrito ao autor.
 “Minha localização” oferece uma consulta opcional, somente após ação explícita. Em
 `/meus-relatos?visao=mapa`, a sessão determina o universo próprio. Os detalhes
 público e do autor mostram a posição individual após a fotografia/conteúdo,
@@ -10,7 +12,8 @@ isso continua restrito ao formulário autorizado de Pendente.
 
 ## Contrato completo de marcadores
 
-`GET /api/public/occurrences/markers` e `GET /api/occurrences/markers` retornam:
+`GET /api/public/occurrences/markers` (ADMIN) e `GET /api/occurrences/markers`
+(autor autenticado) retornam:
 
 ```json
 {
@@ -47,10 +50,10 @@ instrução PostgreSQL, sem joins com histórico que multipliquem ocorrências.
 Cada nova requisição pode observar inserções, exclusões ou moderação posteriores;
 não existe snapshot durável entre respostas/lista/detalhe.
 
-O público usa exatamente `status <> REJECTED`, como lista/detalhe/foto; contagens
+A consulta geral usa exatamente `status <> REJECTED`, como lista/detalhe/foto; contagens
 não incluem rejeitados. O privado filtra `author_id` extraído da sessão revogável,
 incluindo os quatro estados do autor. `userId` de query não concede acesso.
-Respostas usam `Cache-Control: no-store`; público não contém vínculo do autor,
+Respostas usam `Cache-Control: no-store`; a resposta geral não contém vínculo do autor,
 e-mail, versão, storage ou auditoria. Não há mudança na precisão pública:
 WGS84 em graus decimais e eixos nomeados, sem arredondamento adicional. A borda
 Leaflet converte explicitamente para `[latitude, longitude]`, sem GeoJSON.
@@ -131,7 +134,7 @@ todos os relatos representados. Pontos idênticos continuam selecionáveis mesmo
 no zoom máximo. A alternativa textual permite selecionar/abrir **todos os
 localizados**, incluindo os que não aparecem na página de cards.
 
-A URL mantém `visao=mapa`, página pública `pagina`, `selecionado`, `lat`, `lng` e
+A URL mantém `visao=mapa`, página administrativa `pagina`, `selecionado`, `lat`, `lng` e
 `zoom` do enquadramento explorado. Alternar para Lista preserva contexto. Os links
 de detalhe guardam o retorno à consulta correspondente; back/links mantêm universo,
 modo, página e seleção. Edição/cancelamento e exclusão conservam o retorno; excluir
@@ -162,7 +165,7 @@ entre mapa e resumo, preservando atribuição e controles. Fechamento explícito
 retorna ao acionador quando disponível; seleção por lista também revela o quadro.
 Grupo de pontos abre uma lista com rolagem e acesso a todos os relatos, sem foto
 por item. Somente o relato escolhido consulta detalhe e fotografia, com schema e
-endpoint do universo público/próprio. 404 remove seleção, informa indisponibilidade
+endpoint do universo geral/próprio. 404 remove seleção, informa indisponibilidade
 e renova marcadores. Falha de foto preserva o link e texto; falha do detalhe tem retry.
 
 Bearer pertence ao cliente privado da API; tiles/configuração/público usam fetch
@@ -221,12 +224,12 @@ placeholders em produção. Na raiz, iniciar só o banco: `docker compose up -d 
 Em backend/, com JAVA_HOME21 e configuração local:
 `./mvnw spring-boot:run -Dspring-boot.run.profiles=dev`.
 Em frontend/: `pnpm install --frozen-lockfile` e `pnpm run dev`.
-URLs locais usuais: http://localhost:5173/ocorrencias?visao=mapa e
+URLs administrativas usuais: http://localhost:5173/ocorrencias?visao=mapa e
 http://localhost:5173/meus-relatos?visao=mapa. Autenticar apenas para o universo
-próprio; a consulta pública não exige GPS/login. GPS só é solicitado pelo controle
+próprio; a consulta geral exige sessão ADMIN. GPS só é solicitado pelo controle
 “Minha localização”; testar aceitar, recusar e indisponibilidade.
 
-1. Abrir público sem login e recarregar direto na URL do mapa. Conferir aviso de
+1. Abrir a consulta geral como ADMIN e recarregar direto na URL do mapa. Conferir aviso de
    relatos sem ponto, mapa vazio em Belo Jardim (-8.336, -36.424), zoom 14,
    atribuição, categorias diferentes e seleção com resumo/link seguro ao detalhe.
 2. Abrir detalhe e voltar: preservar modo, página/viewport e seleção. Conferir
@@ -257,7 +260,7 @@ físico, pipeline ou publicação. Evidências executadas pertencem à MR/issue.
 
 - [ ] Cadastro exige confirmação real do ponto; API recusa par inválido/ausente.
 - [ ] Edição própria Pendente restaura/ajusta posição sem romper versão/moderação.
-- [ ] Público e Meus relatos alternam Lista/Mapa com abrangência além da página.
+- [ ] ADMIN e Meus relatos alternam Lista/Mapa com abrangência além da página.
 - [ ] Detalhes mostram ponto ou ausência, mantendo fotografia e referência textual.
 - [ ] Pinos/categorias/seleção e grupos permitem chegar a cada relato.
 - [ ] Legado não ganha ponto fictício e permanece acessível pela lista.

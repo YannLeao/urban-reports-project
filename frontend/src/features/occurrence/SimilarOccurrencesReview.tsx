@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Button } from '../../components/ui/Button'
 import { PrivateRequestError } from '../../lib/api'
-import { OccurrenceStatus } from './OccurrenceStatus'
 import type { SimilarCriteria, SimilarResult } from './similar-occurrences'
 import { useSimilarOccurrences } from './useSimilarOccurrences'
 
@@ -42,14 +41,8 @@ export function SimilarOccurrencesPanel({ status, result, visible, busy, onRevie
         : status === 'candidates' ? <p>Encontramos relatos próximos da mesma categoria. Algum deles já representa este problema?</p>
         : <p>Não encontramos relatos semelhantes nesta consulta</p>}
     </div>
-    {status === 'candidates' && result && result.items.length > 0 && <>
-      <p className="text-small text-text-secondary">Até cinco sugestões a 100 metros. Proximidade não comprova que seja o mesmo problema, inclusive na categoria Outro.</p>
-      <ul className="grid min-w-0 gap-3 p-0">{result.items.map(item => <li key={item.id} className="min-w-0 list-none break-words rounded-control border border-border-subtle p-3">
-        <p className="font-bold">{item.title}</p><p>{item.categoryName} · aproximadamente {Math.round(item.distanceMeters)} m</p>
-        <p>{item.neighborhood} · {item.reference}</p><OccurrenceStatus status={item.status} />
-        <a className="underline" href={`/ocorrencias/${item.id}`} target="_blank" rel="noopener noreferrer">Consultar relato (abre em nova aba)</a>
-      </li>)}</ul>
-    </>}
+    {status === 'candidates' && result && result.items.length > 0 &&
+      <p className="text-small text-text-secondary">Há relatos próximos da mesma categoria. Por privacidade, os detalhes dos relatos não são exibidos aqui.</p>}
     <div className="mt-4 flex flex-wrap gap-3">
       <Button type="button" variant="secondary" disabled={busy} onClick={onReview}>Revisar meu relato</Button>
       {!forbidden && <Button type="button" disabled={busy || loading} onClick={onConfirm}>

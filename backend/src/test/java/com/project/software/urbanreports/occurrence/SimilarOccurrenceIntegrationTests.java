@@ -75,11 +75,11 @@ class SimilarOccurrenceIntegrationTests {
                 .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("OCCURRENCE_NOT_FOUND")).andExpect(header().string("Cache-Control", "no-store"));
         }
         jdbc.update("UPDATE occurrences SET status='REJECTED' WHERE id=?", analysis.getId());
-        mvc.perform(get("/api/public/occurrences/{id}", analysis.getId())).andExpect(status().isNotFound());
-        mvc.perform(get("/api/public/occurrences/{id}/image", analysis.getId())).andExpect(status().isNotFound());
+        mvc.perform(get("/api/public/occurrences/{id}", analysis.getId())).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/public/occurrences/{id}/image", analysis.getId())).andExpect(status().isUnauthorized());
         mvc.perform(delete("/api/occurrences/{id}", own.getId()).header("Authorization", "Bearer "+token).header("If-Match", "\"0\""))
                 .andExpect(status().isNoContent());
-        mvc.perform(get("/api/public/occurrences/{id}", own.getId())).andExpect(status().isNotFound());
+        mvc.perform(get("/api/public/occurrences/{id}", own.getId())).andExpect(status().isUnauthorized());
     }
 
     @Test void polesAntimeridianSignsAndAxes() throws Exception {

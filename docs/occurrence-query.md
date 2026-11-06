@@ -88,8 +88,9 @@ AdminProvisioningIntegrationTests complementa com fluxo legítimo, autorização
 concorrência, transições e rollback no commit do comando administrativo.
 Testes frontend usam páginas reais, Query/AuthProvider e fetch controlado.
 
-A consulta pública atual usa `/api/public/occurrences`, inclusive detalhe e foto,
-e omite rejeitados. O comando administrativo invalida seus caches no frontend.
+A consulta geral usa `/api/public/occurrences`, inclusive detalhe e foto, exige
+ADMIN e omite rejeitados. O cidadão usa `/api/occurrences`, limitado à autoria;
+o comando administrativo invalida seus caches no frontend.
 Ambiente publicado, aparelho físico e aceite integral #23 requerem evidências
 próprias na MR/issue.
 

@@ -28,7 +28,6 @@ test('home prioritizes product destinations without fetching or exposing technic
   renderPage()
   expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Sua rua merece cuidado')
   expect(fetchMock).not.toHaveBeenCalled()
-  expect(screen.getByRole('link', { name: 'Ver no mapa' })).toHaveAttribute('href', '/ocorrencias?visao=mapa')
   expect(screen.getByRole('link', { name: 'Relatar problema' })).toHaveAttribute('href', '/registrar-ocorrencia')
   expect(screen.queryByRole('link', { name: /Status|Verificar serviço|Demonstração técnica/ })).toBeNull()
 })

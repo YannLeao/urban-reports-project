@@ -62,3 +62,5 @@ um novo ADR que substitui o anterior.
 - [0030 — Polimento e atualização das consultas visíveis](0030-polir-interface-e-atualizar-consultas-visiveis.md)
 
 - [0031 — Recuperação de senha limitada em memória](0031-limitar-recuperacao-de-senha-em-memoria.md)
+
+- [0032 — Restringir consultas gerais de ocorrências](0032-restringir-consultas-gerais-de-ocorrencias.md)

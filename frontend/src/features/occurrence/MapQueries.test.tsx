@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { BrowserRouter, MemoryRouter } from 'react-router'
+import { BrowserRouter } from 'react-router'
 import { beforeEach, expect, test, vi } from 'vitest'
 import App from '../../App'
 import { AuthProvider } from '../auth/AuthProvider'
@@ -25,16 +25,18 @@ const set = { items: markers, total: 63, located: 61, unlocated: 2 }
 beforeEach(() => {
   sessionStorage.clear(); fetchMock.mockReset()
   window.history.replaceState(null, '', '/')
-  vi.stubGlobal('fetch', (url: Parameters<typeof fetch>[0], init?: RequestInit) => String(url).endsWith('/api/public/occurrence-categories') ? Promise.resolve(Response.json([{ id: 1, name: 'Iluminação pública' }, { id: 2, name: 'Buraco ou pavimentação' }])) : fetchMock(url, init))
+  vi.stubGlobal('fetch', (url: Parameters<typeof fetch>[0], init?: RequestInit) => String(url).endsWith('/api/public/occurrence-categories') ? Promise.resolve(Response.json([{ id: 1, name: 'Iluminação pública' }, { id: 2, name: 'Buraco ou pavimentação' }])) : String(url).endsWith('/auth/me') && sessionStorage.getItem(STORAGE_KEY)?.includes('admin-token') ? Promise.resolve(Response.json({ id: 'a50062d3-9ac2-4e70-86fa-eac5249f4d0c', name: 'Admin', email: 'admin@example.com', role: 'ADMIN' })) : fetchMock(url, init))
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} })
   vi.stubEnv('VITE_API_URL', 'https://api.example.com')
 })
 let currentClient: QueryClient
 async function refreshMarkers() { await act(async () => { await currentClient.refetchQueries({ predicate: query => query.queryKey.includes('markers') }) }) }
 function renderPage(path = '/ocorrencias?visao=mapa&pagina=3') {
+  if (path.startsWith('/ocorrencias')) sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ accessToken: 'admin-token', expiresAt: new Date(Date.now() + 1800000).toISOString() }))
+  window.history.replaceState(null, '', path)
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   currentClient = client
-  const view = render(<QueryClientProvider client={client}><AuthProvider><MemoryRouter initialEntries={[path]}><App /></MemoryRouter></AuthProvider></QueryClientProvider>)
+  const view = render(<QueryClientProvider client={client}><AuthProvider><BrowserRouter><App /></BrowserRouter></AuthProvider></QueryClientProvider>)
   return { client, ...view }
 }
 function authenticate() { sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ accessToken: 'synthetic-token', expiresAt: new Date(Date.now() + 1800000).toISOString() })) }
@@ -200,15 +202,16 @@ test('a late movement from a map that was left cannot navigate away from the nex
   renderPage()
   await screen.findByRole('button', { name: 'Pino Relato 0' })
   const lateMove = mapCallbacks.move!
-  await userEvent.click(within(screen.getByRole('navigation', { name: 'Navegação principal' })).getByRole('link', { name: 'Entrar' }))
-  await screen.findByRole('heading', { name: 'Entrar' })
+  window.history.pushState(null, '', '/minha-conta')
+  act(() => window.dispatchEvent(new PopStateEvent('popstate')))
+  expect(window.location.pathname).toBe('/minha-conta')
   act(() => lateMove({ latitude: 12, longitude: 34, zoom: 15 }))
-  expect(screen.getByRole('heading', { name: 'Entrar' })).toBeVisible()
   expect(screen.queryByRole('button', { name: 'Pino Relato 0' })).toBeNull()
 })
 
 test('BrowserRouter viewport updates cannot overwrite a navigation whose history changed before the React commit', async () => {
   fetchMock.mockResolvedValue(Response.json(set))
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ accessToken: 'admin-token', expiresAt: new Date(Date.now() + 1800000).toISOString() }))
   window.history.replaceState(null, '', '/ocorrencias?visao=mapa')
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(<QueryClientProvider client={client}><AuthProvider><BrowserRouter><App /></BrowserRouter></AuthProvider></QueryClientProvider>)
@@ -219,8 +222,8 @@ test('BrowserRouter viewport updates cannot overwrite a navigation whose history
   act(() => oldMove({ latitude: 12, longitude: 34, zoom: 15 }))
   expect(window.location.pathname).toBe('/registrar-ocorrencia')
   act(() => window.dispatchEvent(new PopStateEvent('popstate')))
-  expect(await screen.findByRole('heading', { name: 'Entrar' })).toBeVisible()
-  expect(window.location.pathname).toBe('/entrar')
+  expect(await screen.findByRole('heading', { name: 'Relatar problema' })).toBeVisible()
+  expect(window.location.pathname).toBe('/registrar-ocorrencia')
 })
 
 test('map filter changes use complete criteria without paging, clear selection/group and reject stale moves', async () => {
