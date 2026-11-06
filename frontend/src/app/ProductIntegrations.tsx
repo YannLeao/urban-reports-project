@@ -3,7 +3,7 @@ import { Icon } from '../components/ui/Icon'
 import { useNotifications } from '../features/notification/notifications'
 
 export function PasswordRecoveryAccess() {
-  return <p className="mb-0 text-small text-text-secondary">Recuperação de senha em breve</p>
+  return <p className="mb-0 text-small"><Link className="inline-flex min-h-target items-center" to="/esqueci-minha-senha">Esqueci minha senha</Link></p>
 }
 
 export function NotificationsAccess() {

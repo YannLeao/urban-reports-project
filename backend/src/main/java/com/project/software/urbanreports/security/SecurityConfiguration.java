@@ -45,7 +45,7 @@ public class SecurityConfiguration {
                         .authenticationEntryPoint(errors).accessDeniedHandler(errors))
                 .authorizeHttpRequests(authorize -> authorize
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/admin-activations").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/admin-activations", "/api/auth/password-recovery-requests", "/api/auth/password-resets").permitAll()
                         .requestMatchers("/api/super-admin/admins", "/api/super-admin/admins/**").hasRole("SUPER_ADMIN")
                         .requestMatchers("/api/admin/occurrences", "/api/admin/occurrences/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/admin/reports/occurrences", "/api/admin/reports/occurrences/pdf").hasRole("ADMIN")

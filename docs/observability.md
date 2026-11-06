@@ -49,7 +49,8 @@ exclusivo da rede. Uma falha de commit não inicia observação de envio.
 Em WARN há exatamente um `email.send.completed` por falha e nenhuma linha por
 aceite. Em DEBUG há **até duas linhas por tentativa**: `email.send.dispatched`
 (quando alcançado) e `email.send.completed`. Não há eventos por byte, polling,
-health check ou sucesso em INFO. Não há evento de configuração no boot.
+health check ou sucesso em INFO. A recuperação registra configuração inválida uma vez no boot e eventos
+operacionais limitados por motivo; ver exceção abaixo.
 
 O contexto é passado explicitamente serviço → adaptador → transporte, sem MDC,
 ThreadLocal ou cabeçalho público. O transporte completa o registro antes de
@@ -62,7 +63,7 @@ do logger são isoladas para não converter aceite em falha nem impedir persist�
 | --- | --- |
 | `event` | `email.send.dispatched` ou `email.send.completed` |
 | `send_id` | UUID aleatório novo por tentativa, sem relação com dados do domínio |
-| `operation` | `ADMIN_INVITATION`, `ADMIN_RESEND`, `OCCURRENCE_NOTIFICATION`, `GENERIC` |
+| `operation` | `ADMIN_INVITATION`, `ADMIN_RESEND`, `OCCURRENCE_NOTIFICATION`, `PASSWORD_RECOVERY`, `GENERIC` |
 | `provider` | `brevo` |
 | `outcome` | Só terminal: `ACCEPTED`, `FAILED`, `UNCERTAIN` (este último continua FAILED na API) |
 | `category` | Só falha: `CONFIGURATION`, `PERMANENT`, `TRANSIENT`, `UNCERTAIN`; regras anteriores preservadas |
@@ -227,3 +228,18 @@ Este guia não promete retenção, busca ou recursos de plano específicos. O su
 nativo a logstash e aos níveis por variável é documentado pelo
 [Spring Boot 4.1.1](https://docs.spring.io/spring-boot/reference/features/logging.html)
 e verificado localmente; overrides e implantação remota precisam ser conferidos.
+
+## Recuperação de senha
+
+`PASSWORD_RECOVERY` reutiliza o mesmo contexto e logger. Pré-validação no boot
+usa PREPARATION/recovery_configuration_invalid uma vez por inicialização.
+ADMISSION/recovery_capacity_exhausted, SUBMISSION/recovery_submission_rejected,
+EXECUTION/recovery_task_failed e EXECUTION/recovery_shutdown são limitados a um
+aviso por motivo a cada cinco minutos; o contexto não é cópia de request/MDC.
+Esses eventos operacionais podem acontecer antes de existir emissão confirmada.
+Sucesso, limitação e supressão normal não geram INFO/WARN por pedido. A tentativa
+após commit inclui espera em fila e preflight na duração; não altera o deadline
+HTTP. O transporte mantém a propriedade do registro terminal, sem WARN duplicado
+na tarefa. Campos/dados proibidos seguem o contrato acima. Configuração inválida
+não é repetida a cada pedido; comportamento e correlação estão no
+[guia de recuperação](password-recovery-integration.md).

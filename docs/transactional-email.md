@@ -6,7 +6,8 @@ O pacote compartilhado `email/` não conhece conta, sessão, papel ou token.
 O transporte não cria endpoints, migrations, SDK ou fallback SMTP. Convites
 permanecem síncronos; a #42 reutiliza a mesma interface em um
 [consumidor com intenção persistida](notification-email.md), com operação própria.
-#20 (recuperação) continua pendente. Ver [ADR 0022](adr/0022-enviar-email-transacional-via-brevo.md).
+A [recuperação de senha](password-recovery-integration.md) reutiliza o transporte
+em executor limitado, após commit, sem fila durável ou retries automáticos. Ver [ADR 0022](adr/0022-enviar-email-transacional-via-brevo.md).
 
 ## Contrato, rede e dados sensíveis
 

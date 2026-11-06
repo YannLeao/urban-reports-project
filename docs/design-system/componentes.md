@@ -123,8 +123,7 @@ Contrato e limpeza de senhas estão em [identidade](../identity.md).
 com foco no erro genérico. Cadastro concluído oferece login sem senha em navegação.
 `/minha-conta` tem nome/e-mail e Sair; sem edição ou painel fictício. Bootstrap
 mostra estado de validação, falha oferece Tentar novamente e logout incerto
-preserva a tela com mensagem e retry. O acesso de recuperação ainda não tem rota: apresenta “Recuperação de senha
-em breve”, sem link ou envio simulado; ver ProductIntegrations.tsx.
+preserva a tela com mensagem e retry. O acesso de recuperação é o link “Esqueci minha senha” para `/esqueci-minha-senha`; ver ProductIntegrations.tsx. As telas de recuperação reutilizam Input, PasswordField, Button com loading e Alert.
 
 O ImagePicker aceita também `disabled?: boolean` para bloquear todos os controles
 e `onValidationChange?: (validating: boolean) => void` para notificar o consumidor
@@ -296,3 +295,7 @@ Mapas têm localização/enquadramento internos com IconButton; sem refresh perm
 Fila de moderação/Todos os relatos antes dos selects, com aria-pressed; voltar
 à fila remove estado final e informa o ajuste. Usa tokens/componentes existentes.
 [Contrato e navegação](../occurrence-filters.md).
+
+A recuperação reutiliza Button/Input/PasswordField/Alert: confirmação genérica,
+reenvio após 60 segundos, estado ocupado, foco de erro/sucesso e orientação para
+reabrir o e-mail após recarga. Não persiste o segredo nem altera tokens visuais.
