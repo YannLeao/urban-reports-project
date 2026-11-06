@@ -70,7 +70,7 @@ class AdminProvisioningIntegrationTests {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.activated").value(true)).andExpect(header().doesNotExist("Set-Cookie"));
         assertThatThrownBy(() -> service.activate(raw, PASSWORD)).isInstanceOf(AdministrationException.class);
         var adminLogin = login.login(created.admin().email(), PASSWORD); var admin = identity(adminLogin); var report = report(citizen.id());
-        var result = moderation.transition(admin, report.getId(), "\"0\"", new OccurrenceTransition(OccurrenceStatus.ACCEPTED, null));
+        var result = moderation.transition(admin, report.getId(), "\"0\"", new OccurrenceTransition(OccurrenceStatus.ACCEPTED, "Comentário de aceite"));
         assertThat(result.report().version()).isEqualTo(1);
         assertThat(result.history()).singleElement().satisfies(event -> assertThat(event.responsible()).isEqualTo("Pessoa administradora"));
         mvc.perform(get("/api/admin/occurrences/{id}", report.getId()).header("Authorization", "Bearer " + adminLogin.accessToken())).andExpect(status().isOk());
@@ -268,7 +268,7 @@ class AdminProvisioningIntegrationTests {
     }
     @Test void moderationInvalidatesOldAuthorDraftAndPreventsDeletion() {
         var admin = activatedAdmin(); var citizen = citizen(); var report = report(citizen.id());
-        moderation.transition(admin, report.getId(), "\"0\"", new OccurrenceTransition(OccurrenceStatus.ACCEPTED, null));
+        moderation.transition(admin, report.getId(), "\"0\"", new OccurrenceTransition(OccurrenceStatus.ACCEPTED, "Comentário de aceite"));
         assertThatThrownBy(() -> ownReports.update(citizen.id(), report.getId(), "\"0\"", new OccurrenceRequest(1, "Título editado", null, "Centro", "Praça central"), null)).isInstanceOf(OccurrenceWriteException.class);
         assertThatThrownBy(() -> ownReports.delete(citizen.id(), report.getId(), "\"0\"")).isInstanceOf(OccurrenceWriteException.class);
         var resolved = moderation.transition(admin, report.getId(), "\"1\"", new OccurrenceTransition(OccurrenceStatus.RESOLVED, null));
@@ -277,16 +277,25 @@ class AdminProvisioningIntegrationTests {
         assertThatThrownBy(() -> moderation.transition(admin, report.getId(), "\"2\"", new OccurrenceTransition(OccurrenceStatus.RESOLVED, null)))
                 .isInstanceOf(OccurrenceWriteException.class);
         assertThat(jdbc.queryForList("SELECT message FROM occurrence_notifications WHERE occurrence_id = ?", String.class, report.getId()))
-                .anySatisfy(message -> assertThat(message).contains("Pendente para Em análise"))
-                .anySatisfy(message -> assertThat(message).contains("Em análise para Resolvida"));
+                .anySatisfy(message -> assertThat(message).contains("aceita: Comentário de aceite"))
+                .anySatisfy(message -> assertThat(message).contains("Aceita para Resolvida"));
         assertThat(jdbc.queryForObject("SELECT count(*) FROM occurrence_notifications WHERE occurrence_id = ?", Integer.class, report.getId())).isEqualTo(2);
         assertDeliveries(report.getId(), citizen.id(), 2);
     }
-    @Test void rejectedFromEachAllowedSourceAndFailedCommitRollsBackStateEventAndIntent() {
+    @Test void rejectionOnlyFromPendingAndFailedCommitRollsBackStateEventAndIntent() {
         var admin = activatedAdmin();
         for (boolean analyze : new boolean[] {false, true}) {
             var report = report(citizen().id());
-            if (analyze) moderation.transition(admin, report.getId(), "\"0\"", new OccurrenceTransition(OccurrenceStatus.ACCEPTED, null));
+            if (analyze) moderation.transition(admin, report.getId(), "\"0\"", new OccurrenceTransition(OccurrenceStatus.ACCEPTED, "Comentário de aceite"));
+            if (analyze) {
+                assertThatThrownBy(() -> moderation.transition(admin, report.getId(), "\"1\"",
+                        new OccurrenceTransition(OccurrenceStatus.REJECTED, "Justificativa válida")))
+                        .isInstanceOf(OccurrenceWriteException.class);
+                assertThat(reports.findById(report.getId()).orElseThrow().getStatus()).isEqualTo(OccurrenceStatus.ACCEPTED);
+                assertThat(jdbc.queryForObject("SELECT count(*) FROM occurrence_history WHERE occurrence_id = ?", Integer.class, report.getId())).isEqualTo(1);
+                assertDeliveries(report.getId(), report.getAuthorId(), 1);
+                continue;
+            }
             var result = moderation.transition(admin, report.getId(), analyze ? "\"1\"" : "\"0\"", new OccurrenceTransition(OccurrenceStatus.REJECTED, "  Justificativa válida  "));
             assertThat(result.report().status()).isEqualTo(OccurrenceStatus.REJECTED);
             assertThat(result.history().getLast().reason()).isEqualTo("Justificativa válida");
@@ -298,7 +307,7 @@ class AdminProvisioningIntegrationTests {
         jdbc.execute("CREATE FUNCTION fail_moderation_commit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.occurrence_id = '" + report.getId() + "'::uuid THEN RAISE EXCEPTION 'test rollback'; END IF; RETURN NEW; END $$");
         jdbc.execute("CREATE CONSTRAINT TRIGGER moderation_commit_failure AFTER INSERT ON occurrence_history DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION fail_moderation_commit()");
         try {
-            assertThatThrownBy(() -> moderation.transition(admin, report.getId(), "\"0\"", new OccurrenceTransition(OccurrenceStatus.ACCEPTED, null))).isInstanceOf(RuntimeException.class);
+            assertThatThrownBy(() -> moderation.transition(admin, report.getId(), "\"0\"", new OccurrenceTransition(OccurrenceStatus.ACCEPTED, "Comentário de aceite"))).isInstanceOf(RuntimeException.class);
             assertThat(reports.findById(report.getId()).orElseThrow().getStatus()).isEqualTo(OccurrenceStatus.PENDING);
             assertThat(reports.findById(report.getId()).orElseThrow().getVersion()).isZero();
             assertThat(jdbc.queryForObject("SELECT count(*) FROM occurrence_history WHERE occurrence_id = ?", Integer.class, report.getId())).isZero();
@@ -318,7 +327,7 @@ class AdminProvisioningIntegrationTests {
         assertThat(accounts.findById(invitation.admin().id()).orElseThrow().getStatus()).isEqualTo(AccountStatus.DISABLED);
         assertThatThrownBy(() -> service.activate(raw, PASSWORD)).isInstanceOf(AdministrationException.class);
         var admin = activatedAdmin(); var report = report(citizen().id());
-        runTogether(() -> { try { moderation.transition(admin, report.getId(), "\"0\"", new OccurrenceTransition(OccurrenceStatus.ACCEPTED, null)); }
+        runTogether(() -> { try { moderation.transition(admin, report.getId(), "\"0\"", new OccurrenceTransition(OccurrenceStatus.ACCEPTED, "Comentário de aceite")); }
                 catch (org.springframework.security.access.AccessDeniedException denied) { /* Disabled first. */ } },
                 () -> service.deactivate(root, admin.userId()));
         assertThat(accounts.findById(admin.userId()).orElseThrow().getStatus()).isEqualTo(AccountStatus.DISABLED);
@@ -330,7 +339,7 @@ class AdminProvisioningIntegrationTests {
     }
     @Test void moderationRacingAuthorEditsAndDeletesPreservesVersionsAndNoOrphans() throws Exception {
         var admin = activatedAdmin(); var citizen = citizen(); var report = report(citizen.id());
-        runTogether(() -> { try { moderation.transition(admin, report.getId(), "\"0\"", new OccurrenceTransition(OccurrenceStatus.ACCEPTED, null)); } catch (OccurrenceWriteException stale) { /* Author won. */ } },
+        runTogether(() -> { try { moderation.transition(admin, report.getId(), "\"0\"", new OccurrenceTransition(OccurrenceStatus.ACCEPTED, "Comentário de aceite")); } catch (OccurrenceWriteException stale) { /* Author won. */ } },
                 () -> { try { ownReports.update(citizen.id(), report.getId(), "\"0\"", new OccurrenceRequest(1, "Título editado", null, "Centro", "Praça central", "0", "123.123456789"), null); } catch (OccurrenceWriteException stale) { /* Moderator won. */ } });
         var after = reports.findById(report.getId()).orElseThrow();
         assertThat(after.getVersion()).isEqualTo(1);
@@ -344,7 +353,7 @@ class AdminProvisioningIntegrationTests {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM occurrence_history WHERE occurrence_id = ?", Integer.class, report.getId()))
                 .isEqualTo(after.getStatus() == OccurrenceStatus.ACCEPTED ? 1 : 0);
         var deleted = report(citizen.id());
-        runTogether(() -> { try { moderation.transition(admin, deleted.getId(), "\"0\"", new OccurrenceTransition(OccurrenceStatus.ACCEPTED, null)); } catch (OccurrenceNotFoundException gone) { /* Author won. */ } },
+        runTogether(() -> { try { moderation.transition(admin, deleted.getId(), "\"0\"", new OccurrenceTransition(OccurrenceStatus.ACCEPTED, "Comentário de aceite")); } catch (OccurrenceNotFoundException gone) { /* Author won. */ } },
                 () -> { try { ownReports.delete(citizen.id(), deleted.getId(), "\"0\""); } catch (OccurrenceWriteException changed) { /* Moderator won. */ } });
         var surviving = reports.findById(deleted.getId());
         assertThat(jdbc.queryForObject("SELECT count(*) FROM occurrence_history WHERE occurrence_id = ?", Integer.class, deleted.getId())).isEqualTo(surviving.isPresent() ? 1 : 0);
@@ -367,13 +376,13 @@ class AdminProvisioningIntegrationTests {
                 .andExpect(status().isOk()).andExpect(content().bytes(png)).andExpect(header().string("Cache-Control", "no-store"));
         mvc.perform(get("/api/admin/occurrences/{id}/image", report.getId()).header("Authorization", "Bearer " + rootToken)).andExpect(status().isForbidden());
         String path = "/api/admin/occurrences/" + report.getId() + "/transitions";
-        mvc.perform(post(path).header("Authorization", "Bearer " + bearer).contentType("application/json").content("{\"target\":\"ACCEPTED\"}"))
+        mvc.perform(post(path).header("Authorization", "Bearer " + bearer).contentType("application/json").content("{\"target\":\"ACCEPTED\",\"reason\":\"Comentário de aceite\"}"))
                 .andExpect(status().isPreconditionRequired());
         mvc.perform(post(path).header("Authorization", "Bearer " + bearer).header("If-Match", "\"0\"").contentType("application/json").content("{\"target\":\"RESOLVED\"}"))
                 .andExpect(status().isConflict());
         mvc.perform(post(path).header("Authorization", "Bearer " + bearer).header("If-Match", "\"0\"").contentType("application/json").content("{\"target\":\"REJECTED\",\"reason\":\"short\"}"))
                 .andExpect(status().isBadRequest());
-        mvc.perform(post(path).header("Authorization", "Bearer " + bearer).header("If-Match", "\"0\"").contentType("application/json").content("{\"target\":\"ACCEPTED\"}"))
+        mvc.perform(post(path).header("Authorization", "Bearer " + bearer).header("If-Match", "\"0\"").contentType("application/json").content("{\"target\":\"ACCEPTED\",\"reason\":\"Comentário de aceite\"}"))
                 .andExpect(status().isOk()).andExpect(header().string("ETag", "\"1\""))
                 .andExpect(jsonPath("$.report.status").value("ACCEPTED")).andExpect(jsonPath("$.history[0].responsible").value("Pessoa administradora"));
         mvc.perform(post(path).header("Authorization", "Bearer " + bearer).header("If-Match", "\"0\"").contentType("application/json").content("{\"target\":\"RESOLVED\"}"))
@@ -410,7 +419,7 @@ class AdminProvisioningIntegrationTests {
                     new org.springframework.mock.web.MockMultipartFile("image", "replacement.png", "image/png", png)));
             try {
                 assertThat(uploaded.await(10, TimeUnit.SECONDS)).isTrue();
-                moderation.transition(admin, report.getId(), "\"0\"", new OccurrenceTransition(OccurrenceStatus.ACCEPTED, null));
+                moderation.transition(admin, report.getId(), "\"0\"", new OccurrenceTransition(OccurrenceStatus.ACCEPTED, "Comentário de aceite"));
             } finally { release.countDown(); }
             assertThatThrownBy(() -> update.get(20, TimeUnit.SECONDS)).hasCauseInstanceOf(OccurrenceWriteException.class);
         }
@@ -426,7 +435,7 @@ class AdminProvisioningIntegrationTests {
     }
     private int transitionAttempt(AuthenticatedIdentity admin, UUID report, CountDownLatch gate) throws Exception {
         gate.await();
-        try { moderation.transition(admin, report, "\"0\"", new OccurrenceTransition(OccurrenceStatus.ACCEPTED, null)); return 200; }
+        try { moderation.transition(admin, report, "\"0\"", new OccurrenceTransition(OccurrenceStatus.ACCEPTED, "Comentário de aceite")); return 200; }
         catch (OccurrenceWriteException conflict) { return conflict.status.value(); }
     }
     private AdminProvisioningService.Invitation create() { return service.create(root, "Pessoa administradora", UUID.randomUUID() + "@example.com"); }

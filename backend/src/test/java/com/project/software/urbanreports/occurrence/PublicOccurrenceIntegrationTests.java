@@ -157,8 +157,8 @@ class PublicOccurrenceIntegrationTests {
         mvc.perform(get("/api/occurrences")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/occurrences/{id}", report.getId())).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/occurrences/{id}/image", report.getId())).andExpect(status().isUnauthorized());
-        mvc.perform(post("/api/public/occurrences")).andExpect(status().isForbidden());
-        mvc.perform(delete("/api/public/occurrences/{id}", report.getId())).andExpect(status().isForbidden());
+        mvc.perform(post("/api/public/occurrences").header("Authorization", "Bearer " + adminToken)).andExpect(status().isForbidden());
+        mvc.perform(delete("/api/public/occurrences/{id}", report.getId()).header("Authorization", "Bearer " + adminToken)).andExpect(status().isForbidden());
     }
 
     private void assertNoPrivateData(String json, RegistrationResponse author, Occurrence occurrence) {

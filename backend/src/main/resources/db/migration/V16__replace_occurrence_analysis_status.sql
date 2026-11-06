@@ -4,8 +4,9 @@ ALTER TABLE occurrences ADD CONSTRAINT ck_occurrences_status
     CHECK (status IN ('PENDING', 'ACCEPTED', 'RESOLVED', 'REJECTED'));
 
 ALTER TABLE occurrence_history DROP CONSTRAINT ck_occurrence_history_transition;
+-- Preserve append-only events written before ACCEPTED replaced IN_ANALYSIS.
 ALTER TABLE occurrence_history ADD CONSTRAINT ck_occurrence_history_transition CHECK (
-    (previous_status = 'PENDING' AND new_status IN ('ACCEPTED', 'REJECTED')) OR
+    (previous_status = 'PENDING' AND new_status IN ('IN_ANALYSIS', 'ACCEPTED', 'REJECTED')) OR
     (previous_status = 'ACCEPTED' AND new_status = 'RESOLVED') OR
     (previous_status = 'IN_ANALYSIS' AND new_status IN ('RESOLVED', 'REJECTED'))
 );

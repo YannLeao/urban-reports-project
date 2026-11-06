@@ -10,12 +10,17 @@ import static org.assertj.core.api.Assertions.*;
 class RecoveryConfigurationTests {
     @TempDir Path directory;
     @Test void importedUppercasePropertiesSupportFallbackDedicatedAndInvalidOverride() throws Exception {
+        // Exercise the real mappings without importing the developer's private .env.
+        Path application = directory.resolve("application.properties");
+        Files.writeString(application, Files.readString(Path.of("src/main/resources/application.properties"))
+                .replace("spring.config.import=optional:file:.env[.properties]", ""));
         Path env = directory.resolve("recovery.env");
         for (String dedicated : new String[] {"", "RECOVERY_FRONTEND_ORIGIN=https://dedicated.example.com/\n",
                 "RECOVERY_FRONTEND_ORIGIN=\n", "RECOVERY_FRONTEND_ORIGIN=http://invalid.example.com\n"}) {
             Files.writeString(env, "ADMIN_FRONTEND_ORIGIN=https://fallback.example.com\n" + dedicated);
             new ApplicationContextRunner().withInitializer(new ConfigDataApplicationContextInitializer())
-                    .withPropertyValues("spring.config.import=file:" + env + "[.properties]")
+                    .withPropertyValues("spring.config.location=file:" + application,
+                            "spring.config.import=file:" + env + "[.properties]")
                     .withBean(RecoverySettings.class).run(context -> {
                         assertThat(context).hasNotFailed();
                         var settings = context.getBean(RecoverySettings.class);

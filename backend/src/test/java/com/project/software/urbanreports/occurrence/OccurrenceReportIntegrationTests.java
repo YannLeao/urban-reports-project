@@ -245,7 +245,8 @@ class OccurrenceReportIntegrationTests {
     }
     private void resolve(Occurrence report) { transition(report, "0", OccurrenceStatus.ACCEPTED); transition(report, "1", OccurrenceStatus.RESOLVED); }
     private ModerationService.Detail transition(Occurrence report, String version, OccurrenceStatus target) {
-        return moderation.transition(admin, report.getId(), "\"" + version + "\"", new OccurrenceTransition(target, target == OccurrenceStatus.REJECTED ? "Justificativa sintética" : null));
+        return moderation.transition(admin, report.getId(), "\"" + version + "\"", new OccurrenceTransition(target,
+                target == OccurrenceStatus.REJECTED || target == OccurrenceStatus.ACCEPTED ? "Justificativa sintética" : null));
     }
     private AuthenticatedIdentity identity(LoginService.Result result) {
         UUID session = jdbc.queryForObject("SELECT id FROM auth_sessions WHERE user_id = ? AND revoked_at IS NULL ORDER BY created_at DESC LIMIT 1", UUID.class, result.user().id());

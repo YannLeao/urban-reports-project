@@ -65,8 +65,8 @@ class OccurrenceMarkersIntegrationTests {
         json.get("items").forEach(item -> ids.add(item.get("id").asString()));
         assertThat(ids).hasSize(63).contains(zero.getId().toString(), resolved.getId().toString(), analysis.getId().toString());
         assertThat(publicBody).contains("-23.550520123456", "-46.633308987654");
-        mvc.perform(get("/api/public/occurrences/{id}", rejected.getId())).andExpect(status().isNotFound());
-        mvc.perform(get("/api/public/occurrences/{id}/image", rejected.getId())).andExpect(status().isNotFound());
+        mvc.perform(get("/api/public/occurrences/{id}", rejected.getId()).header("Authorization", "Bearer " + adminToken)).andExpect(status().isNotFound());
+        mvc.perform(get("/api/public/occurrences/{id}/image", rejected.getId()).header("Authorization", "Bearer " + adminToken)).andExpect(status().isNotFound());
         mvc.perform(get("/api/public/occurrences").header("Authorization", "Bearer " + adminToken).param("size", "20")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(20)).andExpect(jsonPath("$.totalItems").value(64));
         String owned = mvc.perform(get("/api/occurrences/markers").param("userId", other.id().toString()).header("Authorization", "Bearer " + firstToken))

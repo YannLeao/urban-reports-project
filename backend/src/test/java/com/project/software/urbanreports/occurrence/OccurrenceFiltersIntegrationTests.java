@@ -106,7 +106,7 @@ class OccurrenceFiltersIntegrationTests {
         }
         var finished = jdbc.queryForObject("SELECT id FROM occurrences WHERE status='RESOLVED' LIMIT 1", UUID.class);
         mvc.perform(post("/api/admin/occurrences/{id}/transitions", finished).header("Authorization", "Bearer " + adminToken)
-                .header("If-Match", "\"0\"").contentType("application/json").content("{\"target\":\"ACCEPTED\"}"))
+                .header("If-Match", "\"0\"").contentType("application/json").content("{\"target\":\"ACCEPTED\",\"reason\":\"Comentário de aceite\"}"))
                 .andExpect(status().isConflict());
         for (String path : List.of("/api/public/occurrences", "/api/public/occurrences/markers", "/api/occurrences", "/api/occurrences/markers", "/api/admin/occurrences")) {
             for (String[] invalid : new String[][] {{"categoryId","0"},{"categoryId","999"},{"categoryId","abc"},{"categoryId","1.5"},{"categoryId",""}, {"status",""},{"status","pending"},{"status","BAD"},{"scope","BAD"}}) {
@@ -126,8 +126,6 @@ class OccurrenceFiltersIntegrationTests {
         assertThat(mapper.readTree(catalog).get(0).size()).isEqualTo(2);
         mvc.perform(get("/api/public/occurrence-categories/extra")).andExpect(status().isUnauthorized());
         mvc.perform(post("/api/public/occurrence-categories")).andExpect(status().isUnauthorized());
-        jdbc.update("UPDATE user_accounts SET status='DISABLED' WHERE id=?", admin.id());
-        for (String scope : List.of("QUEUE", "ALL")) mvc.perform(get("/api/admin/occurrences").header("Authorization", "Bearer " + adminToken).param("scope", scope)).andExpect(status().isUnauthorized());
         mvc.perform(post("/api/auth/logout").header("Authorization", "Bearer " + userToken).contentType("application/json").content("{}")).andExpect(status().isNoContent());
         mvc.perform(get("/api/occurrences").header("Authorization", "Bearer " + userToken).param("status", "REJECTED")).andExpect(status().isUnauthorized());
         explain(a.id());
@@ -140,6 +138,8 @@ class OccurrenceFiltersIntegrationTests {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(0)).andExpect(jsonPath("$.located").value(0)).andExpect(jsonPath("$.unlocated").value(0));
         mvc.perform(publicGet("/api/public/occurrences", adminToken).param("categoryId", "2").param("status", "ACCEPTED"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.totalItems").value(0)).andExpect(jsonPath("$.items").isEmpty());
+        jdbc.update("UPDATE user_accounts SET status='DISABLED' WHERE id=?", admin.id());
+        for (String scope : List.of("QUEUE", "ALL")) mvc.perform(get("/api/admin/occurrences").header("Authorization", "Bearer " + adminToken).param("scope", scope)).andExpect(status().isUnauthorized());
     }
     void explain(UUID author) throws Exception {
         jdbc.execute("ANALYZE occurrences");
