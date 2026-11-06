@@ -87,6 +87,14 @@ migration confirma a aplicação da V1, a existência de `schema_probe`, inserç
 leitura, o valor padrão de `checked_at`, o registro no histórico e a ausência de
 reaplicação quando o schema já está atualizado.
 
+`OccurrenceStatusMigrationTests` também aplica V1–V15, insere todas as
+transições antigas em um schema isolado e executa a V16. Confere a conversão
+do estado atual para `ACCEPTED`, preservação integral de histórico, outbox,
+notificações e intenções de e-mail, ausência de reaplicação e as constraints
+do novo fluxo. Os fixtures de upgrade devem usar os estados válidos na versão
+de origem; aplicar tudo em banco vazio não comprova compatibilidade com dados
+existentes.
+
 
 ## Versões por ambiente
 
@@ -103,6 +111,13 @@ V6 remove NOT NULL/mínimo antigo de description, mantém máximo de 1000 pontos
 de código e preserva textos existentes. Acrescenta version BIGINT não negativo,
 inicial 0. V4/V5 não são alteradas. Tombstones reutilizam o schema V5, sem nova
 fila; retirada de referência e intenção de descarte entram na mesma transação.
+
+V16 converte o estado atual `IN_ANALYSIS` para `ACCEPTED`, preservando os eventos
+append-only e as notificações existentes. A constraint de histórico aceita
+`PENDING → IN_ANALYSIS` e as saídas antigas de `IN_ANALYSIS`, além do novo fluxo.
+A leitura apresenta o estado antigo como `ACCEPTED`; novos comandos usam
+`PENDING → ACCEPTED → RESOLVED` ou `PENDING → REJECTED`, conforme o
+[ADR 0033](adr/0033-fluxo-de-status-de-ocorrencias.md).
 
 ## Notificações internas
 

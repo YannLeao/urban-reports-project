@@ -103,7 +103,7 @@ class NotificationIntegrationTests {
         UUID newEvent = UUID.randomUUID();
         upgradeEvent(schema, newEvent, report, author, true);
         var upgraded = org.flywaydb.core.Flyway.configure().dataSource(source).schemas(schema).defaultSchema(schema).load();
-        assertThat(upgraded.migrate().migrationsExecuted).isEqualTo(5);
+        assertThat(upgraded.migrate().migrationsExecuted).isEqualTo(6);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema + ".occurrence_notifications", Integer.class)).isEqualTo(2);
         assertThat(jdbc.queryForObject("SELECT message FROM " + schema + ".occurrence_notifications WHERE event_id = ?", String.class, event)).endsWith("Explicação anterior");
         assertThat(upgraded.migrate().migrationsExecuted).isZero();
@@ -114,7 +114,7 @@ class NotificationIntegrationTests {
             // Match Flyway's connection search_path so trigger functions resolve this isolated schema.
             jdbc.execute("SET LOCAL search_path TO " + schema);
             jdbc.update("INSERT INTO occurrence_history VALUES (?, ?, 'PENDING', ?, ?, now(), ?, ?)", event, report,
-                    analyze ? "ACCEPTED" : "REJECTED", author, analyze ? null : "Explicação anterior", analyze ? 2 : 1);
+                    analyze ? "IN_ANALYSIS" : "REJECTED", author, analyze ? null : "Explicação anterior", analyze ? 2 : 1);
         });
     }
 

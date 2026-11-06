@@ -77,6 +77,18 @@ class OccurrenceHttpTests {
         assertThat(action("/api/notifications", "GET", token, null).statusCode()).isEqualTo(200);
     }
 
+    private String generalReadAdminToken() throws Exception {
+        String email = UUID.randomUUID() + "@example.com";
+        String password = "synthetic admin password for HTTP tests";
+        var registered = json("/api/auth/register", Map.of("name", "Admin teste", "email", email, "password", password), null);
+        assertThat(registered.statusCode()).isEqualTo(201);
+        UUID id = UUID.fromString(mapper.readTree(registered.body()).get("id").asString());
+        jdbc.update("UPDATE user_accounts SET role='ADMIN' WHERE id=?", id);
+        var response = json("/api/auth/login", Map.of("email", email, "password", password), null);
+        assertThat(response.statusCode()).isEqualTo(200);
+        return mapper.readTree(response.body()).get("accessToken").asString();
+    }
+
     @Test void locationContractRejectsInvalidPairsBeforeUpload() throws Exception {
         var absent = valid(); absent.removeIf(part -> List.of("latitude", "longitude").contains(part.name()));
         reject(absent, 400);
@@ -91,6 +103,7 @@ class OccurrenceHttpTests {
     }
 
     @Test void locationRoundTripsBoundsZerosAndPrecisionInPrivateAndPublicReads() throws Exception {
+        String adminToken = generalReadAdminToken();
         for (double[] point : List.of(new double[]{0, 0}, new double[]{0, 180}, new double[]{90, 0},
                 new double[]{-90, -180}, new double[]{-23.550520123456, -46.633308987654})) {
             var parts = replace(replace(valid(), text("latitude", Double.toString(point[0]))), text("longitude", Double.toString(point[1])));
@@ -98,7 +111,7 @@ class OccurrenceHttpTests {
             assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
             var id = mapper.readTree(created.body()).get("id").asString();
             for (String path : List.of("/api/occurrences/" + id, "/api/public/occurrences/" + id)) {
-                var response = action(path, "GET", token, null);
+                var response = action(path, "GET", path.startsWith("/api/public/") ? adminToken : token, null);
                 assertThat(response.statusCode()).as(response.body()).isEqualTo(200);
                 var body = mapper.readTree(response.body());
                 assertThat(body.get("latitude").asDouble()).isEqualTo(point[0]);
@@ -108,6 +121,7 @@ class OccurrenceHttpTests {
     }
 
     @Test void locationUpdatePreservesOmissionRejectsClearingAndEnrichesLegacy() throws Exception {
+        String adminToken = generalReadAdminToken();
         var created = upload(valid(), token);
         UUID id = UUID.fromString(mapper.readTree(created.body()).get("id").asString());
         String path = "/api/occurrences/" + id;
@@ -124,7 +138,7 @@ class OccurrenceHttpTests {
         // Model an existing pre-V9 row, without synthesizing any geographic point.
         jdbc.update("UPDATE occurrences SET latitude = NULL, longitude = NULL WHERE id = ?", id);
         for (String read : List.of(path, "/api/public/occurrences/" + id)) {
-            var legacy = mapper.readTree(action(read, "GET", token, null).body());
+            var legacy = mapper.readTree(action(read, "GET", read.startsWith("/api/public/") ? adminToken : token, null).body());
             assertThat(legacy.get("latitude").isNull()).isTrue();
             assertThat(legacy.get("longitude").isNull()).isTrue();
         }
@@ -581,6 +595,7 @@ class OccurrenceHttpTests {
     }
 
     @Test void everyPhotoRequiresMatchingReportAndOwnerAndRejectedPhotosAreAllHidden() throws Exception {
+        String adminToken = generalReadAdminToken();
         var created = upload(photos(5), token); var ids = mediaIds(created.body());
         String id = mapper.readTree(created.body()).get("id").asString();
         String privatePath = "/api/occurrences/" + id, publicPath = "/api/public/occurrences/" + id;
@@ -588,15 +603,15 @@ class OccurrenceHttpTests {
         String otherId = mapper.readTree(otherReport.body()).get("id").asString();
         for (String media : ids) {
             assertThat(action("/api/occurrences/" + otherId + "/media/" + media, "GET", token, null).statusCode()).isEqualTo(404);
-            assertThat(action("/api/public/occurrences/" + otherId + "/media/" + media, "GET", null, null).statusCode()).isEqualTo(404);
+            assertThat(action("/api/public/occurrences/" + otherId + "/media/" + media, "GET", adminToken, null).statusCode()).isEqualTo(404);
         }
         String ownerToken = token;
         for (String media : ids) {
             var response = action(privatePath + "/media/" + media, "GET", ownerToken, null);
             assertThat(response.statusCode()).isEqualTo(200);
             assertThat(response.headers().firstValue("Cache-Control")).contains("no-store");
-            assertThat(action(publicPath + "/media/" + media, "GET", null, null).statusCode()).isEqualTo(200);
-            assertThat(action("/api/public/occurrences/" + UUID.randomUUID() + "/media/" + media, "GET", null, null).statusCode()).isEqualTo(404);
+            assertThat(action(publicPath + "/media/" + media, "GET", adminToken, null).statusCode()).isEqualTo(200);
+            assertThat(action("/api/public/occurrences/" + UUID.randomUUID() + "/media/" + media, "GET", adminToken, null).statusCode()).isEqualTo(404);
         }
         login();
         for (String media : ids) {
@@ -606,7 +621,7 @@ class OccurrenceHttpTests {
         }
         jdbc.update("update occurrences set status='REJECTED' where id=?", UUID.fromString(id));
         for (String media : ids) {
-            assertThat(action(publicPath + "/media/" + media, "GET", null, null).statusCode()).isEqualTo(404);
+            assertThat(action(publicPath + "/media/" + media, "GET", adminToken, null).statusCode()).isEqualTo(404);
             assertThat(action(privatePath + "/media/" + media, "GET", ownerToken, null).statusCode()).isEqualTo(200);
         }
     }
@@ -688,6 +703,7 @@ class OccurrenceHttpTests {
         return client.send(request.build(), HttpResponse.BodyHandlers.ofByteArray());
     }
     @Test void videoRoundTripsBytesRangesHeadAuthorizationAndRejectionWithoutDatabaseDuringStorage() throws Exception {
+        String adminToken = generalReadAdminToken();
         var created = upload(videoParts(), token);
         assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
         var body = mapper.readTree(created.body()); String id = body.get("id").asString();
@@ -698,7 +714,7 @@ class OccurrenceHttpTests {
         byte[] bytes = VideoValidatorTests.fixture("h264-aac");
         int calls = storage.streamGets;
         for (String range : List.of("bytes=0-3", "bytes=2-", "bytes=-5", "bytes=0-999999999")) {
-            var response = videoRead(publicPath, "GET", range, null, null);
+            var response = videoRead(publicPath, "GET", range, adminToken, null);
             var parsed = ByteRange.parse(range, bytes.length);
             assertThat(response.statusCode()).isEqualTo(206);
             assertThat(response.body()).isEqualTo(Arrays.copyOfRange(bytes, (int) parsed.start(), (int) parsed.end()+1));
@@ -709,31 +725,31 @@ class OccurrenceHttpTests {
         }
         assertThat(storage.streamGets).isEqualTo(calls + 4);
         for (String range : List.of("bytes=99999999-", "bytes=-0")) {
-            var response = videoRead(publicPath, "GET", range, null, null);
+            var response = videoRead(publicPath, "GET", range, adminToken, null);
             assertThat(response.statusCode()).isEqualTo(416);
             assertThat(response.headers().firstValue("Content-Range")).contains("bytes */" + bytes.length);
         }
-        var head = videoRead(publicPath, "HEAD", "bytes=0-1", null, null);
+        var head = videoRead(publicPath, "HEAD", "bytes=0-1", adminToken, null);
         assertThat(head.statusCode()).isEqualTo(200); assertThat(head.body()).isEmpty();
         assertThat(storage.streamGets).isEqualTo(calls + 4);
         for (String range : List.of("bytes=bad-", "items=0-1", "bytes=0-1,3-5")) {
-            var response = videoRead(publicPath,"GET",range,null,null);
+            var response = videoRead(publicPath,"GET",range,adminToken,null);
             assertThat(response.statusCode()).isEqualTo(200); assertThat(response.body()).isEqualTo(bytes);
         }
-        assertThat(videoRead(publicPath, "GET", "bytes=0-1", null, "unsupported-validator").statusCode()).isEqualTo(200);
+        assertThat(videoRead(publicPath, "GET", "bytes=0-1", adminToken, "unsupported-validator").statusCode()).isEqualTo(200);
         assertThat(videoRead("/api/occurrences/" + id + "/media/" + media.get("id").asString(), "GET", null, token, null).body()).isEqualTo(bytes);
         assertThat(videoRead("/api/occurrences/" + id + "/media/" + media.get("id").asString(), "HEAD", null, null, null).statusCode()).isEqualTo(401);
         assertThat(action("/api/occurrences/"+id+"/image", "GET", token, null).statusCode()).isEqualTo(404);
-        assertThat(action("/api/public/occurrences/"+id+"/image", "GET", null, null).statusCode()).isEqualTo(404);
+        assertThat(action("/api/public/occurrences/"+id+"/image", "GET", adminToken, null).statusCode()).isEqualTo(404);
         storage.failOpen = true;
-        var unavailable = videoRead(publicPath,"GET",null,null,null);
+        var unavailable = videoRead(publicPath,"GET",null,adminToken,null);
         assertThat(unavailable.statusCode()).isEqualTo(502);
         assertThat(unavailable.headers().firstValue("Content-Type").orElse("")).startsWith("application/json");
         assertThat(new String(unavailable.body(), StandardCharsets.UTF_8)).contains("IMAGE_STORAGE_UNAVAILABLE").doesNotContain("synthetic-secret-provider-error");
         storage.failOpen = false;
         jdbc.update("UPDATE occurrences SET status='REJECTED' WHERE id=?", UUID.fromString(id));
         int gets = storage.streamGets, heads = storage.heads;
-        for (String method : List.of("GET", "HEAD")) assertThat(videoRead(publicPath, method, "bytes=0-1", null, null).statusCode()).isEqualTo(404);
+        for (String method : List.of("GET", "HEAD")) assertThat(videoRead(publicPath, method, "bytes=0-1", adminToken, null).statusCode()).isEqualTo(404);
         assertThat(storage.streamGets).isEqualTo(gets); assertThat(storage.heads).isEqualTo(heads);
     }
     @Test void switchesWholeCollectionAtomicallyAndPreservesOnPutFailureAndLegacyAliasRefused() throws Exception {
@@ -759,11 +775,12 @@ class OccurrenceHttpTests {
         assertThat(mediaIds(action(path,"GET",token,null).body())).hasSize(2);
     }
     @Test void headForPhotosAlsoUsesMetadataWithoutOpeningBody() throws Exception {
+        String adminToken = generalReadAdminToken();
         var response=upload(photos(2),token);assertThat(response.statusCode()).isEqualTo(201);
         var report=mapper.readTree(response.body());String id=report.get("id").asString(),media=report.get("media").get(0).get("id").asString();
         int heads=storage.heads,gets=storage.streamGets;
         for(String prefix:List.of("/api/occurrences/","/api/public/occurrences/")) {
-            var head=videoRead(prefix+id+"/media/"+media,"HEAD","bytes=0-1",token,null);
+            var head=videoRead(prefix+id+"/media/"+media,"HEAD","bytes=0-1",prefix.contains("/public/") ? adminToken : token,null);
             assertThat(head.statusCode()).isEqualTo(200);assertThat(head.body()).isEmpty();
             assertThat(head.headers().firstValue("Content-Type")).contains("image/png");
         }
@@ -771,6 +788,7 @@ class OccurrenceHttpTests {
     }
 
     @Test void privateVideoHeadAndRangeRespectOwnerAdminStatusSessionAndMediaMembership() throws Exception {
+        String adminToken = generalReadAdminToken();
         var created = upload(videoParts(),token); var body = mapper.readTree(created.body());
         String id = body.get("id").asString(), mediaId = body.get("media").get(0).get("id").asString();
         String own = "/api/occurrences/"+id+"/media/"+mediaId;
@@ -781,7 +799,7 @@ class OccurrenceHttpTests {
             int heads = storage.heads;
             assertThat(videoRead(own,method,"bytes=0-1",token,null).statusCode()).isEqualTo(404);
             assertThat(videoRead(admin,method,"bytes=0-1",token,null).statusCode()).isEqualTo(403);
-            assertThat(videoRead("/api/public/occurrences/"+id+"/media/"+UUID.randomUUID(),method,"bytes=0-1",null,null).statusCode()).isEqualTo(404);
+            assertThat(videoRead("/api/public/occurrences/"+id+"/media/"+UUID.randomUUID(),method,"bytes=0-1",adminToken,null).statusCode()).isEqualTo(404);
             assertThat(storage.heads).isEqualTo(heads);
         }
         jdbc.update("UPDATE user_accounts SET role='ADMIN' WHERE id=?",author);

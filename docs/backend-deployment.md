@@ -188,6 +188,33 @@ Falhas HTTP e de conexão no hook falham imediatamente o job por meio de
 `curl --fail --show-error --silent`. Se o hook for regenerado, atualize somente
 a variável protegida no GitLab.
 
+### Falha da V16 com histórico anterior
+
+`SQL State 23514` ao adicionar `ck_occurrence_history_transition` na V16 indica
+que a constraint recusou eventos existentes. A transição antiga
+`PENDING → IN_ANALYSIS` precisa continuar válida no histórico imutável, mesmo
+quando o estado atual da ocorrência passa a ser `ACCEPTED`.
+
+Se o log confirma `Changes successfully rolled back` e versão atual 15, a
+tentativa não concluiu a V16. Antes de publicar uma correção do próprio arquivo,
+confirme que a V16 original não foi aplicada com sucesso em nenhum ambiente
+compartilhado; migrations já aplicadas permanecem imutáveis. A verificação de
+histórico, quando necessária, é somente leitura no banco correspondente:
+
+```sql
+SELECT version, script, checksum, success
+FROM flyway_schema_history
+WHERE version IN ('15', '16')
+ORDER BY installed_rank;
+```
+
+Com a V16 corrigida e revisada, publique o novo SHA pelo fluxo normal. O boot
+aplicará a migration pendente; confira sucesso do Flyway e `/api/health`.
+Não é necessário alterar a conexão Render/Neon ou executar `repair` para esse
+caso de rollback integral. Não apague eventos nem desabilite constraints para
+contornar a falha. A existência de uma V17, sozinha, não resolve uma V16 que
+interrompe a inicialização.
+
 ## Login e sessões: configuração anterior ao deploy
 
 Antes de publicar a versão com login, configure AUTH_JWT_ISSUER (URL HTTPS exata
