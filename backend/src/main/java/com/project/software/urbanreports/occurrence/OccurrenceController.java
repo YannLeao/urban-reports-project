@@ -42,7 +42,7 @@ public class OccurrenceController {
         @io.swagger.v3.oas.annotations.Parameter(name = "categoryId", in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
             description = "ID existente do catálogo; ausência inclui todas as categorias", schema = @io.swagger.v3.oas.annotations.media.Schema(type = "integer")),
         @io.swagger.v3.oas.annotations.Parameter(name = "status", in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
-            description = "Estado exato: PENDING, IN_ANALYSIS, RESOLVED, REJECTED; ausência inclui todos os estados permitidos", schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string"))
+            description = "Estado exato: PENDING, ACCEPTED, RESOLVED, REJECTED; ausência inclui todos os estados permitidos", schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string"))
     })
     @GetMapping("/occurrences")
     public ResponseEntity<List<OccurrenceResponse>> mine(@AuthenticationPrincipal AuthenticatedIdentity identity, @io.swagger.v3.oas.annotations.Parameter(hidden = true) @RequestParam org.springframework.util.MultiValueMap<String, String> params) {

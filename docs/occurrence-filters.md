@@ -6,19 +6,19 @@ valores permitidos. Não há busca textual, período, multisseleção ou ordena�
 
 | GET | Parâmetros novos | Universo e ordem |
 | --- | --- | --- |
-| `/api/public/occurrences` | `categoryId`, `status` | Público: PENDING/IN_ANALYSIS/RESOLVED; createdAt DESC, id DESC |
+| `/api/public/occurrences` | `categoryId`, `status` | Público: PENDING/ACCEPTED/RESOLVED; createdAt DESC, id DESC |
 | `/api/public/occurrences/markers` | `categoryId`, `status` | Mesmo público, conjunto completo |
 | `/api/occurrences` | `categoryId`, `status` | Autor da sessão, quatro estados, array completo; createdAt DESC, id DESC |
 | `/api/occurrences/markers` | `categoryId`, `status` | Mesmo autor, conjunto completo |
 | `/api/admin/occurrences` | `categoryId`, `status`, `scope=QUEUE` / `scope=ALL` | ADMIN ACTIVE, createdAt ASC, id ASC |
 
-A fila QUEUE é o padrão compatível e aceita somente PENDING/IN_ANALYSIS.
+A fila QUEUE é o padrão compatível e aceita somente PENDING/ACCEPTED.
 ALL consulta também RESOLVED/REJECTED, sem novas ações sobre finalizados e sem
 herança para SUPER_ADMIN. A conta/sessão administrativa é revalidada sob lock
 antes de consultar o catálogo ou relatos. Page/size e envelopes permanecem nas
 consultas pública/administrativa (0/20 por padrão; page >= 0, size 1–50).
 
-Exemplos: `/api/public/occurrences?page=0&size=20&categoryId=2&status=IN_ANALYSIS`
+Exemplos: `/api/public/occurrences?page=0&size=20&categoryId=2&status=ACCEPTED`
 e `/api/admin/occurrences?scope=ALL&status=RESOLVED&page=0&size=20`.
 Marcadores recebem apenas os critérios, nunca página, limite ou viewport.
 
@@ -87,12 +87,12 @@ Nenhum índice ou migration é pressuposto necessário.
 
 1. Em banco local descartável, preparar relatos sintéticos de categorias/estados
    distintos, mais de uma página e um legado sem ponto. Não usar dados remotos.
-2. Visitante: selecionar categoria e Em análise na pública. Esperar URL persistente
+2. Visitante: selecionar categoria e Aceita na pública. Esperar URL persistente
    no reload, total filtrado, páginas cheias quando houver dados e mapa completo
    com pontos além da página atual. Rejeitada não está disponível.
 3. USER: filtrar próprios por Rejeitada. Esperar somente autoria atual em lista/mapa;
    interseção vazia informa Nenhum relato com estes filtros e oferece limpar.
-4. ADMIN: começar na fila, selecionar Pendente/Em análise; alternar para Todos e
+4. ADMIN: começar na fila, selecionar Pendente/Aceita; alternar para Todos e
    escolher Resolvida/Rejeitada. Abrir detalhe e retornar: preservar filtros/escopo/
    página. Finalizados permanecem sem novas ações. Voltar à fila remove somente
    o estado final incompatível, mantém categoria e anuncia o ajuste.

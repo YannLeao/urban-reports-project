@@ -126,7 +126,7 @@ export function validPrivatePath(path: string) {
       : ['/api/super-admin/admins', '/api/notifications'].includes(pathname) ? ['page', 'size'] : []
   const params = new URLSearchParams(raw)
   return [...params].every(([key, value]) => allowed.includes(key) && params.getAll(key).length === 1 && (
-    key === 'status' ? ['PENDING', 'IN_ANALYSIS', 'RESOLVED', 'REJECTED'].includes(value)
+    key === 'status' ? ['PENDING', 'ACCEPTED', 'RESOLVED', 'REJECTED'].includes(value)
       : key === 'scope' ? ['QUEUE', 'ALL'].includes(value)
         : key === 'categoryId' ? /^[1-9][0-9]*$/.test(value)
           : key === 'size' ? /^[0-9]+$/.test(value) && Number(value) >= 1 && Number(value) <= 50

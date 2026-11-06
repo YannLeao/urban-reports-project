@@ -26,7 +26,7 @@ public class PublicOccurrenceController {
         @io.swagger.v3.oas.annotations.Parameter(name = "categoryId", in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
             description = "ID existente do catálogo; ausência inclui todas as categorias", schema = @io.swagger.v3.oas.annotations.media.Schema(type = "integer")),
         @io.swagger.v3.oas.annotations.Parameter(name = "status", in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
-            description = "Estado exato: PENDING, IN_ANALYSIS, RESOLVED; ausência inclui todos os estados permitidos", schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string"))
+            description = "Estado exato: PENDING, ACCEPTED, RESOLVED; ausência inclui todos os estados permitidos", schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string"))
     })
     @GetMapping
     public ResponseEntity<PublicOccurrencePage> list(@RequestParam(defaultValue = "0") int page,

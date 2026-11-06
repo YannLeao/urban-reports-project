@@ -45,7 +45,7 @@ class SimilarOccurrenceIntegrationTests {
         var owner = account(); var other = account(); String token = login(owner.email());
         var own = report(owner.id(), 1, 0., 0.);
         var analysis = report(other.id(), 1, 0., 0.);
-        jdbc.update("UPDATE occurrences SET status='IN_ANALYSIS' WHERE id=?", analysis.getId());
+        jdbc.update("UPDATE occurrences SET status='ACCEPTED' WHERE id=?", analysis.getId());
         var rejected = report(owner.id(), 1, 0., 0.);
         jdbc.update("UPDATE occurrences SET status='REJECTED' WHERE id=?", rejected.getId());
         var resolved = report(other.id(), 1, 0., 0.);
@@ -65,7 +65,7 @@ class SimilarOccurrenceIntegrationTests {
         for (int i=0; i<7; i++) report(other.id(), 1, 0., 0.);
         jdbc.update("UPDATE occurrences SET created_at = ? WHERE status='PENDING'", java.sql.Timestamp.from(Instant.parse("2026-01-01T00:00:00Z")));
         var excluded = search(token, "{\"categoryId\":1,\"latitude\":0,\"longitude\":0,\"excludeOccurrenceId\":\"" + own.getId() + "\"}");
-        var expected = jdbc.queryForList("SELECT id::text FROM occurrences WHERE category_id=1 AND status IN ('PENDING','IN_ANALYSIS') AND latitude=0 AND longitude=0 AND id<>? ORDER BY created_at DESC,id DESC LIMIT 5", String.class, own.getId());
+        var expected = jdbc.queryForList("SELECT id::text FROM occurrences WHERE category_id=1 AND status IN ('PENDING','ACCEPTED') AND latitude=0 AND longitude=0 AND id<>? ORDER BY created_at DESC,id DESC LIMIT 5", String.class, own.getId());
         var ids = new ArrayList<String>(); excluded.get("items").forEach(item -> ids.add(item.get("id").asString()));
         assertThat(ids).containsExactlyElementsOf(expected);
         assertThat(search(token, "{\"categoryId\":2,\"latitude\":30,\"longitude\":40,\"excludeOccurrenceId\":\"" + own.getId() + "\"}").get("items").size()).isZero();

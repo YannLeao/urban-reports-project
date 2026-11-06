@@ -7,9 +7,10 @@ class OccurrenceTransitionTests {
     @Test void allSixteenStatePairsFollowTheContract() {
         for (var source : OccurrenceStatus.values()) {
             for (var target : OccurrenceStatus.values()) {
-                var command = new OccurrenceTransition(target, target == OccurrenceStatus.REJECTED ? "Justificativa válida" : null).validated();
-                boolean allowed = (source == OccurrenceStatus.PENDING && (target == OccurrenceStatus.IN_ANALYSIS || target == OccurrenceStatus.REJECTED))
-                        || (source == OccurrenceStatus.IN_ANALYSIS && (target == OccurrenceStatus.RESOLVED || target == OccurrenceStatus.REJECTED));
+                var command = new OccurrenceTransition(target,
+                        target == OccurrenceStatus.REJECTED || target == OccurrenceStatus.ACCEPTED ? "Justificativa válida" : null).validated();
+                boolean allowed = (source == OccurrenceStatus.PENDING && (target == OccurrenceStatus.ACCEPTED || target == OccurrenceStatus.REJECTED))
+                        || (source == OccurrenceStatus.ACCEPTED && target == OccurrenceStatus.RESOLVED);
                 if (allowed) assertThatCode(() -> command.check(source, 3, "\"3\"")).doesNotThrowAnyException();
                 else assertThatThrownBy(() -> command.check(source, 3, "\"3\""))
                         .isInstanceOfSatisfying(OccurrenceWriteException.class, error -> assertThat(error.status.value()).isEqualTo(409));
@@ -29,9 +30,13 @@ class OccurrenceTransitionTests {
         assertThat(new OccurrenceTransition(OccurrenceStatus.REJECTED, "\u00a0".repeat(10)).validated().reason()).hasSize(10);
     }
 
-    @Test void onlyRejectionAcceptsAnyNonNullReason() {
+    @Test void acceptanceAndRejectionRequireReason() {
         for (var target : OccurrenceStatus.values()) {
-            if (target == OccurrenceStatus.REJECTED) continue;
+            if (target == OccurrenceStatus.ACCEPTED || target == OccurrenceStatus.REJECTED) {
+                assertThatThrownBy(() -> new OccurrenceTransition(target, null).validated()).isInstanceOf(OccurrenceValidationException.class);
+                assertThatCode(() -> new OccurrenceTransition(target, "Justificativa válida").validated()).doesNotThrowAnyException();
+                continue;
+            }
             assertThatCode(() -> new OccurrenceTransition(target, null).validated()).doesNotThrowAnyException();
             for (String reason : new String[] {"", " ", "Justificativa indevida"}) {
                 assertThatThrownBy(() -> new OccurrenceTransition(target, reason).validated()).isInstanceOf(OccurrenceValidationException.class);
@@ -41,7 +46,7 @@ class OccurrenceTransitionTests {
     }
 
     @Test void preconditionsRejectMissingOrStaleVersionBeforeStateConflicts() {
-        var command = new OccurrenceTransition(OccurrenceStatus.IN_ANALYSIS, null).validated();
+        var command = new OccurrenceTransition(OccurrenceStatus.ACCEPTED, "Encaminhamento válido").validated();
         assertThatThrownBy(() -> command.check(OccurrenceStatus.PENDING, 2, null))
                 .isInstanceOfSatisfying(OccurrenceWriteException.class, error -> assertThat(error.status.value()).isEqualTo(428));
         for (String match : new String[] {"\"1\"", "2", "*", "W/\"2\"", "\"2\", \"3\""}) {

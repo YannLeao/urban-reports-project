@@ -63,7 +63,7 @@ class OccurrenceReportIntegrationTests {
 
     @Test void referenceDatasetUsesCurrentStatusesFinalEventsAndAllCategories() throws Exception {
         report(1, "Centro", 0);
-        var analysis = report(1, "Centro", 0); transition(analysis, "0", OccurrenceStatus.IN_ANALYSIS);
+        var analysis = report(1, "Centro", 0); transition(analysis, "0", OccurrenceStatus.ACCEPTED);
         resolve(report(2, "Bairro A", 7200)); resolve(report(2, "Bairro A", 21600));
         transition(report(1, "  ", 0), "0", OccurrenceStatus.REJECTED);
         transition(report(2, " Centro ", 0), "0", OccurrenceStatus.REJECTED);
@@ -121,7 +121,7 @@ class OccurrenceReportIntegrationTests {
         var edited = report(1, "Centro", 90000.125);
         edited.update(categories.findById(2).orElseThrow(), "Relato editado", null, "Outro bairro", "Praça central");
         occurrences.saveAndFlush(edited);
-        transition(edited, "1", OccurrenceStatus.IN_ANALYSIS); transition(edited, "2", OccurrenceStatus.RESOLVED);
+        transition(edited, "1", OccurrenceStatus.ACCEPTED); transition(edited, "2", OccurrenceStatus.RESOLVED);
         resolve(report(1, "Centro", 0.375));
         var result = service.get(admin); sums(result);
         assertThat(result.averageResolutionSeconds()).isEqualByComparingTo("45000.25");
@@ -136,7 +136,7 @@ class OccurrenceReportIntegrationTests {
         jdbc.update("UPDATE occurrences SET status = 'RESOLVED', version = 1 WHERE id = ?", missing.getId());
         var negative = report(1, "Centro", -1); resolve(negative);
         var duplicate = report(1, "Centro", 100); resolve(duplicate);
-        jdbc.update("INSERT INTO occurrence_history(id, occurrence_id, previous_status, new_status, moderator_id, occurred_at, version) VALUES (?, ?, 'IN_ANALYSIS', 'RESOLVED', ?, ?, 3)",
+        jdbc.update("INSERT INTO occurrence_history(id, occurrence_id, previous_status, new_status, moderator_id, occurred_at, version) VALUES (?, ?, 'ACCEPTED', 'RESOLVED', ?, ?, 3)",
                 UUID.randomUUID(), duplicate.getId(), admin.userId(), java.sql.Timestamp.from(NOW));
         jdbc.update("UPDATE occurrences SET version = 3 WHERE id = ?", duplicate.getId());
         var invalid = service.get(admin);
@@ -215,7 +215,7 @@ class OccurrenceReportIntegrationTests {
     }
 
     @Test void snapshotRemainsConsistentWhileModerationCommitsWithoutWaitingForReport() throws Exception {
-        var occurrence = report(1, "Centro", 7200); transition(occurrence, "0", OccurrenceStatus.IN_ANALYSIS);
+        var occurrence = report(1, "Centro", 7200); transition(occurrence, "0", OccurrenceStatus.ACCEPTED);
         var snapshot = new CountDownLatch(1); var release = new CountDownLatch(1);
         AccountAccess accessSpy = org.springframework.test.util.AopTestUtils.getUltimateTargetObject(access);
         doAnswer(call -> {
@@ -243,7 +243,7 @@ class OccurrenceReportIntegrationTests {
         return occurrences.saveAndFlush(new Occurrence(author, categories.findById(category).orElseThrow(), "Relato sintético", null,
                 locality, "Praça central", "occurrences/" + UUID.randomUUID() + ".png", NOW.minusNanos((long) (seconds * 1_000_000_000))));
     }
-    private void resolve(Occurrence report) { transition(report, "0", OccurrenceStatus.IN_ANALYSIS); transition(report, "1", OccurrenceStatus.RESOLVED); }
+    private void resolve(Occurrence report) { transition(report, "0", OccurrenceStatus.ACCEPTED); transition(report, "1", OccurrenceStatus.RESOLVED); }
     private ModerationService.Detail transition(Occurrence report, String version, OccurrenceStatus target) {
         return moderation.transition(admin, report.getId(), "\"" + version + "\"", new OccurrenceTransition(target, target == OccurrenceStatus.REJECTED ? "Justificativa sintética" : null));
     }

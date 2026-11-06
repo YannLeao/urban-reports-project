@@ -2,7 +2,7 @@
 
 O detalhe privado inclui o [histórico de moderação](occurrence-moderation.md),
 com identificação funcional do responsável e justificativa de rejeição.
-Os estados suportados são PENDING, IN_ANALYSIS, RESOLVED e REJECTED; somente
+Os estados suportados são PENDING, ACCEPTED, RESOLVED e REJECTED; somente
 PENDING permite edição/exclusão. Rejeitados ficam fora das três superfícies
 públicas (lista, detalhe e foto), mantendo acesso privado do autor.
 

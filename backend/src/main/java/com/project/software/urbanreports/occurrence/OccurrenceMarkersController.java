@@ -21,7 +21,7 @@ public class OccurrenceMarkersController {
         @io.swagger.v3.oas.annotations.Parameter(name = "categoryId", in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
             description = "ID existente do catálogo; ausência inclui todas as categorias", schema = @io.swagger.v3.oas.annotations.media.Schema(type = "integer")),
         @io.swagger.v3.oas.annotations.Parameter(name = "status", in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
-            description = "Estado exato: PENDING, IN_ANALYSIS, RESOLVED; ausência inclui todos os estados permitidos", schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string"))
+            description = "Estado exato: PENDING, ACCEPTED, RESOLVED; ausência inclui todos os estados permitidos", schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string"))
     })
     @GetMapping("/api/public/occurrences/markers")
     public ResponseEntity<MarkerSet> publicMarkers(@io.swagger.v3.oas.annotations.Parameter(hidden = true) @org.springframework.web.bind.annotation.RequestParam org.springframework.util.MultiValueMap<String, String> params) {
@@ -34,7 +34,7 @@ public class OccurrenceMarkersController {
         @io.swagger.v3.oas.annotations.Parameter(name = "categoryId", in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
             description = "ID existente do catálogo; ausência inclui todas as categorias", schema = @io.swagger.v3.oas.annotations.media.Schema(type = "integer")),
         @io.swagger.v3.oas.annotations.Parameter(name = "status", in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
-            description = "Estado exato: PENDING, IN_ANALYSIS, RESOLVED, REJECTED; ausência inclui todos os estados permitidos", schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string"))
+            description = "Estado exato: PENDING, ACCEPTED, RESOLVED, REJECTED; ausência inclui todos os estados permitidos", schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string"))
     })
     @GetMapping("/api/occurrences/markers")
     public ResponseEntity<MarkerSet> ownMarkers(@AuthenticationPrincipal AuthenticatedIdentity identity, @io.swagger.v3.oas.annotations.Parameter(hidden = true) @org.springframework.web.bind.annotation.RequestParam org.springframework.util.MultiValueMap<String, String> params) {

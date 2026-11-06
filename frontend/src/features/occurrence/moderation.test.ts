@@ -4,8 +4,8 @@ import { occurrenceStatusLabel, occurrenceStatusSchema } from './occurrence'
 
 describe('moderation contract', () => {
   it('provides exactly the four allowed actions and Portuguese labels', () => {
-    expect(moderationActions).toEqual({ PENDING: ['IN_ANALYSIS', 'REJECTED'], IN_ANALYSIS: ['RESOLVED', 'REJECTED'], RESOLVED: [], REJECTED: [] })
-    expect(occurrenceStatusSchema.options.map(occurrenceStatusLabel)).toEqual(['Pendente', 'Em análise', 'Resolvida', 'Rejeitada'])
+    expect(moderationActions).toEqual({ PENDING: ['ACCEPTED', 'REJECTED'], ACCEPTED: ['RESOLVED'], RESOLVED: [], REJECTED: [] })
+    expect(occurrenceStatusSchema.options.map(occurrenceStatusLabel)).toEqual(['Pendente', 'Aceita', 'Resolvida', 'Rejeitada'])
     expect(occurrenceStatusSchema.safeParse('IN_PROGRESS').success).toBe(false)
   })
 
@@ -18,10 +18,12 @@ describe('moderation contract', () => {
     expect(transitionSchema.safeParse({ target: 'REJECTED', reason }).success).toBe(false)
   })
 
-  it('rejects any non-null reason on other actions', () => {
-    for (const target of ['IN_ANALYSIS', 'RESOLVED']) {
-      for (const reason of [undefined, null]) expect(transitionSchema.safeParse({ target, reason }).success).toBe(true)
-      for (const reason of ['', ' ', 'Justificativa indevida']) expect(transitionSchema.safeParse({ target, reason }).success).toBe(false)
+  it('requires a comment on acceptance and rejection', () => {
+    for (const target of ['ACCEPTED', 'REJECTED']) {
+      for (const reason of [undefined, null, '', ' ', 'curto']) expect(transitionSchema.safeParse({ target, reason }).success).toBe(false)
+      expect(transitionSchema.safeParse({ target, reason: 'Comentário válido' }).success).toBe(true)
     }
+    expect(transitionSchema.safeParse({ target: 'RESOLVED', reason: null }).success).toBe(true)
+    expect(transitionSchema.safeParse({ target: 'RESOLVED', reason: 'indevido' }).success).toBe(false)
   })
 })

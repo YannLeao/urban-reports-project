@@ -2,8 +2,8 @@
 
 Cada **nova inserção** em `occurrence_notifications`, após a instalação da V12,
 cria uma entrega em `occurrence_notification_email_deliveries` na mesma transação.
-O destinatário é o mesmo da central. Hoje são as transições Pendente → Em análise,
-Em análise → Resolvida e rejeição a partir de Pendente/Em análise, para o autor.
+O destinatário é o mesmo da central. São as transições Pendente → Aceita,
+Aceita → Resolvida e rejeição a partir de Pendente, para o autor.
 Cadastro, edição, exclusão e leitura não criam eventos adicionais. Não há backfill,
 consulta por data, limpeza automática ou alteração das mensagens antigas. Uma
 notificação com data histórica inserida após o corte também é capturada.

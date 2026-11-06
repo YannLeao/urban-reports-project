@@ -113,9 +113,9 @@ test('malformed detail id does not issue a private occurrence request', async ()
   expect(fetchMock).toHaveBeenCalledTimes(1)
 })
 
-test.each(['IN_ANALYSIS', 'RESOLVED', 'REJECTED'])('author reads %s history without edit or delete controls', async status => {
+test.each(['ACCEPTED', 'RESOLVED', 'REJECTED'])('author reads %s history without edit or delete controls', async status => {
   fetchMock.mockResolvedValueOnce(Response.json({ ...report, status, version: 1, history: [{
-    id: '6e85aa3d-19e3-42a3-8861-c435ff5908af', previousStatus: status === 'RESOLVED' ? 'IN_ANALYSIS' : 'PENDING', newStatus: status,
+    id: '6e85aa3d-19e3-42a3-8861-c435ff5908af', previousStatus: status === 'RESOLVED' ? 'ACCEPTED' : 'PENDING', newStatus: status,
     occurredAt: '2026-10-15T12:00:00Z', responsible: 'Moderação', reason: status === 'REJECTED' ? 'Imagem não corresponde ao local.' : null,
   }] }))
   renderPage(`/meus-relatos/${report.id}`)

@@ -13,7 +13,7 @@ privada/publicável; a consulta pública exclui REJECTED.
 
 ## Decisão
 
-Consultar no PostgreSQL a mesma categoria, somente PENDING/IN_ANALYSIS elegíveis
+Consultar no PostgreSQL a mesma categoria, somente PENDING/ACCEPTED elegíveis
 publicamente, a até 100 metros inclusivos. Haversine usa raio terrestre médio de
 6.371.008,8 metros e argumento limitado a [0,1] antes de sqrt/asin. Não arredondar
 na filtragem/ordenação. Sem bounding box, PostGIS ou comparação textual adicional.

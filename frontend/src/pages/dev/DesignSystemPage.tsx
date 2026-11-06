@@ -143,7 +143,7 @@ export default function DesignSystemPage() {
       </Card>
       <Card><h2>Estados e acompanhamento do relato</h2>
         <div className="flex flex-wrap gap-3">
-          <OccurrenceStatus status="PENDING" /><OccurrenceStatus status="IN_ANALYSIS" />
+          <OccurrenceStatus status="PENDING" /><OccurrenceStatus status="ACCEPTED" />
           <OccurrenceStatus status="RESOLVED" /><OccurrenceStatus status="REJECTED" />
         </div>
         <OccurrenceHistory events={[{ id: '3e85aa3d-19e3-42a3-8861-c435ff5908af', previousStatus: 'PENDING', newStatus: 'REJECTED', occurredAt: '2026-10-15T12:00:00Z', responsible: 'Moderação', reason: 'Exemplo: fotografia não corresponde ao local informado.' }]} />

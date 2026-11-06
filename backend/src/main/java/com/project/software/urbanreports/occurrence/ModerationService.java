@@ -77,7 +77,10 @@ public class ModerationService {
     }
     private Detail detail(Occurrence report) {
         var events = jdbc.query("""
-                SELECT h.id, h.previous_status, h.new_status, h.occurred_at, h.reason, a.name
+                SELECT h.id,
+                    CASE h.previous_status WHEN 'IN_ANALYSIS' THEN 'ACCEPTED' ELSE h.previous_status END,
+                    CASE h.new_status WHEN 'IN_ANALYSIS' THEN 'ACCEPTED' ELSE h.new_status END,
+                    h.occurred_at, h.reason, a.name
                 FROM occurrence_history h JOIN user_accounts a ON a.id = h.moderator_id
                 WHERE h.occurrence_id = ? ORDER BY h.occurred_at, h.version
                 """, (rs, row) -> new Event(rs.getObject(1, UUID.class), OccurrenceStatus.valueOf(rs.getString(2)),

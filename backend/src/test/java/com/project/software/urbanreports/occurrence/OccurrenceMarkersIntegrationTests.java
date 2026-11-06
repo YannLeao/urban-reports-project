@@ -52,7 +52,7 @@ class OccurrenceMarkersIntegrationTests {
         var resolved = report(other.id(), 3, new GeographicPoint(90, -180));
         jdbc.update("UPDATE occurrences SET status = 'RESOLVED' WHERE id = ?", resolved.getId());
         var analysis = report(other.id(), 7, new GeographicPoint(0, 180));
-        jdbc.update("UPDATE occurrences SET status = 'IN_ANALYSIS' WHERE id = ?", analysis.getId());
+        jdbc.update("UPDATE occurrences SET status = 'ACCEPTED' WHERE id = ?", analysis.getId());
         String publicBody = mvc.perform(get("/api/public/occurrences/markers").header("Authorization", "Bearer " + adminToken)).andExpect(status().isOk())
                 .andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(jsonPath("$.total").value(64)).andExpect(jsonPath("$.located").value(63))

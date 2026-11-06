@@ -21,7 +21,7 @@ class SimilarOccurrenceService {
                         + cos(radians(?)) * cos(radians(o.latitude))
                         * power(sin(radians(o.longitude - ?) / 2), 2))))) AS distance
                 FROM occurrences o JOIN occurrence_categories c ON c.id = o.category_id
-                WHERE o.category_id = ? AND o.status IN ('PENDING', 'IN_ANALYSIS')
+                WHERE o.category_id = ? AND o.status IN ('PENDING', 'ACCEPTED')
                     AND o.latitude BETWEEN -90 AND 90 AND o.longitude BETWEEN -180 AND 180
                     AND (CAST(? AS uuid) IS NULL OR o.id <> CAST(? AS uuid))
             ) candidates

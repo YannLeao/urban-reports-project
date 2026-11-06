@@ -18,7 +18,7 @@ public final class ReportPdfProbe {
         var localities = new ArrayList<LocalityCount>();
         for (int i = 0; i < groups; i++) localities.add(new LocalityCount("Bairro sintético " + i, 1));
         var report = new Report(groups, List.of(new CategoryCount(1, "Iluminação pública", groups)),
-                List.of(new StatusCount(OccurrenceStatus.PENDING, groups), new StatusCount(OccurrenceStatus.IN_ANALYSIS, 0),
+                List.of(new StatusCount(OccurrenceStatus.PENDING, groups), new StatusCount(OccurrenceStatus.ACCEPTED, 0),
                         new StatusCount(OccurrenceStatus.RESOLVED, 0), new StatusCount(OccurrenceStatus.REJECTED, 0)),
                 localities, null, 0, 0, java.math.BigDecimal.ZERO, Instant.parse("2026-10-20T00:00:00Z"));
         var entered = new CountDownLatch(1); var release = new CountDownLatch(1);

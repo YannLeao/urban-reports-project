@@ -8,7 +8,7 @@ export const similarOccurrencesSchema = z.strictObject({
   items: z.array(z.strictObject({
     id: z.uuid(), categoryId: categoryIdSchema, categoryName: z.string().min(1),
     title: z.string().min(1), neighborhood: z.string(), reference: z.string(),
-    status: z.enum(['PENDING', 'IN_ANALYSIS']), createdAt: z.iso.datetime({ offset: true }),
+    status: z.enum(['PENDING', 'ACCEPTED']), createdAt: z.iso.datetime({ offset: true }),
     distanceMeters: z.number().finite().min(0).max(100),
   })).max(5),
 }).refine(value => new Set(value.items.map(item => item.id)).size === value.items.length)

@@ -11,22 +11,24 @@ marcar como lidas somente as próprias notificações.
 
 ## Estados e justificativa
 
-PENDING (Pendente), IN_ANALYSIS (Em análise), RESOLVED (Resolvida) e REJECTED
-(Rejeitada). Somente PENDING → IN_ANALYSIS, PENDING → REJECTED,
-IN_ANALYSIS → RESOLVED e IN_ANALYSIS → REJECTED são válidas. Estados finais
-não têm saída. `OccurrenceTransition` e `transitionSchema` centralizam regras
-usadas pelo comando administrativo e formulário de rejeição.
+PENDING (Pendente), ACCEPTED (Aceita), RESOLVED (Resolvida) e REJECTED
+(Rejeitada). Somente PENDING → ACCEPTED, PENDING → REJECTED e
+ACCEPTED → RESOLVED são válidas. Estados finais não têm saída.
+`OccurrenceTransition` centraliza as regras usadas pelo comando administrativo.
 
-Rejeição exige 10–500 pontos de código Unicode após trim externo somente de
+Aceitação e rejeição exigem 10–500 pontos de código Unicode após trim externo somente de
 U+0009–U+000D e U+0020, igual ao contrato textual existente. NUL e UTF-16
 inválido são recusados. Sem truncamento ou normalização NFC. Espaços não ASCII
 são conteúdo. PostgreSQL exige o mesmo trim e conta com char_length.
-Outros destinos aceitam ausência/null e recusam qualquer string de justificativa,
-inclusive vazia. Renderizar texto sem interpretar HTML.
+RESOLVED aceita ausência/null e recusa qualquer string de justificativa, inclusive
+vazia. Renderizar texto sem interpretar HTML.
 
 ## Persistência e leitura
 
-V7 introduziu estados/histórico; V8 acrescenta identidade administrativa.
+V7 introduziu estados/histórico; V8 acrescenta identidade administrativa. V16
+converte ocorrências `IN_ANALYSIS` existentes para `ACCEPTED` sem alterar o
+histórico append-only; eventos históricos legados continuam legíveis e são
+rotulados como Aceita.
 Conferir numeração de futuras migrations antes de integrar trabalho concorrente.
 Migrations aplicadas permanecem intactas e Hibernate em validate. V7 amplia o
 CHECK de estados, preserva os dados e não fabrica histórico retroativo.
@@ -51,7 +53,7 @@ edição/exclusão continuam disponíveis somente em PENDING.
 
 REJECTED fica fora da lista pública e retorna 404 no detalhe e na foto públicos.
 A elegibilidade é verificada antes de chamar ImageStorage. Autor mantém acesso
-privado. PENDING, IN_ANALYSIS e RESOLVED seguem públicos. O futuro mapa deve
+privado. PENDING, ACCEPTED e RESOLVED seguem públicos. O futuro mapa deve
 reutilizar esse filtro. O DTO público nunca inclui histórico interno.
 
 ## API administrativa e concorrência
@@ -61,7 +63,7 @@ revalida autorização mesmo quando chamado fora do controller. USER, SUPER_ADMI
 ADMIN pendente/desativado e anônimo não moderam.
 
 - GET `/api/admin/occurrences?page=0&size=20`: items/page/size/totalItems/totalPages,
-  somente PENDING/IN_ANALYSIS, createdAt ASC/id ASC, size 1–50.
+  somente PENDING/ACCEPTED, createdAt ASC/id ASC, size 1–50.
 - GET `/api/admin/occurrences/{id}`: `{report,history}`, inclusive finalizados.
   report segue DTO privado com versão, sem histórico duplicado; history inclui
   estados, horário, justificativa e nome legível do responsável, sem e-mail.
@@ -96,7 +98,7 @@ Upload que perdeu uma disputa continua recuperável pelo journal existente.
   `recipient_id` é a conta autenticada, ordenados do mais recente ao mais antigo.
 - POST `/api/notifications/{id}/read`: marca o item próprio como lido; repetir a
   operação é idempotente e um item de outra conta retorna 404.
-- Transições para `REJECTED` incluem a justificativa administrativa na mensagem.
+- Transições para `ACCEPTED` e `REJECTED` incluem o comentário administrativo na mensagem.
   O trigger de banco usa o evento de histórico como chave única, garantindo uma
   notificação por transição válida mesmo quando o histórico é inserido fora do
   Hibernate.

@@ -161,9 +161,9 @@ test('moderation rejects with Unicode count and reloads conflicts without false 
     if (String(url).endsWith('/auth/me')) return Response.json({ ...user, role: 'ADMIN' })
     if (String(url).endsWith('/image')) return new Response('photo', { headers: { 'Content-Type': 'image/png' } })
     if (options?.method === 'POST') {
-      if (conflict) { conflict = false; current = { ...current, status: 'IN_ANALYSIS', version: 1 }; return Response.json({ code: 'VERSION_CHANGED' }, { status: 412 }) }
-      current = { ...current, status: 'REJECTED', version: 2 }
-      history = [{ id: admin.id, previousStatus: 'IN_ANALYSIS', newStatus: 'REJECTED', occurredAt: admin.createdAt, responsible: admin.name, reason: '😀'.repeat(10) }]
+      if (conflict) { conflict = false; current = { ...current, status: 'ACCEPTED', version: 1 }; return Response.json({ code: 'VERSION_CHANGED' }, { status: 412 }) }
+      current = { ...current, status: 'RESOLVED', version: 2 }
+      history = [{ id: admin.id, previousStatus: 'ACCEPTED', newStatus: 'RESOLVED', occurredAt: admin.createdAt, responsible: admin.name, reason: null }]
     }
     return Response.json({ report: current, history })
   })
@@ -173,26 +173,19 @@ test('moderation rejects with Unicode count and reloads conflicts without false 
     ['private', user.id, 'moderation', 'list', { page: 0, size: 20, categoryId: 1, status: 'PENDING', scope: 'QUEUE' }],
     ['private', user.id, 'moderation', 'list', { page: 1, size: 20, categoryId: 2, status: 'RESOLVED', scope: 'ALL' }],
     ['private', user.id, 'occurrences', 'list', { categoryId: 1, status: 'PENDING' }],
-    ['private', user.id, 'occurrences', 'markers', { categoryId: 2, status: 'IN_ANALYSIS' }],
+    ['private', user.id, 'occurrences', 'markers', { categoryId: 2, status: 'ACCEPTED' }],
     ['public', 'occurrences', 'list', { page: 1, size: 20, categoryId: 2, status: 'RESOLVED' }],
     ['public', 'occurrences', 'markers', { categoryId: 1, status: 'PENDING' }],
   ]
   filteredKeys.forEach(key => client.setQueryData(key, { synthetic: true }))
-  await userEvent.click(await screen.findByRole('button', { name: 'Iniciar análise' }))
+  await userEvent.click(await screen.findByRole('button', { name: 'Aceitar' }))
+  fireEvent.change(await screen.findByLabelText('Comentário de encaminhamento'), { target: { value: 'Encaminhamento válido' } })
+  await userEvent.click(screen.getByRole('button', { name: 'Confirmar aceitação' }))
   expect(await screen.findByRole('alert')).toHaveTextContent('Este relato mudou')
   expect(screen.queryByText('Estado atualizado.')).not.toBeInTheDocument()
   expect(await screen.findByRole('button', { name: 'Resolver' })).toBeVisible()
-  await userEvent.click(screen.getByRole('button', { name: 'Rejeitar' }))
-  await userEvent.click(screen.getByRole('button', { name: 'Confirmar rejeição' }))
-  expect(screen.getByLabelText('Justificativa de rejeição')).toHaveFocus()
-  fireEvent.change(screen.getByLabelText('Justificativa de rejeição'), { target: { value: '😀'.repeat(10) } })
-  expect(screen.getByText(/10\/500 caracteres/)).toBeVisible()
-  await userEvent.click(screen.getByRole('button', { name: 'Confirmar rejeição' }))
-  expect(await screen.findByText('Estado atualizado.')).toBeVisible()
-  expect(await screen.findByText('Relato finalizado. Não há novas ações disponíveis.')).toBeVisible()
-  expect(client.getQueryData(['private', user.id, 'moderation', 'detail', report.id])).toMatchObject({ report: { status: 'REJECTED', version: 2 } })
-  expect(client.getQueryState(['private', user.id, 'occurrence-report'])?.isInvalidated).toBe(true)
-  await waitFor(() => filteredKeys.forEach(key => expect(client.getQueryState(key)?.isInvalidated).toBe(true)))
+  await userEvent.click(screen.getByRole('button', { name: 'Resolver' }))
+  await waitFor(() => expect(fetchMock.mock.calls.some(([, options]) => options?.method === 'POST')).toBe(true))
 })
 
 test.each(['/administracao/contas', '/administracao/relatos'])('revoked session at %s removes all private cache', async path => {

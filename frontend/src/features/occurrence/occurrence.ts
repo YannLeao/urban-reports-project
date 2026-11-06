@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { categoryIdSchema } from './category'
 import { completePair, locationFields } from '../location/point'
 
-export const occurrenceStatusSchema = z.enum(['PENDING', 'IN_ANALYSIS', 'RESOLVED', 'REJECTED'])
+export const occurrenceStatusSchema = z.enum(['PENDING', 'ACCEPTED', 'RESOLVED', 'REJECTED'])
 const mediaCommon = { id: z.uuid(), sizeBytes: z.number().int().positive().nullable(), position: z.number().int().min(0).max(4), endpoint: z.string() }
 export const occurrenceMediaSchema = z.discriminatedUnion('type', [
   z.object({ ...mediaCommon, type: z.literal('IMAGE'), mime: z.enum(['image/jpeg', 'image/png', 'image/webp']).nullable() }),
@@ -42,7 +42,7 @@ export const occurrenceDetailSchema = occurrenceBaseSchema.extend({
 export type OccurrenceHistoryEvent = z.infer<typeof occurrenceHistoryEventSchema>
 
 const statusLabels: Record<Occurrence['status'], string> = {
-  PENDING: 'Pendente', IN_ANALYSIS: 'Em análise', RESOLVED: 'Resolvida', REJECTED: 'Rejeitada',
+  PENDING: 'Pendente', ACCEPTED: 'Aceita', RESOLVED: 'Resolvida', REJECTED: 'Rejeitada',
 }
 
 export function occurrenceStatusLabel(status: Occurrence['status']) {

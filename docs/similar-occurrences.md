@@ -32,7 +32,7 @@ do candidato. `items:[]` representa sucesso vazio; 400 INVALID_REQUEST,
 indisponível pode produzir 503 antes do controller, no envelope Security vigente.
 Todas as respostas são `Cache-Control: no-store`, inclusive erros.
 
-SQL parametrizado filtra categoria, estados PENDING/IN_ANALYSIS, coordenadas
+SQL parametrizado filtra categoria, estados PENDING/ACCEPTED, coordenadas
 válidas e exclusão; Haversine com raio terrestre 6371008.8 m, argumento limitado
 [0,1], distância <=100 sem arredondamento. Ordena distância ASC, createdAt DESC,
 id DESC antes de LIMIT 5. Sem limite preliminar, extensão, geocodificação, storage

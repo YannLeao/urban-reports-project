@@ -9,7 +9,7 @@ import org.springframework.http.HttpStatus;
 public record OccurrenceTransition(OccurrenceStatus target, String reason) {
     public OccurrenceTransition validated() {
         if (target == null) throw invalid("target");
-        if (target != OccurrenceStatus.REJECTED) {
+        if (target != OccurrenceStatus.REJECTED && target != OccurrenceStatus.ACCEPTED) {
             if (reason != null) throw invalid("reason");
             return this;
         }

@@ -33,7 +33,7 @@ textual, uma coleção de 1–5 fotos ou um vídeo obrigatório e um ponto geogr
   → revisão. Ponto confirmado pelo mapa; GPS sugerido uma vez na primeira visita
   do cadastro, com confirmação explícita. Sem inputs numéricos ou geocodificação. Edição de Pendente
   permite ajuste; legado não é preenchido automaticamente. Veja [localização](../occurrence-location.md).
-- Estados atuais: PENDING/Pendente, IN_ANALYSIS/Em análise, RESOLVED/Resolvida
+- Estados atuais: PENDING/Pendente, ACCEPTED/Aceita, RESOLVED/Resolvida
   e REJECTED/Rejeitada. O relato nasce PENDING; transições e histórico seguem
   [moderação](../occurrence-moderation.md), sem evento inicial fabricado.
 - Meus relatos: reutilizar o guard de autenticação implementado quando necessário; não
@@ -57,7 +57,7 @@ rotulados no mobile; veja [contrato](../occurrence-filters.md). Rejeição ofere
 a API nem substitui texto digitado.
 
 O [aviso de proximidade](../similar-occurrences.md) é informativo: mesma categoria,
-até 100 m, somente Pendente/Em análise, até cinco sugestões sem mídia/autoria.
+até 100 m, somente Pendente/Aceita, até cinco sugestões sem mídia/autoria.
 Oferece “É outro relato, continuar” e “Revisar meu relato”, sem checkbox obrigatório
 ou justificativa. Falha auxiliar oferece “Enviar mesmo assim” e retry manual.
 Não altera prioridade ou status. A regra geográfica substitui RN-20 textual.

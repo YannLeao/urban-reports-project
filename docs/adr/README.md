@@ -64,3 +64,4 @@ um novo ADR que substitui o anterior.
 - [0031 — Recuperação de senha limitada em memória](0031-limitar-recuperacao-de-senha-em-memoria.md)
 
 - [0032 — Restringir consultas gerais de ocorrências](0032-restringir-consultas-gerais-de-ocorrencias.md)
+- [0033 — Adotar fluxo explícito de status de ocorrências](0033-fluxo-de-status-de-ocorrencias.md)

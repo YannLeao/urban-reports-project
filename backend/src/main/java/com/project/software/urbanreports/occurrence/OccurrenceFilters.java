@@ -9,8 +9,8 @@ public record OccurrenceFilters(Integer categoryId, OccurrenceStatus status, Sco
     public enum Scope { QUEUE, ALL }
     public enum Context { PUBLIC, OWN, ADMIN }
     public static final List<OccurrenceStatus> PUBLIC_STATES = List.of(
-            OccurrenceStatus.PENDING, OccurrenceStatus.IN_ANALYSIS, OccurrenceStatus.RESOLVED);
-    public static final List<OccurrenceStatus> QUEUE_STATES = List.of(OccurrenceStatus.PENDING, OccurrenceStatus.IN_ANALYSIS);
+            OccurrenceStatus.PENDING, OccurrenceStatus.ACCEPTED, OccurrenceStatus.RESOLVED);
+    public static final List<OccurrenceStatus> QUEUE_STATES = List.of(OccurrenceStatus.PENDING, OccurrenceStatus.ACCEPTED);
     public static OccurrenceFilters empty() { return new OccurrenceFilters(null, null, Scope.QUEUE); }
 
     public static OccurrenceFilters parse(MultiValueMap<String, String> params, Context context,

@@ -51,7 +51,7 @@ public class OccurrenceReportService {
                 """, (rs, row) -> new CategoryCount(rs.getInt(1), rs.getString(2), rs.getLong(3)));
         var statuses = jdbc.query("""
                 SELECT s.status, count(o.id) FROM
-                (VALUES ('PENDING', 1), ('IN_ANALYSIS', 2), ('RESOLVED', 3), ('REJECTED', 4)) s(status, position)
+                (VALUES ('PENDING', 1), ('ACCEPTED', 2), ('RESOLVED', 3), ('REJECTED', 4)) s(status, position)
                 LEFT JOIN occurrences o ON o.status = s.status
                 GROUP BY s.status, s.position ORDER BY s.position
                 """, (rs, row) -> new StatusCount(OccurrenceStatus.valueOf(rs.getString(1)), rs.getLong(2)));

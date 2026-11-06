@@ -20,9 +20,9 @@ public class ModerationController {
         @io.swagger.v3.oas.annotations.Parameter(name = "categoryId", in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
             description = "ID existente do catálogo; ausência inclui todas as categorias", schema = @io.swagger.v3.oas.annotations.media.Schema(type = "integer")),
         @io.swagger.v3.oas.annotations.Parameter(name = "status", in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
-            description = "Estado exato: PENDING, IN_ANALYSIS, RESOLVED, REJECTED; ausência inclui todos os estados permitidos", schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")),
+            description = "Estado exato: PENDING, ACCEPTED, RESOLVED, REJECTED; ausência inclui todos os estados permitidos", schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string")),
         @io.swagger.v3.oas.annotations.Parameter(name = "scope", in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
-            description = "QUEUE (padrão): PENDING/IN_ANALYSIS; ALL: quatro estados. ADMIN ativo exclusivo; não altera transições.",
+            description = "QUEUE (padrão): PENDING/ACCEPTED; ALL: quatro estados. ADMIN ativo exclusivo; não altera transições.",
             schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string", allowableValues = {"QUEUE", "ALL"}, defaultValue = "QUEUE"))
     })
     @GetMapping

@@ -18,7 +18,7 @@ export const occurrenceReportSchema = z.object({
   rejectedPercentage: z.number().min(0).max(100).nullable(),
   generatedAt: z.iso.datetime(),
 }).superRefine((report, context) => {
-  const states = ['PENDING', 'IN_ANALYSIS', 'RESOLVED', 'REJECTED']
+  const states = ['PENDING', 'ACCEPTED', 'RESOLVED', 'REJECTED']
   const resolved = report.statuses.find(item => item.status === 'RESOLVED')?.count
   if ([report.categories, report.statuses, report.localities].some(items => items.reduce((sum, item) => sum + item.count, 0) !== report.total)
     || report.statuses.map(item => item.status).join() !== states.join()

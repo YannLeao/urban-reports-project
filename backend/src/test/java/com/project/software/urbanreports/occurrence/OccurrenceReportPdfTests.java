@@ -32,13 +32,13 @@ class OccurrenceReportPdfTests {
                 new CategoryCount(2, "Buraco ou pavimentação", 3), new CategoryCount(3, "Limpeza urbana", 0),
                 new CategoryCount(4, "Saneamento", 0), new CategoryCount(5, "Arborização", 0),
                 new CategoryCount(6, "Trânsito", 0), new CategoryCount(7, "Acessibilidade", 0), new CategoryCount(8, "Outros", 0)),
-                List.of(new StatusCount(OccurrenceStatus.PENDING, 1), new StatusCount(OccurrenceStatus.IN_ANALYSIS, 1),
+                List.of(new StatusCount(OccurrenceStatus.PENDING, 1), new StatusCount(OccurrenceStatus.ACCEPTED, 1),
                         new StatusCount(OccurrenceStatus.RESOLVED, 2), new StatusCount(OccurrenceStatus.REJECTED, 2)),
                 List.of(new LocalityCount("Centro", 3), new LocalityCount("Bairro A", 2), new LocalityCount(null, 1)),
                 average, 2 - invalid, invalid, new BigDecimal("33.3333333333"), REFERENCE);
         long valid = average == null ? 0 : Math.min(2, groups), rejected = groups / 3;
         return new Report(groups, categories, List.of(new StatusCount(OccurrenceStatus.PENDING, Math.max(0, groups - valid - invalid - rejected)),
-                new StatusCount(OccurrenceStatus.IN_ANALYSIS, 0), new StatusCount(OccurrenceStatus.RESOLVED, valid + invalid),
+                new StatusCount(OccurrenceStatus.ACCEPTED, 0), new StatusCount(OccurrenceStatus.RESOLVED, valid + invalid),
                 new StatusCount(OccurrenceStatus.REJECTED, rejected)), localities, average, valid, invalid,
                 groups == 0 ? null : BigDecimal.valueOf(rejected * 100).divide(BigDecimal.valueOf(groups), 12, java.math.RoundingMode.HALF_UP), REFERENCE);
     }
@@ -78,7 +78,7 @@ class OccurrenceReportPdfTests {
         for (int rejected : List.of(0, 6)) {
             var report = new Report(6, List.of(new CategoryCount(1, "Iluminação pública", 6)),
                     List.of(new StatusCount(OccurrenceStatus.PENDING, rejected == 0 ? 4 : 0),
-                            new StatusCount(OccurrenceStatus.IN_ANALYSIS, 0), new StatusCount(OccurrenceStatus.RESOLVED, rejected == 0 ? 2 : 0),
+                            new StatusCount(OccurrenceStatus.ACCEPTED, 0), new StatusCount(OccurrenceStatus.RESOLVED, rejected == 0 ? 2 : 0),
                             new StatusCount(OccurrenceStatus.REJECTED, rejected)),
                     List.of(new LocalityCount("Centro", 6)), null, 0, rejected == 0 ? 2 : 0,
                     BigDecimal.valueOf(rejected == 0 ? 0 : 100), REFERENCE);

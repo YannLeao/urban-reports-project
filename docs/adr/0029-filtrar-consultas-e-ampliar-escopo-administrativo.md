@@ -12,7 +12,7 @@ na administração, preservando a fila e sem introduzir transições de reabertu
 ## Decisão
 
 Categoria/estado opcionais por AND com as restrições obrigatórias. Público usa
-lista explícita PENDING/IN_ANALYSIS/RESOLVED, próprios derivam autor da sessão.
+lista explícita PENDING/ACCEPTED/RESOLVED, próprios derivam autor da sessão.
 Catálogo público aditivo expõe somente id/name da fonte existente.
 
 Consulta ADMIN ACTIVE oferece scope QUEUE (padrão compatível: abertos) e ALL

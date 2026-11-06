@@ -81,14 +81,14 @@ class NotificationEmailIntegrationTests {
         jdbc.update("INSERT INTO " + schema + ".occurrences(id,author_id,category_id,title,neighborhood,reference,image_key,created_at) VALUES (?, ?, 1, 'Poste', 'Centro', 'Praça', 'test.png', now())", report, account);
         new TransactionTemplate(manager).executeWithoutResult(tx -> {
             jdbc.execute("SET LOCAL search_path TO " + schema);
-            jdbc.update("INSERT INTO occurrence_history VALUES (?, ?, 'PENDING', 'IN_ANALYSIS', ?, '2020-01-01', NULL, 1)", old, report, account);
+            jdbc.update("INSERT INTO occurrence_history VALUES (?, ?, 'PENDING', 'ACCEPTED', ?, '2020-01-01', NULL, 1)", old, report, account);
         });
         var upgrade = org.flywaydb.core.Flyway.configure().dataSource(source).schemas(schema).defaultSchema(schema).load();
         assertThat(upgrade.migrate().migrationsExecuted).isEqualTo(4);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema + ".occurrence_notification_email_deliveries", Integer.class)).isZero();
         new TransactionTemplate(manager).executeWithoutResult(tx -> {
             jdbc.execute("SET LOCAL search_path TO " + schema);
-            jdbc.update("INSERT INTO occurrence_history VALUES (?, ?, 'IN_ANALYSIS', 'RESOLVED', ?, '2020-01-02', NULL, 2)", UUID.randomUUID(), report, account);
+            jdbc.update("INSERT INTO occurrence_history VALUES (?, ?, 'ACCEPTED', 'RESOLVED', ?, '2020-01-02', NULL, 2)", UUID.randomUUID(), report, account);
         });
         assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema + ".occurrence_notification_email_deliveries", Integer.class)).isEqualTo(1);
         assertThat(upgrade.migrate().migrationsExecuted).isZero();

@@ -52,7 +52,7 @@ public class OccurrenceReportPdf {
                 for (var item : report.categories()) layout.row(item.categoryName(), item.count(), report.total(), false);
                 layout.section("Por estado");
                 for (var item : report.statuses()) layout.row(switch (item.status()) {
-                    case PENDING -> "Pendente"; case IN_ANALYSIS -> "Em análise";
+                    case PENDING -> "Pendente"; case ACCEPTED -> "Aceita";
                     case RESOLVED -> "Resolvida"; case REJECTED -> "Rejeitada";
                 }, item.count(), report.total(), false);
                 if (!report.localities().isEmpty()) {

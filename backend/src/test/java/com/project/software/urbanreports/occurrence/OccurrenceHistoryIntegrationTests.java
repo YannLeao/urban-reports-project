@@ -83,7 +83,7 @@ class OccurrenceHistoryIntegrationTests {
         assertThatThrownBy(() -> append(report.getId(), author.id(), null, 100))
                 .isInstanceOf(org.springframework.dao.DataAccessException.class);
         assertThatThrownBy(() -> jdbc.update("""
-                INSERT INTO occurrence_history VALUES (?, ?, 'PENDING', 'IN_ANALYSIS', ?, now(), '', 100)
+                INSERT INTO occurrence_history VALUES (?, ?, 'PENDING', 'ACCEPTED', ?, now(), '', 100)
                 """, UUID.randomUUID(), report.getId(), author.id())).isInstanceOf(org.springframework.dao.DataAccessException.class);
     }
 

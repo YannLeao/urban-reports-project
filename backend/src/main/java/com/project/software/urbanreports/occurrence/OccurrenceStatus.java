@@ -1,10 +1,10 @@
 package com.project.software.urbanreports.occurrence;
 
 public enum OccurrenceStatus {
-    PENDING, IN_ANALYSIS, RESOLVED, REJECTED;
+    PENDING, ACCEPTED, RESOLVED, REJECTED;
 
     public boolean canTransitionTo(OccurrenceStatus target) {
-        return this == PENDING && (target == IN_ANALYSIS || target == REJECTED)
-                || this == IN_ANALYSIS && (target == RESOLVED || target == REJECTED);
+        return this == PENDING && (target == ACCEPTED || target == REJECTED)
+                || this == ACCEPTED && target == RESOLVED;
     }
 }

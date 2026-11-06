@@ -114,7 +114,7 @@ class NotificationIntegrationTests {
             // Match Flyway's connection search_path so trigger functions resolve this isolated schema.
             jdbc.execute("SET LOCAL search_path TO " + schema);
             jdbc.update("INSERT INTO occurrence_history VALUES (?, ?, 'PENDING', ?, ?, now(), ?, ?)", event, report,
-                    analyze ? "IN_ANALYSIS" : "REJECTED", author, analyze ? null : "Explicação anterior", analyze ? 2 : 1);
+                    analyze ? "ACCEPTED" : "REJECTED", author, analyze ? null : "Explicação anterior", analyze ? 2 : 1);
         });
     }
 

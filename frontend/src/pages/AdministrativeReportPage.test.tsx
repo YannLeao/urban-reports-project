@@ -14,7 +14,7 @@ const user = { id: 'a50062d3-9ac2-4e70-86fa-eac5249f4d0c', name: 'Pessoa adminis
 const reference = {
   total: 6,
   categories: [{ categoryId: 1, categoryName: 'Iluminação pública', count: 3 }, { categoryId: 2, categoryName: 'Buraco ou pavimentação', count: 3 }],
-  statuses: [{ status: 'PENDING', count: 1 }, { status: 'IN_ANALYSIS', count: 1 }, { status: 'RESOLVED', count: 2 }, { status: 'REJECTED', count: 2 }],
+  statuses: [{ status: 'PENDING', count: 1 }, { status: 'ACCEPTED', count: 1 }, { status: 'RESOLVED', count: 2 }, { status: 'REJECTED', count: 2 }],
   localities: [{ locality: 'Centro', count: 3 }, { locality: 'Bairro A', count: 2 }, { locality: null, count: 1 }],
   averageResolutionSeconds: 14400, resolvedSampleSize: 2, resolvedWithoutValidDuration: 0,
   rejectedPercentage: 100 / 3, generatedAt: '2026-10-15T12:00:00Z',

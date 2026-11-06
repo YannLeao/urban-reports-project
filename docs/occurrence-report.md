@@ -17,7 +17,7 @@ Não retorna autoria, fotografia, storage, moderador ou justificativa.
 | --- | --- |
 | total | Inteiro não negativo; todos os relatos atualmente persistidos |
 | categories | `{categoryId, categoryName, count}[]`; categorias cadastradas, por ID crescente, inclusive zeros |
-| statuses | `{status, count}[]`; PENDING, IN_ANALYSIS, RESOLVED, REJECTED nessa ordem, inclusive zeros |
+| statuses | `{status, count}[]`; PENDING, ACCEPTED, RESOLVED, REJECTED nessa ordem, inclusive zeros |
 | localities | `{locality: string ou null, count}[]`; todos os grupos, contagem decrescente e desempate textual com collation C; ausentes por último no empate |
 | averageResolutionSeconds | Número em **segundos**, ou null sem duração válida |
 | resolvedSampleSize | Inteiro; resolvidas com duração válida consideradas na média |

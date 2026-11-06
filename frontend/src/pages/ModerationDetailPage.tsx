@@ -16,7 +16,7 @@ import { moderationActions, transitionSchema } from '../features/occurrence/mode
 import { cleanOccurrenceText } from '../features/occurrence/occurrence-text'
 import { PrivateRequestError } from '../lib/api'
 
-const actionLabels = { IN_ANALYSIS: 'Iniciar análise', RESOLVED: 'Resolver', REJECTED: 'Rejeitar', PENDING: 'Pendente' } as const
+const actionLabels = { ACCEPTED: 'Aceitar', RESOLVED: 'Resolver', REJECTED: 'Rejeitar', PENDING: 'Pendente' } as const
 export function ModerationDetailPage() {
   const location = useLocation()
   const from: unknown = location.state?.from
@@ -42,7 +42,7 @@ export function ModerationDetailPage() {
   useEffect(() => { if (message) summary.current?.focus() }, [message])
   async function transition(target: Occurrence['status']) {
     if (busy.current || !report || state.status !== 'authenticated') return
-    const command = transitionSchema.safeParse({ target, reason: target === 'REJECTED' ? reason : null })
+    const command = transitionSchema.safeParse({ target, reason: target === 'ACCEPTED' || target === 'REJECTED' ? reason : null })
     if (!command.success) { setReasonError(command.error.issues[0].message); reasonField.current?.focus(); return }
     busy.current = true; setPending(true); setMessage(''); setReasonError('')
     const abort = new AbortController(); controller.current = abort
@@ -78,19 +78,19 @@ export function ModerationDetailPage() {
       <Card><dl className="grid gap-4"><div><dt className="font-bold">Categoria</dt><dd className="m-0">{report.categoryName}</dd></div><div><dt className="font-bold">Localização</dt><dd className="m-0">{report.neighborhood} · {report.reference}</dd></div>{report.description && <div><dt className="font-bold">Detalhes</dt><dd className="m-0 whitespace-pre-wrap">{report.description}</dd></div>}<div><dt className="font-bold">Registro</dt><dd className="m-0">{occurrenceDate(report.createdAt)}</dd></div></dl></Card></div>
       <div className="min-w-0 self-start rounded-card border border-border-subtle bg-surface-raised p-4 sm:p-6"><h2 className="text-title">Acompanhar e decidir</h2>
       {moderationActions[report.status].length === 0 ? <p className="mt-6">Relato finalizado. Não há novas ações disponíveis.</p> : <div className="mt-6 flex flex-wrap gap-3">
-        {moderationActions[report.status].map(target => target === 'REJECTED'
-          ? <Button key={target} ref={rejectionTrigger} variant="secondary" disabled={pending || rejecting} onClick={() => { setRejecting(true); setReasonError('') }}>Rejeitar</Button>
+        {moderationActions[report.status].map(target => target === 'REJECTED' || target === 'ACCEPTED'
+          ? <Button key={target} ref={target === 'REJECTED' ? rejectionTrigger : undefined} variant="secondary" disabled={pending || rejecting} onClick={() => { setRejecting(true); setReasonError('') }}>{actionLabels[target]}</Button>
           : <Button key={target} disabled={pending || rejecting} onClick={() => { void transition(target) }}>{actionLabels[target]}</Button>)}
       </div>}
-      {rejecting && moderationActions[report.status].includes('REJECTED') && <form className="mt-6 grid gap-4" onSubmit={event => { event.preventDefault(); void transition('REJECTED') }} noValidate>
-        <Textarea ref={reasonField} label="Justificativa de rejeição" required disabled={pending} value={reason} onChange={event => setReason(event.target.value)} error={reasonError} description={`O autor verá esta justificativa. Use de 10 a 500 caracteres. ${Array.from(cleanOccurrenceText(reason)).length}/500 caracteres.`} rows={5} />
-        <div className="flex flex-wrap gap-3"><Button type="submit" loading={pending}>Confirmar rejeição</Button><Button variant="secondary" disabled={pending} onClick={() => { setRejecting(false); rejectionTrigger.current?.focus() }}>Cancelar rejeição</Button></div>
+      {rejecting && <form className="mt-6 grid gap-4" onSubmit={event => { event.preventDefault(); void transition(report.status === 'PENDING' ? 'ACCEPTED' : 'REJECTED') }} noValidate>
+        <Textarea ref={reasonField} label={report.status === 'PENDING' ? 'Comentário de encaminhamento' : 'Motivo da rejeição'} required disabled={pending} value={reason} onChange={event => setReason(event.target.value)} error={reasonError} description={`O autor verá este comentário. Use de 10 a 500 caracteres. ${Array.from(cleanOccurrenceText(reason)).length}/500 caracteres.`} rows={5} />
+        <div className="flex flex-wrap gap-3"><Button type="submit" loading={pending}>{report.status === 'PENDING' ? 'Confirmar aceitação' : 'Confirmar rejeição'}</Button><Button variant="secondary" disabled={pending} onClick={() => { setRejecting(false); rejectionTrigger.current?.focus() }}>Cancelar</Button></div>
       </form>}
       <section className="mt-8" aria-label="Histórico de moderação"><h2>Histórico de moderação</h2>
         {query.data!.history.length === 0 ? <p>Nenhuma mudança de estado registrada.</p> : <ol className="grid gap-5 pl-6">{query.data!.history.map(event => <li key={event.id}>
           <p className="mb-1 font-bold">{occurrenceStatusLabel(event.previousStatus)} → {occurrenceStatusLabel(event.newStatus)}</p>
           <p className="text-small">{event.responsible} · <time dateTime={event.occurredAt}>{occurrenceDate(event.occurredAt)}</time></p>
-          {event.reason && <p className="whitespace-pre-wrap">Justificativa: {event.reason}</p>}
+          {event.reason && <p className="whitespace-pre-wrap">Comentário: {event.reason}</p>}
         </li>)}</ol>}
       </section>
       </div></div>
