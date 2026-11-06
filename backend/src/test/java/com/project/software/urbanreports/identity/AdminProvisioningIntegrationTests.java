@@ -219,7 +219,7 @@ class AdminProvisioningIntegrationTests {
         mvc.perform(get("/api/super-admin/admins").header("Authorization", "Bearer " + rootToken)).andExpect(status().isOk());
         mvc.perform(get("/api/admin/occurrences").header("Authorization", "Bearer " + rootToken)).andExpect(status().isForbidden());
         mvc.perform(get("/api/admin/occurrences").header("Authorization", "Bearer " + citizenLogin.accessToken())).andExpect(status().isForbidden());
-        mvc.perform(post("/api/occurrences").header("Authorization", "Bearer " + adminLogin.accessToken())).andExpect(status().isForbidden());
+        mvc.perform(post("/api/occurrences").header("Authorization", "Bearer " + adminLogin.accessToken())).andExpect(status().isUnsupportedMediaType());
         for (String token : List.of("", "not-a-token", "A".repeat(43)))
             mvc.perform(post("/api/auth/admin-activations").contentType("application/json").content(mapper.writeValueAsString(Map.of("token", token, "password", PASSWORD))))
                     .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_ACTIVATION_LINK"));

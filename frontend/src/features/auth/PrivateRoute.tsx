@@ -18,8 +18,9 @@ export function PrivateRoute() {
   return <Outlet />
 }
 
-export function RoleRoute({ role }: { role: User['role'] }) {
+export function RoleRoute({ role }: { role: User['role'] | User['role'][] }) {
   const { state } = useAuth()
-  return state.status === 'authenticated' && state.user.role === role ? <Outlet />
+  const allowed = Array.isArray(role) ? role : [role]
+  return state.status === 'authenticated' && allowed.includes(state.user.role) ? <Outlet />
     : <section className="py-8"><h1>Acesso restrito</h1><p>Sua conta não tem permissão para acessar esta área.</p></section>
 }

@@ -11,7 +11,7 @@ intacta, separada da tabela de entregas externas.
 
 ## Contrato HTTP
 
-Exige Bearer com sessão revogável, conta ACTIVE e papel USER exato. Respostas
+Exige Bearer com sessão revogável, conta ACTIVE e papel USER ou ADMIN exato. Respostas
 são privadas com Cache-Control no-store; os DTOs omitem moderador e destinatário.
 
 - GET `/api/notifications?page=0&size=20`: items/page/size/totalItems/totalPages/

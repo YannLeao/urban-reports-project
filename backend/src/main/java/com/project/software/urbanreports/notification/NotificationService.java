@@ -25,7 +25,7 @@ public class NotificationService {
 
     @Transactional(readOnly = true)
     public PageResponse list(AuthenticatedIdentity identity, int page, int size) {
-        access.check(identity, AccountRole.USER);
+        access.checkAny(identity, AccountRole.USER, AccountRole.ADMIN);
         if (page < 0 || size < 1 || size > 100)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid pagination");
         var result = notifications.findByRecipientId(identity.userId(),
@@ -36,7 +36,7 @@ public class NotificationService {
 
     @Transactional
     public NotificationResponse markRead(AuthenticatedIdentity identity, UUID id) {
-        access.lock(identity, AccountRole.USER);
+        access.lockAny(identity, new java.util.UUID[0], AccountRole.USER, AccountRole.ADMIN);
         var notification = notifications.lockOwned(id, identity.userId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Notification not found"));
         if (notification.getReadAt() == null) notification.markRead(clock.instant());

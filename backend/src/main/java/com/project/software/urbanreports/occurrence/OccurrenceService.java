@@ -53,7 +53,8 @@ public class OccurrenceService {
     private OccurrenceResponse createPhotos(UUID authorId, OccurrenceRequest request, List<MultipartFile> files,
             com.project.software.urbanreports.auth.AuthenticatedIdentity actor, boolean video) {
         accounts.findById(authorId).filter(account -> account.isActive()
-                && account.getRole() == com.project.software.urbanreports.identity.AccountRole.USER)
+                && (account.getRole() == com.project.software.urbanreports.identity.AccountRole.USER
+                || account.getRole() == com.project.software.urbanreports.identity.AccountRole.ADMIN))
                 .orElseThrow(() -> new org.springframework.security.access.AccessDeniedException("Access denied"));
         var fields = validate(request, null); fields.remove("image");
         var point = GeographicPoint.parse(request.latitude(), request.longitude(), true);
@@ -246,7 +247,9 @@ public class OccurrenceService {
     }
 
     private void authorize(com.project.software.urbanreports.auth.AuthenticatedIdentity actor) {
-        if (actor != null) access.lock(actor, com.project.software.urbanreports.identity.AccountRole.USER);
+        if (actor != null) access.lockAny(actor, new UUID[0],
+                com.project.software.urbanreports.identity.AccountRole.USER,
+                com.project.software.urbanreports.identity.AccountRole.ADMIN);
     }
     public void delete(com.project.software.urbanreports.auth.AuthenticatedIdentity actor, UUID id, String match) {
         delete(actor.userId(), id, match, actor);

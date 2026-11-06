@@ -19,13 +19,17 @@ public class AccountAccess {
     }
     @Transactional(propagation = Propagation.MANDATORY)
     public UserAccount lock(AuthenticatedIdentity identity, AccountRole required, UUID... related) {
+        return lockAny(identity, related, required);
+    }
+    @Transactional(propagation = Propagation.MANDATORY)
+    public UserAccount lockAny(AuthenticatedIdentity identity, UUID[] related, AccountRole... required) {
         if (identity == null) throw new AccessDeniedException("Access denied");
         var ids = new TreeSet<UUID>(Comparator.comparing(UUID::toString));
         ids.add(identity.userId()); ids.addAll(Arrays.asList(related));
         Map<UUID, UserAccount> locked = new HashMap<>();
         for (UUID id : ids) accounts.lockById(id).ifPresent(account -> locked.put(id, account));
         var actor = locked.get(identity.userId());
-        if (actor == null || !actor.isActive() || actor.getRole() != required)
+        if (actor == null || !actor.isActive() || Arrays.stream(required).noneMatch(role -> role == actor.getRole()))
             throw new AccessDeniedException("Access denied");
         var session = sessions.findById(identity.sessionId()).orElseThrow(() -> new AccessDeniedException("Access denied"));
         if (!session.getUserId().equals(actor.getId()) || !session.active(clock.instant()))
@@ -40,10 +44,14 @@ public class AccountAccess {
     /** Read authorization in the caller's snapshot, without serializing moderation. */
     @Transactional(propagation = Propagation.MANDATORY, readOnly = true)
     public void check(AuthenticatedIdentity identity, AccountRole required) {
+        checkAny(identity, required);
+    }
+    @Transactional(propagation = Propagation.MANDATORY, readOnly = true)
+    public void checkAny(AuthenticatedIdentity identity, AccountRole... required) {
         if (identity == null) throw new AccessDeniedException("Access denied");
         var actor = accounts.findById(identity.userId()).orElseThrow(() -> new AccessDeniedException("Access denied"));
         var session = sessions.findById(identity.sessionId()).orElseThrow(() -> new AccessDeniedException("Access denied"));
-        if (!actor.isActive() || actor.getRole() != required || !session.getUserId().equals(actor.getId())
+        if (!actor.isActive() || Arrays.stream(required).noneMatch(role -> role == actor.getRole()) || !session.getUserId().equals(actor.getId())
                 || !session.active(clock.instant())) throw new AccessDeniedException("Access denied");
     }
 }

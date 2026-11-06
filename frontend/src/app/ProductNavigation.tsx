@@ -12,6 +12,9 @@ export function ProductNavigation() {
   ] : role === 'ADMIN' ? [
     { to: '/administracao/relatos', label: 'Fila', icon: 'list' },
     { to: '/administracao/relatorio', label: 'Relatório', icon: 'chart' },
+    { to: '/registrar-ocorrencia', label: 'Relatar', icon: 'plus' },
+    { to: '/meus-relatos', label: 'Meus relatos', icon: 'list' },
+    { to: '/notificacoes', label: 'Notificações', icon: 'bell' },
     { to: '/minha-conta', label: 'Conta', icon: 'user' },
   ] : [
     { to: '/ocorrencias?visao=mapa', label: 'Mapa', icon: 'map' },

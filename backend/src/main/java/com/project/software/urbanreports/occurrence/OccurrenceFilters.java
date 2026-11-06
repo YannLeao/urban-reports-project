@@ -54,6 +54,7 @@ public record OccurrenceFilters(Integer categoryId, OccurrenceStatus status, Sco
             var criteria = new ArrayList<jakarta.persistence.criteria.Predicate>();
             criteria.add(root.get("status").in(states(context, scope)));
             if (context == Context.OWN) criteria.add(builder.equal(root.get("authorId"), Objects.requireNonNull(authorId)));
+            if (context == Context.ADMIN && authorId != null) criteria.add(builder.notEqual(root.get("authorId"), authorId));
             if (categoryId != null) criteria.add(builder.equal(root.get("category").get("id"), categoryId));
             if (status != null) criteria.add(builder.equal(root.get("status"), status));
             return builder.and(criteria.toArray(jakarta.persistence.criteria.Predicate[]::new));

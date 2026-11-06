@@ -57,7 +57,7 @@ public class OccurrenceController {
                 .body(service.findById(identity.userId(), id));
     }
 
-    @io.swagger.v3.oas.annotations.Operation(summary = "Registrar relato com 1 a 5 fotos OU um vídeo",
+    @io.swagger.v3.oas.annotations.Operation(summary = "Registrar relato com 1 a 5 fotos OU um vídeo (USER ou ADMIN ativo)",
             description = "Envie images repetido (1–5), na ordem da coleção. image é alias legado singular, sem mistura. JPEG/PNG/WebP estático: 5 MiB por arquivo, 26 MiB por requisição. Primeira foto é a capa. Alternativa exclusiva: uma parte video MP4 H.264 progressivo, 8-bit 4:2:0, até 25 MiB, 30 s, 720p e 30 fps; áudio AAC-LC opcional. Bytes originais preservados.",
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @io.swagger.v3.oas.annotations.media.Content(
                     mediaType = "multipart/form-data", schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = PhotoForm.class),
