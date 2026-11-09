@@ -1,3 +1,4 @@
+import { withEmptyNotifications } from '../test/notification-fixture'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -9,7 +10,7 @@ import { STORAGE_KEY } from '../features/auth/auth'
 
 const fetchMock = vi.fn<typeof fetch>()
 const user = { id: 'a50062d3-9ac2-4e70-86fa-eac5249f4d0c', name: 'Ana', email: 'ana@example.com', role: 'USER' }
-beforeEach(() => { sessionStorage.clear(); fetchMock.mockReset(); vi.stubGlobal('fetch', (url: Parameters<typeof fetch>[0], init?: RequestInit) => String(url).endsWith('/api/public/occurrence-categories') ? Promise.resolve(Response.json([{ id: 1, name: 'Iluminação pública' }, { id: 2, name: 'Buraco ou pavimentação' }])) : fetchMock(url, init)); vi.stubEnv('VITE_API_URL', 'https://api.example.com') })
+beforeEach(() => { sessionStorage.clear(); fetchMock.mockReset(); vi.stubGlobal('fetch', withEmptyNotifications((url: Parameters<typeof fetch>[0], init?: RequestInit) => String(url).endsWith('/api/public/occurrence-categories') ? Promise.resolve(Response.json([{ id: 1, name: 'Iluminação pública' }, { id: 2, name: 'Buraco ou pavimentação' }])) : fetchMock(url, init), false)); vi.stubEnv('VITE_API_URL', 'https://api.example.com') })
 function mount(path = '/', role?: string) {
   if (role) sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ accessToken: 'synthetic-token', expiresAt: new Date(Date.now() + 1800000).toISOString() }))
   fetchMock.mockResolvedValue(Response.json({ ...user, role }))
@@ -17,7 +18,7 @@ function mount(path = '/', role?: string) {
 }
 test.each([
   ['USER', ['Relatar', 'Meus relatos', 'Conta'], ['Mapa', 'Fila', 'Relatório', 'Administradores', 'Entrar']],
-  ['ADMIN', ['Fila', 'Relatório', 'Relatar', 'Meus relatos', 'Notificações', 'Conta'], ['Administradores']],
+  ['ADMIN', ['Fila', 'Meus relatos', 'Conta'], ['Relatório', 'Relatar', 'Notificações', 'Administradores']],
   ['SUPER_ADMIN', ['Administradores', 'Conta'], ['Fila', 'Relatório', 'Relatar', 'Meus relatos']],
 ])('navigation and home for %s respect the exact role', async (role, allowed, absent) => {
   mount('/', role)
@@ -34,7 +35,7 @@ test.each([
   if (role === 'SUPER_ADMIN') {
     expect(main.getAllByRole('button')).toHaveLength(1)
     expect(main.getByRole('button', { name: 'Sair' })).toBeVisible()
-    expect(main.queryAllByRole('link')).toHaveLength(0)
+    expect(main.getByRole('link', { name: 'Ver ocorrências' })).toHaveAttribute('href', '/ocorrencias')
     expect(nav.getByRole('link', { name: 'Administradores' })).toHaveAttribute('href', '/administracao/contas')
   } else {
     if (role === 'ADMIN') expect(main.getByRole('link', { name: 'Abrir moderação' })).toHaveAttribute('href', '/administracao/relatos')
@@ -77,6 +78,29 @@ test('visitor reporting intent survives login and uses the guarded registration 
   expect(await screen.findByRole('heading', { name: 'Relatar problema' })).toBeVisible()
   const nav = within(screen.getByRole('navigation', { name: 'Navegação principal' }))
   expect(nav.getByRole('link', { name: 'Relatar' })).toHaveAttribute('aria-current', 'page')
+})
+
+test('home explains the flow and links to public browsing and own reports', async () => {
+  mount('/', 'USER')
+  await screen.findByRole('link', { name: 'Conta' })
+  const section = within(screen.getByRole('region', { name: 'Como funciona' }))
+  expect(section.getByRole('heading', { name: 'Registre' })).toBeVisible()
+  expect(section.getByRole('heading', { name: 'A equipe analisa' })).toBeVisible()
+  expect(section.getByRole('heading', { name: 'Acompanhe' })).toBeVisible()
+  const main = within(screen.getByRole('main'))
+  expect(main.getByRole('link', { name: 'Relatar problema' })).toHaveAttribute('href', '/registrar-ocorrencia')
+  expect(main.getByRole('link', { name: 'Acompanhar meus relatos' })).toHaveAttribute('href', '/meus-relatos')
+  expect(main.queryByRole('link', { name: /mapa|públicas/ })).not.toBeInTheDocument()
+})
+
+test('admin keeps primary navigation compact and secondary actions available from the queue', async () => {
+  mount('/administracao/relatos', 'ADMIN')
+  await screen.findByRole('link', { name: 'Conta' })
+  const nav = within(screen.getByRole('navigation', { name: 'Navegação principal' }))
+  expect(nav.getAllByRole('link').map(link => link.textContent)).toEqual(['Fila', 'Meus relatos', 'Conta'])
+  expect(screen.getByRole('link', { name: 'Registrar ocorrência' })).toHaveAttribute('href', '/registrar-ocorrencia')
+  expect(screen.getByRole('link', { name: 'Relatório administrativo' })).toHaveAttribute('href', '/administracao/relatorio')
+  expect(screen.getByRole('link', { name: /^Notificações/ })).toHaveAttribute('href', '/notificacoes')
 })
 test.each([
   ['/meus-relatos/3e85aa3d-19e3-42a3-8861-c435ff5908af/editar', 'USER', 'Meus relatos'],

@@ -38,11 +38,12 @@ evento. Não fabrica eventos para relatos sem histórico. Ver [ADR 0021](adr/002
 
 ## Interface e validação
 
-`/notificacoes` e sino são exclusivos de USER. A lista pagina de 20 em 20, exibe
+`/notificacoes` e sino atendem USER e ADMIN, sem herança para SUPER_ADMIN.
+O ADMIN usa o mesmo acesso no cabeçalho e consulta apenas seus próprios avisos. A lista pagina de 20 em 20, exibe
 estado de leitura, horário e link para o relato. Marcar leitura atualiza o contador
 global e as páginas em cache. Consulta falha oferece retry; leitura falha permite
 repetir. A consulta atualiza automaticamente a cada 120 segundos enquanto a aba
-estiver visível, inclusive pelo sino nas outras páginas de USER autenticado.
+estiver visível, inclusive pelo sino nas outras páginas de USER ou ADMIN autenticado.
 Sino e primeira página compartilham a mesma chave; páginas diferentes mantêm
 consultas próprias. A central não tem botão permanente de atualização; Tentar
 novamente aparece em erro. Aba oculta pausa os ticks de rede e sessão encerrada

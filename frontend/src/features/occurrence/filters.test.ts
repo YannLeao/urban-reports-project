@@ -5,7 +5,7 @@ import { validPrivatePath } from '../../lib/api'
 
 test('normalizes filters by context, duplicates, forbidden states and canonical numeric ids', () => {
   expect(parseFilters(new URLSearchParams('categoria=02&estado=ACCEPTED&pagina=3&visao=mapa'), 'public')).toMatchObject({ filters: { categoryId: 2, status: 'ACCEPTED' }, invalid: false })
-  for (const raw of ['categoria=0', 'categoria=9', 'categoria=1&categoria=2', 'estado=', 'estado=pending', 'estado=REJECTED', 'escopo=todos'])
+  for (const raw of ['categoria=0', 'categoria=9', 'categoria=1&categoria=2', 'estado=', 'estado=pending', 'estado=PENDING', 'estado=REJECTED', 'escopo=todos'])
     expect(parseFilters(new URLSearchParams(raw), 'public').invalid).toBe(true)
   expect(parseFilters(new URLSearchParams('estado=REJECTED'), 'own').filters.status).toBe('REJECTED')
   expect(parseFilters(new URLSearchParams('estado=RESOLVED'), 'admin').invalid).toBe(true)

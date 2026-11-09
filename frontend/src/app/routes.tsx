@@ -32,6 +32,8 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+      <Route path="/ocorrencias" element={<PublicOccurrencesPage />} />
+      <Route path="/ocorrencias/:id" element={<PublicOccurrenceDetailPage />} />
       <Route path="/prova-imagem" element={ImageProofPage ? <Suspense fallback={<p role="status">Carregando ferramenta…</p>}><ImageProofPage /></Suspense> : <NotFoundPage />} />
       <Route path="/entrar" element={<LoginPage />} />
       <Route path="/esqueci-minha-senha" element={<PasswordRecoveryRequestPage />} />
@@ -39,10 +41,6 @@ export function AppRoutes() {
       <Route path="/ativar-administrador" element={<AdminActivationPage />} />
       <Route element={<PrivateRoute />}>
         <Route path="/minha-conta" element={<AccountPage />} />
-        <Route element={<RoleRoute role="ADMIN" />}>
-          <Route path="/ocorrencias" element={<PublicOccurrencesPage />} />
-          <Route path="/ocorrencias/:id" element={<PublicOccurrenceDetailPage />} />
-        </Route>
         <Route element={<RoleRoute role="SUPER_ADMIN" />}>
           <Route path="/administracao/contas" element={<AdminAccountsPage />} />
         </Route>

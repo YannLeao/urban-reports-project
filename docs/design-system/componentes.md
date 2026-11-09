@@ -11,9 +11,11 @@ O [relatório](../occurrence-report.md) compõe Card/Button/Alert e tabela nativ
 com caption e cabeçalhos para todas as localidades. Sem biblioteca de gráficos.
 Métricas null mostram “Sem dados”; zero real permanece numérico.
 
-O detalhe privado usa `OccurrenceHistory`: lista cronológica com estado anterior
-e novo, horário em elemento time, responsável funcional “Moderação” e
-justificativa em texto com quebras preservadas. Sem eventos, informa ausência de
+Os detalhes próprio e administrativo usam `OccurrenceHistory`: trilha vertical
+com marcador/bloco por evento real, selo do estado atingido, horário em time
+quando válido e comentário com parágrafos preservados. Cidadão recebe responsável
+funcional “Moderação”; ADMIN usa o nome já permitido no DTO. Último evento pode
+receber Estado atual somente quando seu destino corresponde ao estado do relato. Sem eventos, informa ausência de
 mudanças sem fabricar criação retroativa. Os quatro estados têm rótulos textuais;
 cor não substitui identificação. O catálogo dev inclui uma rejeição demonstrativa.
 
@@ -263,9 +265,9 @@ e recusa preservam o rascunho. Formatos e limites são validados na seleção e 
 Não há captura universal, gravação própria ou conversão de codec.
 
 `VideoPlaceholder` usa Icon/play, tokens existentes e duração textual, sem poster
-nem GET automático. `OccurrenceVideo` oferece Carregar vídeo e player responsivo
-com controls/playsinline/preload=none, sem autoplay; privado informa download
-integral antes de tocar. Erro oferece nova tentativa. Catálogo DEV demonstra o
+nem GET automático nas prévias. `OccurrenceVideo` prepara o player automaticamente
+no detalhe, com controls/playsinline/preload=metadata, sem autoplay. O privado
+recebe o download integral antes de criar Blob; carregamento tem status visível. Erro oferece nova tentativa. Catálogo DEV demonstra o
 seletor exclusivo; [contrato e roteiro](../occurrence-video.md).
 
 ## Revisão de relatos próximos
@@ -300,3 +302,33 @@ Fila de moderação/Todos os relatos antes dos selects, com aria-pressed; voltar
 A recuperação reutiliza Button/Input/PasswordField/Alert: confirmação genérica,
 reenvio após 60 segundos, estado ocupado, foco de erro/sucesso e orientação para
 reabrir o e-mail após recarga. Não persiste o segredo nem altera tokens visuais.
+
+## Galeria e prévias ampliadas
+
+`OccurrenceGallery` de detalhe usa quadro principal com object-contain, miniaturas
+recortadas, capa e indicador Foto N de M. Seleção usa borda e marca ✓, além de
+aria-pressed. Em celular a faixa fica abaixo; a partir de md fica na lateral.
+Erro/carregamento preservam o espaço. Uma única foto mantém apenas ampliação.
+
+`PhotoLightbox` compartilha Dialog com Fechar visível, foco inicial e retorno ao
+acionador, Escape e ciclo de Tab. A imagem cabe na viewport; não há galeria com
+posição independente dentro do modal. `ReviewPhotos` reutiliza prévias existentes
+na revisão sem outro upload. O catálogo DEV demonstra ampliação com a marca,
+sem consultar ocorrências. Recursos privados continuam sob sua autorização e
+lifecycle descritos no [guia de fotos](../multiple-photos.md).
+
+A home organiza Como funciona em três blocos numerados com ícone, título e frase,
+sem prometer prazo ou consulta de terceiros. Tokens, Figtree e componentes atuais
+são reutilizados. Navegação ADMIN mantém Fila/Meus relatos/Conta e sino; registrar e
+relatório são ações contextualizadas na fila, sem uma barra móvel de seis itens.
+
+## Home e exploração pública
+
+Home alterna hero com mapa ilustrativo, categorias com pinos, três passos,
+acompanhamento, perguntas em details/summary e CTA final. A ilustração SVG original
+usa tokens existentes e os pinos canônicos; não simula dados reais. Atalhos
+levam aos filtros reais da consulta pública de aceitas/resolvidas.
+Estado usa botões com ícones, rótulos curtos e aria-pressed; categorias têm
+pinos com nomes acessíveis e seletor completo.
+
+`Icon/check` identifica a opção Resolvidas e acompanha seu rótulo visível.

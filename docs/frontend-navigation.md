@@ -3,33 +3,39 @@
 O produto Alô Cidade usa a identidade, tokens, Figtree e pinos do design system
 Alô Cidade. A entrada `/` oferece “Relatar problema”, rota protegida do registro.
 Visitante segue para `/entrar` com retorno interno validado por `safeReturnPath`.
-USER retorna ao registro após login. ADMIN recebe Abrir moderação na home;
-SUPER_ADMIN tem somente Sair na área de ações da home e acessa a gestão de
+USER retorna ao registro após login. A seção Como funciona explica registro,
+análise e acompanhamento em três passos, com leitura vertical no celular e
+três colunas a partir de md. USER também tem Meus relatos na home. ADMIN recebe
+Abrir moderação na home;
+SUPER_ADMIN tem Sair e consulta pública na área de ações da home e acessa a gestão de
 administradores exclusivamente pela navbar, sem chamada para criar relato.
 
 ## Destinos e papéis
 
 | Sessão | Navegação principal | Complemento |
 | --- | --- | --- |
-| Visitante | Relatar, Entrar | Marca abre início |
-| USER | Relatar, Meus relatos, Conta | Sino de notificações no cabeçalho |
-| ADMIN | Fila, Relatório, Relatar, Meus relatos, Notificações, Conta | Consultas gerais somente na administração |
+| Visitante | Relatar, Explorar, Entrar | Marca abre início |
+| USER | Relatar, Explorar, Meus relatos, Conta | Sino de notificações no cabeçalho |
+| ADMIN | Fila, Meus relatos, Conta | Registrar ocorrência e Relatório administrativo na fila; sino no cabeçalho |
 | SUPER_ADMIN | Administradores, Conta | Marca abre início |
 
 `src/app/ProductNavigation.tsx` tem uma única navegação: barra inferior no mobile,
 cabeçalho no desktop. Ícones decorativos acompanham rótulos visíveis. NavLink
 marca a seção, incluindo detalhes/edição, por pathname; query não muda o universo.
-Não há destino público de mapa/lista de ocorrências. Guards de papel continuam
-exatos, sem herança administrativa; consultas gerais ficam restritas à administração.
+Explorar abre lista/mapa público somente de Aceitas e Resolvidas; detalhe e mídia
+também dispensam login. Meus relatos conserva autoria própria e seus quatro
+estados. Guards privados continuam exatos, sem herança administrativa.
 Logout permanece na conta dos três papéis e também na home de SUPER_ADMIN,
 com confirmação real da API e possibilidade de retry. `features/auth/LogoutActions`
 compartilha busy, erro e foco, delegando revogação/limpeza ao AuthProvider.
 Minha Conta apresenta identidade e Sair. Atalhos repetidos de USER/ADMIN foram
-retirados; seus destinos permanecem na navbar e no sino (USER). SUPER_ADMIN
+retirados; seus destinos permanecem na navbar e no sino (USER/ADMIN). SUPER_ADMIN
 continua sem repetir gestão ali; home e navegação desse papel estão preservadas.
 
 A barra inferior usa `safe-area-inset-bottom`; o shell reserva espaço inferior
-para que todo conteúdo possa ser alcançado por rolagem. `viewport-fit=cover`
+para que todo conteúdo possa ser alcançado por rolagem. Em viewport muito
+estreita/zoom, a lista da navbar pode rolar horizontalmente preservando rótulos
+inteiros e alvos de toque, sem ampliar a largura do documento. `viewport-fit=cover`
 permite respeitar as áreas seguras do aparelho. Cabeçalho não contém menu móvel
 com várias linhas; marca permanece link de início. Skip link e main são preservados.
 
@@ -37,7 +43,8 @@ com várias linhas; marca permanece link de início. Skip link e main são prese
 
 `src/app/AppLayout.tsx` escolhe a composição por rota:
 
-- `reading`: entrada, formulários, listas e detalhes, com `max-w-reading`.
+- `home`: entrada com explicação em três colunas quando há espaço, `max-w-app`.
+- `reading`: formulários, listas e detalhes, com `max-w-reading`.
 - `map`: consultas próprias ou administrativas com `visao=mapa`, com `max-w-app`.
 - `panel`: `/administracao/*`, com `max-w-app`.
 - `account`: exceção apenas para `/minha-conta`, com `max-w-app`, alinhando as
@@ -86,11 +93,12 @@ produção apenas para facilitar apresentação.
 
 ## Notificações e recuperação de senha
 
-`NotificationsAccess`, no shell de USER autenticado, abre `/notificacoes` com
+`NotificationsAccess`, no shell de USER ou ADMIN autenticado, abre `/notificacoes` com
 nome acessível e contagem total de não lidas, independente da página aberta.
 O badge mostra até 99+; o nome acessível preserva a contagem completa. Falha de
 consulta não inventa contagem zero. A central e o sino exigem
-USER, com a mesma restrição no servidor; ADMIN/SUPER_ADMIN não herdam esse fluxo.
+USER ou ADMIN, conforme os papéis já autorizados no servidor. SUPER_ADMIN
+permanece sem esse fluxo. Chaves e requests continuam privados por usuário.
 
 A central usa sessão e cache privado por usuário/página, paginação de 20 itens,
 atualização automática a cada 120 segundos, retry de erro e marcação idempotente
@@ -127,3 +135,32 @@ Sem autosave ou promessa de recuperação após sair/encerrar sessão.
 Consulte [contrato, URL, cache e roteiro dos filtros](occurrence-filters.md).
 Listas e mapas aceitam os mesmos critérios; a administração mantém QUEUE padrão
 e oferece ALL para consultar finalizados, preservando autorização e transições.
+
+## Acabamento da entrega
+
+ADMIN usa três destinos primários em todas as larguras, com rótulos inteiros:
+Fila, Meus relatos e Conta. Registrar ocorrência é o CTA da fila; Relatório
+administrativo é uma ação distinta no mesmo contexto. O sino no cabeçalho dá
+acesso à central, inclusive ao ADMIN. NavLink mantém o destino ativo em filas,
+detalhes e relatos próprios. A rota secundária de relatório tem seu próprio título,
+sem marcar indevidamente outro destino primário como a página atual. USER e
+SUPER_ADMIN conservam destinos e guards atuais.
+
+Detalhes próprio e administrativo exibem miniaturas de todas as fotos, quadro de
+altura estável e ampliação por Dialog, mantendo ordem/capa. Celular usa faixa;
+a partir de md a faixa vira coluna. Não há novas buscas em listas/mapas: só capa.
+A revisão amplia previews já disponíveis em memória; fotos salvas ainda não
+carregadas são buscadas somente ao ativar a revisão. Vídeo conserva o player.
+Histórico compartilhado mostra trilha vertical e eventos reais; ações de decisão
+ficam em outro bloco. [Mídias](multiple-photos.md) e
+[histórico/moderação](occurrence-moderation.md) detalham os contratos.
+
+## Landing e consulta sem cadastro
+
+Home inclui mapa ilustrativo original com pinos de iluminação, limpeza e áreas
+verdes. Não usa tiles, posições reais ou contagens fictícias; o CTA abre o mapa
+operacional existente. Categorias abrem filtros por URL e Ver resolvidas abre
+`/ocorrencias?estado=RESOLVED`. Seções curtas e FAQ nativa completam o percurso.
+Vídeos nos detalhes são preparados automaticamente, com carregamento e retry
+em falhas; reprodução depende do play nativo, sem autoplay. A fila mantém
+placeholder e não inicia downloads de vídeos.

@@ -24,6 +24,9 @@ O padrão de seleção de fotografia também está no catálogo; sua
 não depende da API nem envia a imagem. O [cadastro público](../identity.md) usa
 Input/PasswordField/Button/Alert e estados ilustrados no catálogo. Login e minha conta usam
 os mesmos componentes, incluindo validação de sessão e falha de logout. Relatos privados priorizam fotografia, edição e exclusão com dialog nativo.
+A galeria própria/admin tem miniaturas e ampliação; revisão amplia previews sem
+novo envio. Home explica Como funciona; histórico usa trilha de eventos reais
+e navegação ADMIN conserva três destinos primários e sino.
 Gestão de administradores e ativação reutilizam campos/feedback; moderação usa
 os mesmos cartões, fotografia, contador Unicode e histórico. O seletor de
 localização está implementado no formulário de relato. Consultas e detalhes usam
@@ -117,3 +120,7 @@ Alert. A nova consulta do PDF é explicada no disclosure de cálculos; o painel
 segue a [política automática](../live-queries.md). O documento exportado conserva Alô Cidade/Figtree e cores
 dos tokens, via [derivação rastreável para o backend](../report-pdf-assets.md).
 Não há alterações de paleta ou de identidade do shell.
+
+A home usa mapa ilustrativo original, pinos canônicos e seções curtas; consulta
+pública oferece filtros por ícones com rótulos. Veja [componentes](componentes.md)
+e [navegação](../frontend-navigation.md). Não há novos tokens ou dependências.

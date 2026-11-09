@@ -70,7 +70,7 @@ export function OccurrenceDetailPage() {
       {error && <Button className="mt-4" variant="secondary" loading={query.isFetching} onClick={() => { void query.refetch() }}>Tentar novamente</Button>}
       {error && <Link className={`${buttonStyles('secondary')} mt-4`} to="/meus-relatos">Voltar para meus relatos</Link>}
       {report && <>
-        <div className="mt-8 flex flex-wrap items-start justify-between gap-3"><div><p className="mb-2 text-small font-bold text-brand-default">Relato registrado</p><h1 id="detail-title" className="mb-0">{report.title}</h1></div><OccurrenceStatus status={report.status} /></div>
+        <div className="mt-8 flex flex-wrap items-start justify-between gap-3"><div><p className="mb-2 text-small font-bold text-brand-default">Relato registrado</p><h1 id="detail-title" className="mb-0">{report.title}</h1></div><div role="group" aria-label="Estado atual do relato" className="flex flex-wrap items-center gap-2"><span className="text-small text-text-secondary">Estado atual</span><OccurrenceStatus status={report.status} /></div></div>
         <OccurrenceGallery report={report} />
         {latestChange && <p className="text-small text-text-secondary">Último andamento: {occurrenceStatusLabel(latestChange.newStatus)} · <time dateTime={latestChange.occurredAt}>{occurrenceDate(latestChange.occurredAt)}</time></p>}
         {rejection && <Alert tone="danger" className="my-5"><h2 className="text-title">Por que foi rejeitado?</h2><p className="whitespace-pre-wrap">{rejection.reason}</p></Alert>}
@@ -80,7 +80,7 @@ export function OccurrenceDetailPage() {
           <Link className={buttonStyles()} to={`/meus-relatos/${report.id}/editar`} state={{ from }}>Editar relato</Link>
           <Button ref={trigger} variant="quiet" className="text-feedback-danger-foreground" onClick={() => { dialog.current?.showModal(); cancel.current?.focus() }}>Excluir relato</Button>
         </div>}
-        <OccurrenceHistory events={report.history ?? []} />
+        <OccurrenceHistory events={report.history ?? []} currentStatus={report.status} />
         <OccurrenceLocation report={report} />
         <Link className={buttonStyles('quiet')} to={queryMap(from, true)}>Ver mapa dos meus relatos</Link>
         <Dialog ref={dialog} aria-labelledby="delete-title" onClose={() => trigger.current?.focus()} onCancel={event => { if (pending) event.preventDefault() }} className="m-auto max-w-reading rounded-card border border-border-control bg-surface-raised p-6 text-text-primary backdrop:bg-text-primary/50">

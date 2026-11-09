@@ -1,3 +1,4 @@
+import { withEmptyNotifications } from '../test/notification-fixture'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -15,7 +16,7 @@ const report = { id: '3e85aa3d-19e3-42a3-8861-c435ff5908af', categoryId: 1, cate
 const token = 'a'.repeat(43)
 beforeEach(() => {
   sessionStorage.clear(); window.history.replaceState({}, '', '/')
-  fetchMock.mockReset(); vi.stubGlobal('fetch', (url: Parameters<typeof fetch>[0], init?: RequestInit) => String(url).endsWith('/api/public/occurrence-categories') ? Promise.resolve(Response.json([{ id: 1, name: 'Iluminação pública' }, { id: 2, name: 'Buraco ou pavimentação' }])) : fetchMock(url, init)); vi.stubEnv('VITE_API_URL', 'https://api.example.com')
+  fetchMock.mockReset(); vi.stubGlobal('fetch', withEmptyNotifications((url: Parameters<typeof fetch>[0], init?: RequestInit) => String(url).endsWith('/api/public/occurrence-categories') ? Promise.resolve(Response.json([{ id: 1, name: 'Iluminação pública' }, { id: 2, name: 'Buraco ou pavimentação' }])) : fetchMock(url, init), false)); vi.stubEnv('VITE_API_URL', 'https://api.example.com')
   vi.stubGlobal('IntersectionObserver', class { observe() {} disconnect() {} })
   vi.stubGlobal('URL', Object.assign(class extends URL {}, { createObjectURL: vi.fn(() => 'blob:photo'), revokeObjectURL: vi.fn() }))
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', '') }
@@ -229,7 +230,7 @@ test.each([
   expect(new Headers(posts[0][1]?.headers).get('If-Match')).toBe('"0"')
   firstView.unmount()
   renderPage(`/administracao/relatos/${report.id}`)
-  expect(await screen.findByText(statusLabel, { selector: 'span' })).toBeVisible()
+  expect(await within(await screen.findByRole('group', { name: 'Estado atual do relato' })).findByText(statusLabel, { selector: 'span' })).toBeVisible()
   expect(await screen.findByText('Comentário: Comentário persistido sintético')).toBeVisible()
   expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
 })

@@ -35,6 +35,14 @@ test('bell shows global unread count and central renders rejection as text with 
   expect(options?.credentials).toBe('omit')
 })
 
+test('ADMIN can read its notification central and unread count through the same private contract', async () => {
+  fetchMock.mockImplementation(async url => Response.json(String(url).endsWith('/auth/me') ? { ...user, role: 'ADMIN' } : page))
+  mount()
+  expect(await screen.findByRole('link', { name: 'Notificações: 21 não lidas' })).toHaveAttribute('href', '/notificacoes')
+  expect(await screen.findByText(item.message)).toBeVisible()
+  expect(fetchMock.mock.calls.some(([url, options]) => String(url).includes('/api/notifications') && new Headers(options?.headers).get('Authorization') === 'Bearer synthetic-token')).toBe(true)
+})
+
 test('pagination reaches older items and marks a notification read with one POST', async () => {
   let read = false
   fetchMock.mockImplementation(async (url, options) => {

@@ -170,3 +170,21 @@ das linhas persistidas. `OccurrenceHttpTests` complementa os dois caminhos novos
 por servidor HTTP real, incluindo comentário obrigatório, transição inválida e
 leitura posterior por ADMIN e dono. Testes frontend usam fetch controlado e não
 comprovam persistência ou publicação por si sós.
+
+## Apresentação do andamento
+
+`OccurrenceHistory` é compartilhado pelos detalhes próprio e administrativo.
+Trilha vertical e bloco por evento dão prioridade ao estado atingido, seguido de
+data/hora, responsável permitido e comentário com parágrafos preservados. O
+ADMIN mantém seu formulário de decisão separado do histórico. Os quatro selos
+usam tokens existentes; a cor é acompanhada de rótulo.
+
+A ordem da API é preservada; não são inseridos eventos sintéticos de criação,
+aceitação ou resolução. Histórico vazio informa ausência de mudanças. Comentário
+legado nulo permanece ausente, inclusive em aceites antigos e trajetos históricos
+até rejeição. O cabeçalho sempre mostra o estado atual do relato; um evento só é
+realçado como atual se for o último retornado, tiver timestamp válido e seu destino
+coincidir com o estado atual. Sem correspondência, nenhum evento recebe destaque.
+Timestamp inválido não gera time nem data inventada; a borda continua validada
+pelo schema de consulta. O componente não passa a expor identidade administrativa
+ao cidadão: usa somente o responsável já permitido pelo DTO de cada perfil.

@@ -1,3 +1,4 @@
+import { withEmptyNotifications } from '../../test/notification-fixture'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -19,7 +20,7 @@ function mount(path: string) {
   return client
 }
 beforeEach(() => {
-  sessionStorage.clear(); vi.stubEnv('VITE_API_URL', 'https://api.example.com'); fetchMock.mockReset(); vi.stubGlobal('fetch', fetchMock)
+  sessionStorage.clear(); vi.stubEnv('VITE_API_URL', 'https://api.example.com'); fetchMock.mockReset(); vi.stubGlobal('fetch', withEmptyNotifications(fetchMock, false))
 })
 test('public controls combine filters, reset page once and preserve URL view and viewport on clear', async () => {
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ accessToken: 'synthetic-token', expiresAt: new Date(Date.now() + 1800000).toISOString() }))
@@ -27,7 +28,7 @@ test('public controls combine filters, reset page once and preserve URL view and
   mount('/ocorrencias?pagina=3&lat=0&lng=0&zoom=12')
   await screen.findByRole('option', { name: 'Buraco ou pavimentação' })
   await userEvent.selectOptions(screen.getByLabelText('Categoria'), '2')
-  await userEvent.selectOptions(screen.getByLabelText('Estado'), 'ACCEPTED')
+  await userEvent.click(screen.getByRole('button', { name: 'Aceitas' }))
   expect(screen.getByLabelText('Endereço')).toHaveTextContent('categoria=2&estado=ACCEPTED')
   expect(screen.getByLabelText('Endereço')).not.toHaveTextContent('pagina=')
   await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => String(url).includes('categoryId=2&status=ACCEPTED'))).toBe(true))
@@ -84,10 +85,10 @@ test('list detail and its map link preserve active filters and page context', as
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ accessToken: 'synthetic-token', expiresAt: new Date(Date.now() + 1800000).toISOString() }))
   fetchMock.mockImplementation(async url => String(url).endsWith('/occurrence-categories') ? Response.json(catalog)
     : String(url).endsWith('/auth/me') ? Response.json(person) : String(url).includes('/occurrences?') ? Response.json(page()) : Response.json(item))
-  mount('/ocorrencias?categoria=1&estado=PENDING&pagina=2')
+  mount('/ocorrencias?categoria=1&estado=ACCEPTED&pagina=2')
   await userEvent.click(await screen.findByRole('link', { name: item.title }))
-  expect(await screen.findByRole('link', { name: 'Ver mapa dos relatos' })).toHaveAttribute('href', '/ocorrencias?categoria=1&estado=PENDING&pagina=2&visao=mapa')
-  expect(screen.getByRole('link', { name: '← Relatos' })).toHaveAttribute('href', '/ocorrencias?categoria=1&estado=PENDING&pagina=2')
+  expect(await screen.findByRole('link', { name: 'Ver mapa dos relatos' })).toHaveAttribute('href', '/ocorrencias?categoria=1&estado=ACCEPTED&pagina=2&visao=mapa')
+  expect(screen.getByRole('link', { name: '← Relatos' })).toHaveAttribute('href', '/ocorrencias?categoria=1&estado=ACCEPTED&pagina=2')
 })
 
 test('administrative emptiness distinguishes queue, global ALL and filtered results', async () => {

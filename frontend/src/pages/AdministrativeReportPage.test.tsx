@@ -49,7 +49,8 @@ test('direct route renders reference calculations, textual distributions and all
   expect(container.querySelector('table img')).toBeNull()
   expect(screen.getAllByText('3 relatos')).toHaveLength(2)
   expect(client.getQueryData(reportKey(user.id))).toMatchObject({ total: 6 })
-  expect(screen.getByRole('link', { name: 'Relatório' })).toHaveAttribute('aria-current', 'page')
+  expect(screen.getByRole('navigation', { name: 'Navegação principal' })).not.toHaveTextContent('Relatório')
+  expect(screen.getByRole('heading', { name: 'Relatório administrativo' })).toBeVisible()
   const [, options] = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/reports/occurrences'))!
   expect(options?.headers).toMatchObject({ Authorization: 'Bearer synthetic-session' })
   expect(options?.credentials).toBe('omit')

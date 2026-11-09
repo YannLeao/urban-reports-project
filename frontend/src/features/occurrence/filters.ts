@@ -5,7 +5,7 @@ export type FilterContext = 'public' | 'own' | 'admin'
 export type Filters = { categoryId: number | null; status: Occurrence['status'] | null; scope: 'QUEUE' | 'ALL' }
 export const emptyFilters: Filters = { categoryId: null, status: null, scope: 'QUEUE' }
 export function allowedStatuses(context: FilterContext, scope: Filters['scope']) {
-  if (context === 'public') return ['PENDING', 'ACCEPTED', 'RESOLVED'] satisfies Occurrence['status'][]
+  if (context === 'public') return ['ACCEPTED', 'RESOLVED'] satisfies Occurrence['status'][]
   if (context === 'admin' && scope === 'QUEUE') return ['PENDING', 'ACCEPTED'] satisfies Occurrence['status'][]
   return occurrenceStatusSchema.options
 }

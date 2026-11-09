@@ -1,3 +1,4 @@
+import { CommunityMapPreview } from '../../features/home/CommunityMapPreview'
 import { IconButton } from '../../components/ui/IconButton'
 import { QueryViewToggle } from '../../features/occurrence/QueryViewToggle'
 import { SimilarOccurrencesPanel } from '../../features/occurrence/SimilarOccurrencesReview'
@@ -20,6 +21,7 @@ import { Alert, StatusBadge } from '../../components/ui/Feedback'
 import { Card } from '../../components/ui/Card'
 import { OccurrenceHistory } from '../../features/occurrence/OccurrenceHistory'
 import { CountDistribution } from '../../components/ui/CountDistribution'
+import { ReviewPhotos } from '../../features/occurrence/ReviewPhotos'
 
 export default function DesignSystemPage() {
   const [mediaMode, setMediaMode] = useState<'IMAGE' | 'VIDEO'>('IMAGE')
@@ -40,7 +42,7 @@ export default function DesignSystemPage() {
         <p>Categoria e estado combinam-se imediatamente. Limpar preserva visão e escopo. Exemplo estático, sem consulta.</p>
         <div className="grid gap-3 sm:grid-cols-2">
           <Select label="Categoria"><option>Todas as categorias</option><option>Iluminação pública</option></Select>
-          <Select label="Estado"><option>Todos os estados</option><option>Pendente</option><option>Em análise</option><option>Resolvida</option></Select>
+          <Select label="Estado"><option>Todos os estados</option><option>Pendente</option><option>Aceita</option><option>Resolvida</option><option>Rejeitada</option></Select>
         </div>
         <p>Limpar filtros aparece somente com categoria ou estado ativo.</p>
         <QueryViewToggle />
@@ -65,6 +67,10 @@ export default function DesignSystemPage() {
       <Card><h2>Fotos ou vídeo</h2>
         <p>Uma a cinco fotos ou um vídeo MP4. Troca de tipo exige confirmação; seleção local sem upload.</p>
         <MediaPicker mode={mediaMode} onMode={setMediaMode} value={photos} onChange={setPhotos} onValidationChange={() => {}} />
+      </Card>
+      <Card><h2>Ampliação de prévia — exemplo</h2>
+        <p>A marca é uma prévia demonstrativa. Amplie por teclado ou toque; Fechar e Escape devolvem o foco ao acionador. Nenhuma ocorrência é consultada.</p>
+        <ReviewPhotos photos={[{ key: 'example', id: '00000000-0000-4000-8000-000000000001' }]} previews={{ example: '/favicon.svg' }} active disabled={false} />
       </Card>
       <Card><h2>Navegação e exploração</h2>
         <p>Ícone com rótulo visível; o shell adapta destinos ao papel. Controles compactos preservam o alvo de toque.</p>
@@ -139,12 +145,13 @@ export default function DesignSystemPage() {
           <Button variant="quiet" className="text-feedback-danger-foreground" onClick={() => dialog.current?.close()}>Excluir exemplo</Button>
         </Dialog>
       </Card>
+      <Card><h2>Mapa ilustrativo da home</h2><p>Ilustração com pinos canônicos; não representa posições reais.</p><div className="max-w-reading"><CommunityMapPreview /></div></Card>
       <Card><h2>Estados e acompanhamento do relato</h2>
         <div className="flex flex-wrap gap-3">
           <OccurrenceStatus status="PENDING" /><OccurrenceStatus status="ACCEPTED" />
           <OccurrenceStatus status="RESOLVED" /><OccurrenceStatus status="REJECTED" />
         </div>
-        <OccurrenceHistory events={[{ id: '3e85aa3d-19e3-42a3-8861-c435ff5908af', previousStatus: 'PENDING', newStatus: 'REJECTED', occurredAt: '2026-10-15T12:00:00Z', responsible: 'Moderação', reason: 'Exemplo: fotografia não corresponde ao local informado.' }]} />
+        <OccurrenceHistory currentStatus="REJECTED" events={[{ id: '3e85aa3d-19e3-42a3-8861-c435ff5908af', previousStatus: 'PENDING', newStatus: 'REJECTED', occurredAt: '2026-10-15T12:00:00Z', responsible: 'Moderação', reason: 'Exemplo: fotografia não corresponde ao local informado.' }]} />
       </Card>
       <Card><h2>Contas administrativas e rejeição</h2>
         <p>Exemplos de situação: Aguardando ativação · Ativo · Desativado.</p>

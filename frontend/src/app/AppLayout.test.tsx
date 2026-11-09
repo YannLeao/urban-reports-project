@@ -8,7 +8,7 @@ function LayoutProbe() { return <output aria-label="Composição">{useAppLayout(
 test.each([
   ['/minha-conta', 'account'],
   ['/minha-conta?origem=inicio', 'account'],
-  ['/', 'reading'],
+  ['/', 'home'],
   ['/entrar', 'reading'],
   ['/cadastro', 'reading'],
   ['/registrar-ocorrencia', 'reading'],

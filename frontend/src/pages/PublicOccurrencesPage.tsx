@@ -30,7 +30,7 @@ export function PublicOccurrencesPage() {
   return <section className={mapMode ? 'py-3' : 'py-8'} aria-labelledby="public-title">
     <div className={mapMode ? 'wrap-anywhere' : 'max-w-reading wrap-anywhere'}>
       <div className="flex flex-wrap items-center justify-between gap-2"><h1 id="public-title" className={mapMode ? 'mb-0 text-title' : ''}>Relatos da comunidade</h1></div>
-      {!mapMode && <p className="text-lead text-text-secondary">Problemas urbanos relatados pela comunidade.</p>}
+      {!mapMode && <p className="text-lead text-text-secondary">Ocorrências aceitas e resolvidas. Consulte sem cadastro.</p>}
       <OccurrenceFilters context="public" total={!mapMode ? data?.totalItems : undefined} />
       <div className="my-3 flex"><QueryViewToggle /></div>
       {mapMode ? <PublicMapView /> : <>
@@ -38,7 +38,7 @@ export function PublicOccurrencesPage() {
       {error && <Alert className="mt-6" tone="danger" role="alert">{data ? 'Não foi possível atualizar. Os relatos anteriores foram mantidos.' : 'Não conseguimos carregar os relatos.'}</Alert>}
       {error && <Button className="mt-4" variant="secondary" loading={query.isFetching} onClick={() => { void query.refetch() }}>Tentar novamente</Button>}
       {data && data.items.length === 0 && (page === 0
-        ? <Card className="mt-8"><h2 className="mt-0">{filtered ? 'Nenhum relato com estes filtros' : 'Ainda não há relatos públicos'}</h2><p>{filtered ? 'Ajuste os filtros ou limpe a seleção para consultar outros relatos.' : 'Quando houver relatos registrados, eles aparecerão aqui.'}</p></Card>
+        ? <Card className="mt-8"><h2 className="mt-0">{filtered ? 'Nenhum relato com estes filtros' : 'Ainda não há relatos públicos'}</h2><p>{filtered ? 'Ajuste os filtros ou limpe a seleção para consultar outros relatos.' : 'Os relatos aparecem aqui após serem aceitos pela moderação.'}</p></Card>
         : <Card className="mt-8"><h2 className="mt-0">Esta página não existe</h2><Link className={buttonStyles('secondary')} to={pageLink(1)}>Voltar para a primeira página</Link></Card>)}
       {data && data.items.length > 0 && <div className="mt-8 grid gap-4" aria-label="Relatos da comunidade" aria-busy={query.isPlaceholderData}>
         {data.items.map(report => <article key={report.id} className="min-w-0 rounded-card border border-border-subtle bg-surface-raised shadow-card">
