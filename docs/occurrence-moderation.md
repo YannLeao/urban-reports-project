@@ -77,7 +77,8 @@ ADMIN pendente/desativado e anônimo não moderam.
   e ETag da versão resultante, somente após commit.
 
 JSON limitado a 8192 bytes; extras/tipos coercíveis são recusados. Ausência/null
-de reason é válida fora de rejeição; qualquer string é recusada. Erros seguem
+de reason é válida somente na resolução; aceitação/rejeição exigem comentário.
+Na resolução, qualquer string, inclusive vazia, é recusada. Erros seguem
 ApiErrorResponse: 400 validação, 428 sem If-Match, 412 versão divergente,
 409 transição incompatível, 404 ocorrência ausente, 401/403 conforme sessão/papel.
 A versão é verificada antes de estado para um comando de moderação válido.
@@ -152,3 +153,20 @@ manual devem ser registrados na MR/issue, sem inferir deploy pelo código.
 Consulte [contrato, URL, cache e roteiro dos filtros](occurrence-filters.md).
 Listas e mapas aceitam os mesmos critérios; a administração mantém QUEUE padrão
 e oferece ALL para consultar finalizados, preservando autorização e transições.
+
+## Decisão selecionada no frontend
+
+O detalhe administrativo mantém o alvo escolhido (ACCEPTED/REJECTED) até a
+confirmação; título, campo e payload seguem essa ação, independentemente do
+estado de origem. Cancelar ou navegar para outro relato descarta alvo, comentário
+e erro. Aceitar/Rejeitar validam 10–500 pontos de código e enviam If-Match original;
+Resolver envia RESOLVED com reason null. Conflito recarrega dados e descarta a
+decisão anterior, exigindo nova escolha. O formulário bloqueia ações concorrentes.
+
+`LegacyOccurrenceHistoryHttpTests` inicia PostgreSQL em V15 com relatos aceitos,
+resolvidos e rejeitados e histórico IN_ANALYSIS, aplica V16 no boot e verifica GET
+com sessões reais do dono e de outro ADMIN, ordenação por data/versão e igualdade
+das linhas persistidas. `OccurrenceHttpTests` complementa os dois caminhos novos
+por servidor HTTP real, incluindo comentário obrigatório, transição inválida e
+leitura posterior por ADMIN e dono. Testes frontend usam fetch controlado e não
+comprovam persistência ou publicação por si sós.

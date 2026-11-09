@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router'
+import { Link, MemoryRouter } from 'react-router'
 import { beforeEach, expect, test, vi } from 'vitest'
 import App from '../App'
 import { AuthProvider } from '../features/auth/AuthProvider'
@@ -178,14 +178,100 @@ test('moderation rejects with Unicode count and reloads conflicts without false 
     ['public', 'occurrences', 'markers', { categoryId: 1, status: 'PENDING' }],
   ]
   filteredKeys.forEach(key => client.setQueryData(key, { synthetic: true }))
-  await userEvent.click(await screen.findByRole('button', { name: 'Aceitar' }))
-  fireEvent.change(await screen.findByLabelText('Comentário de encaminhamento'), { target: { value: 'Encaminhamento válido' } })
-  await userEvent.click(screen.getByRole('button', { name: 'Confirmar aceitação' }))
+  await userEvent.click(await screen.findByRole('button', { name: 'Rejeitar' }))
+  const reason = await screen.findByLabelText('Motivo da rejeição')
+  fireEvent.change(reason, { target: { value: '😀'.repeat(9) } })
+  await userEvent.click(screen.getByRole('button', { name: 'Confirmar rejeição' }))
+  expect(fetchMock.mock.calls.filter(([, options]) => options?.method === 'POST')).toHaveLength(0)
+  expect(reason).toHaveFocus()
+  fireEvent.change(reason, { target: { value: '😀'.repeat(10) } })
+  await userEvent.click(screen.getByRole('button', { name: 'Confirmar rejeição' }))
+  const first = fetchMock.mock.calls.find(([, options]) => options?.method === 'POST')!
+  expect(JSON.parse(first[1]?.body as string)).toEqual({ target: 'REJECTED', reason: '😀'.repeat(10) })
+  expect(new Headers(first[1]?.headers).get('If-Match')).toBe('"0"')
   expect(await screen.findByRole('alert')).toHaveTextContent('Este relato mudou')
   expect(screen.queryByText('Estado atualizado.')).not.toBeInTheDocument()
   expect(await screen.findByRole('button', { name: 'Resolver' })).toBeVisible()
   await userEvent.click(screen.getByRole('button', { name: 'Resolver' }))
-  await waitFor(() => expect(fetchMock.mock.calls.some(([, options]) => options?.method === 'POST')).toBe(true))
+  await waitFor(() => expect(fetchMock.mock.calls.filter(([, options]) => options?.method === 'POST')).toHaveLength(2))
+  const last = fetchMock.mock.calls.filter(([, options]) => options?.method === 'POST').at(-1)!
+  expect(JSON.parse(last[1]?.body as string)).toEqual({ target: 'RESOLVED', reason: null })
+  expect(new Headers(last[1]?.headers).get('If-Match')).toBe('"1"')
+  expect(await screen.findByText('Estado atualizado.')).toBeVisible()
+})
+
+test.each([
+  { action: 'Aceitar', label: 'Comentário de encaminhamento', confirmation: 'Confirmar aceitação', target: 'ACCEPTED', statusLabel: 'Aceita' },
+  { action: 'Rejeitar', label: 'Motivo da rejeição', confirmation: 'Confirmar rejeição', target: 'REJECTED', statusLabel: 'Rejeitada' },
+])('$action sends its own target and reloads the saved state and comment', async ({ action, label, confirmation, target, statusLabel }) => {
+  let current = { ...report }
+  const history: object[] = []
+  fetchMock.mockImplementation(async (url, options) => {
+    if (String(url).endsWith('/auth/me')) return Response.json({ ...user, role: 'ADMIN' })
+    if (String(url).endsWith('/image')) return new Response('photo', { headers: { 'Content-Type': 'image/png' } })
+    if (options?.method === 'POST') {
+      current = { ...current, status: target, version: 1 }
+      history.push({ id: admin.id, previousStatus: 'PENDING', newStatus: target, occurredAt: admin.createdAt, responsible: admin.name, reason: 'Comentário persistido sintético' })
+    }
+    return Response.json({ report: current, history })
+  })
+  const firstView = renderPage(`/administracao/relatos/${report.id}`)
+  await userEvent.click(await screen.findByRole('button', { name: action }))
+  expect(await screen.findByLabelText(label)).toHaveFocus()
+  await userEvent.click(screen.getByRole('button', { name: confirmation }))
+  expect(fetchMock.mock.calls.filter(([, options]) => options?.method === 'POST')).toHaveLength(0)
+  fireEvent.change(screen.getByLabelText(label), { target: { value: '  Comentário persistido sintético  ' } })
+  await userEvent.click(screen.getByRole('button', { name: confirmation }))
+  await screen.findByText('Estado atualizado.')
+  const posts = fetchMock.mock.calls.filter(([, options]) => options?.method === 'POST')
+  expect(posts).toHaveLength(1)
+  expect(JSON.parse(posts[0][1]?.body as string)).toEqual({ target, reason: 'Comentário persistido sintético' })
+  expect(new Headers(posts[0][1]?.headers).get('If-Match')).toBe('"0"')
+  firstView.unmount()
+  renderPage(`/administracao/relatos/${report.id}`)
+  expect(await screen.findByText(statusLabel, { selector: 'span' })).toBeVisible()
+  expect(await screen.findByText('Comentário: Comentário persistido sintético')).toBeVisible()
+  expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+})
+
+test('cancelling clears the decision and comment before choosing another action', async () => {
+  fetchMock.mockImplementation(async url => String(url).endsWith('/auth/me')
+    ? Response.json({ ...user, role: 'ADMIN' }) : String(url).endsWith('/image')
+      ? new Response('photo', { headers: { 'Content-Type': 'image/png' } }) : Response.json({ report, history: [] }))
+  renderPage(`/administracao/relatos/${report.id}`)
+  const accept = await screen.findByRole('button', { name: 'Aceitar' })
+  await userEvent.click(accept)
+  fireEvent.change(screen.getByLabelText('Comentário de encaminhamento'), { target: { value: 'Rascunho descartado' } })
+  await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+  await waitFor(() => expect(accept).toHaveFocus())
+  expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+  await userEvent.click(screen.getByRole('button', { name: 'Rejeitar' }))
+  expect(screen.getByLabelText('Motivo da rejeição')).toHaveValue('')
+  expect(fetchMock.mock.calls.filter(([, options]) => options?.method === 'POST')).toHaveLength(0)
+})
+
+test('changing report discards the previous decision, validation error and comment', async () => {
+  const other = { ...report, id: admin.id, title: 'Outro relato sintético' }
+  fetchMock.mockImplementation(async url => String(url).endsWith('/auth/me')
+    ? Response.json({ ...user, role: 'ADMIN' }) : String(url).endsWith('/image')
+      ? new Response('photo', { headers: { 'Content-Type': 'image/png' } })
+      : Response.json({ report: String(url).endsWith(other.id) ? other : report, history: [] }))
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ accessToken: 'synthetic-session', expiresAt: new Date(Date.now() + 1800000).toISOString() }))
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  render(<QueryClientProvider client={client}><AuthProvider><MemoryRouter initialEntries={[`/administracao/relatos/${report.id}`]}>
+    <Link to={`/administracao/relatos/${other.id}`}>Trocar de relato</Link><App />
+  </MemoryRouter></AuthProvider></QueryClientProvider>)
+  await userEvent.click(await screen.findByRole('button', { name: 'Aceitar' }))
+  fireEvent.change(screen.getByLabelText('Comentário de encaminhamento'), { target: { value: 'curto' } })
+  await userEvent.click(screen.getByRole('button', { name: 'Confirmar aceitação' }))
+  expect(screen.getByText('Informe um comentário de 10 a 500 caracteres.')).toBeVisible()
+  await userEvent.click(screen.getByRole('link', { name: 'Trocar de relato' }))
+  await screen.findByRole('heading', { name: other.title })
+  expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+  await userEvent.click(screen.getByRole('button', { name: 'Rejeitar' }))
+  expect(screen.getByLabelText('Motivo da rejeição')).toHaveValue('')
+  expect(screen.queryByText('Informe um comentário de 10 a 500 caracteres.')).not.toBeInTheDocument()
+  expect(fetchMock.mock.calls.filter(([, options]) => options?.method === 'POST')).toHaveLength(0)
 })
 
 test.each(['/administracao/contas', '/administracao/relatos'])('revoked session at %s removes all private cache', async path => {
