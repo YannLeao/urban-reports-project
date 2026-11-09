@@ -270,9 +270,10 @@ seletor exclusivo; [contrato e roteiro](../occurrence-video.md).
 
 ## Revisão de relatos próximos
 
-`SimilarOccurrencesPanel` apresenta carregamento, sugestões textuais sem mídia,
-vazio, falha, autorização negada e consulta não executada. Usa botões existentes,
-status textual, lista com quebra de linhas e links de detalhe em nova aba com aviso.
+`SimilarOccurrencesPanel` apresenta carregamento, aviso booleano de correspondência,
+vazio, falha, autorização negada e consulta não executada. Usa botões existentes
+e status textual, sem lista ou links de terceiros. O contrato contém apenas
+`hasSimilar`, para cadastro de USER e ADMIN.
 Foco inicial no painel ao abrir/reabrir, sem novo foco por chegada de resposta.
 `SimilarOccurrencesReview` conecta o hook autenticado; o catálogo usa o painel
 puro com fixture sintética, sem request. [Contrato e roteiro](../similar-occurrences.md).
@@ -282,7 +283,7 @@ puro com fixture sintética, sem request. [Contrato e roteiro](../similar-occurr
 [Wizard](../report-wizard.md) usa progresso compacto “X de 4 · Nome”, barra e navegação
 de retorno por botões sem semântica de tabs, título focável e hidden/inert para
 etapas inativas. Ações finais de semelhantes usam enviar/salvar conforme modo,
-com retry manual. Controle de localização com Icon location dentro do mapa usa
+com envio explícito após falha auxiliar; reabrir revisão consulta novamente. Controle de localização com Icon location dentro do mapa usa
 alvo mínimo de 44×44, nome/tooltip e estado busy; clique não confirma pino.
 
 ## Filtros de consultas

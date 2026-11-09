@@ -280,3 +280,18 @@ Conferir header nas rotas `/esqueci-minha-senha` e `/redefinir-senha`, link rece
 compartilhar link válido como evidência. Backend deve estar publicado e com
 `RECOVERY_FRONTEND_ORIGIN=https://project-piec-4.vercel.app` configurada primeiro.
 [Limites, roteiro manual e homologação](password-recovery-integration.md).
+
+## Resposta mínima na consulta de semelhantes
+
+Na correção de privacidade da #65, publicar backend antes do frontend: o endpoint
+passa a retornar exclusivamente `{hasSimilar:boolean}`. Frontend antigo recusa o
+novo formato como consulta indisponível e permite envio explícito; o frontend
+novo também recusa o contrato antigo, sem tratá-lo como resultado vazio. Publicar
+somente o frontend não elimina a exposição HTTP. Não há migration nova para esse
+contrato nem para a conversão de leitura do histórico legado da #66.
+
+Seguir a [ordem, janelas entre versões e verificações de publicação](similar-occurrences.md#publicação-coordenada-pelo-mantenedor).
+Verificar SHA efetivamente servido e corpo HTTP completo com conta de teste, além
+do health; a chamada bem-sucedida ao hook não comprova boot/deploy concluído.
+A correção da ação de rejeição #67 usa a API atual. Publicação e fechamento dos
+cards permanecem manuais, após revisão e homologação.

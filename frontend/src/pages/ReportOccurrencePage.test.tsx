@@ -34,7 +34,7 @@ beforeEach(() => {
   HTMLDialogElement.prototype.close = function () { this.removeAttribute('open') }
   sessionStorage.clear()
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ accessToken: 'synthetic-token', expiresAt: new Date(Date.now() + 1800000).toISOString() }))
-  similarFetch.mockReset().mockImplementation(() => Promise.resolve(Response.json({ radiusMeters: 100, limit: 5, items: [] })))
+  similarFetch.mockReset().mockImplementation(() => Promise.resolve(Response.json({ hasSimilar: false })))
   fetchMock.mockReset().mockResolvedValueOnce(Response.json(person)).mockResolvedValueOnce(Response.json([{ id: 1, name: 'Iluminação pública' }]))
   vi.stubGlobal('fetch', withEmptyNotifications((url, options) => String(url).endsWith('/occurrences/similar')
     ? similarFetch(url, options) : fetchMock(url, options)))
@@ -163,7 +163,7 @@ test('1001 Unicode points stay on information without lookup or upload',async()=
   expect(similarFetch).not.toHaveBeenCalled()
 })
 test('review lookup uses exact criteria once and preserves draft without exposing similar reports',async()=>{
-  await fill();similarFetch.mockResolvedValueOnce(Response.json({radiusMeters:100,limit:5,items:[candidate]}));reviewForm()
+  await fill();similarFetch.mockResolvedValueOnce(Response.json({hasSimilar:true}));reviewForm()
   await screen.findByText(/Encontramos relatos próximos da mesma categoria/)
   expect(fetchMock).toHaveBeenCalledTimes(2)
   expect(JSON.parse(similarFetch.mock.calls[0][1]?.body as string)).toEqual({categoryId:1,latitude:-23.55052,longitude:-46.633308})
@@ -193,15 +193,15 @@ test('leaving review cancels slow lookup; altered criteria invalidate old respon
   expect(signal?.aborted).toBe(true)
   // Clearing category invalidates the context and prevents reopening revision.
   fireEvent.change(screen.getByLabelText('Categoria'),{target:{value:''}});reviewForm()
-  await act(async()=>resolve(Response.json({radiusMeters:100,limit:5,items:[candidate]})))
+  await act(async()=>resolve(Response.json({hasSimilar:true})))
   expect(screen.queryByText(candidate.title)).not.toBeInTheDocument()
   expect(fetchMock).toHaveBeenCalledTimes(2)
   view.unmount();expect(view.client.getQueryCache().findAll({queryKey:['private']})).toHaveLength(0)
 })
-test.each(['network','503','schema'])('auxiliary %s is distinct from empty and allows explicit bypass',async failure=>{
+test.each(['network','503','schema','legacy'])('auxiliary %s is distinct from empty and allows explicit bypass',async failure=>{
   await fill()
   if(failure==='network')similarFetch.mockRejectedValueOnce(new TypeError('secret'))
-  else similarFetch.mockResolvedValueOnce(Response.json(failure==='schema'?{}:{code:'UNAVAILABLE'},{status:failure==='503'?503:200}))
+  else similarFetch.mockResolvedValueOnce(Response.json(failure==='legacy'?{radiusMeters:100,limit:5,items:[candidate]}:failure==='schema'?{}:{code:'UNAVAILABLE'},{status:failure==='503'?503:200}))
   reviewForm();await screen.findByText('Não foi possível consultar relatos semelhantes')
   expect(screen.queryByText('Não encontramos relatos semelhantes nesta consulta')).not.toBeInTheDocument()
   expect(fetchMock).toHaveBeenCalledTimes(2)

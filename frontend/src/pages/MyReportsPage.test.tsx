@@ -26,7 +26,7 @@ beforeEach(() => {
   vi.spyOn(window, 'confirm').mockReturnValue(true)
   sessionStorage.clear()
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ accessToken: 'synthetic-token', expiresAt: new Date(Date.now() + 1800000).toISOString() }))
-  similarFetch.mockReset().mockImplementation(() => Promise.resolve(Response.json({ radiusMeters: 100, limit: 5, items: [] })))
+  similarFetch.mockReset().mockImplementation(() => Promise.resolve(Response.json({ hasSimilar: false })))
   fetchMock.mockReset().mockResolvedValueOnce(Response.json(person))
   vi.stubGlobal('IntersectionObserver', class { observe() {} disconnect() {} })
   vi.stubGlobal('fetch', withEmptyNotifications((url, options) => String(url).endsWith('/occurrences/similar')
@@ -133,7 +133,7 @@ test.each(['ACCEPTED', 'RESOLVED', 'REJECTED'])('author reads %s history without
 function mockFlow(initial: Occurrence = { ...report, status: 'PENDING' }) {
   let current = { ...initial }
   let removed = false
-  similarFetch.mockReset().mockImplementation(() => Promise.resolve(Response.json({ radiusMeters: 100, limit: 5, items: [] })))
+  similarFetch.mockReset().mockImplementation(() => Promise.resolve(Response.json({ hasSimilar: false })))
   fetchMock.mockReset().mockImplementation(async (url, options) => {
     const path = String(url)
     if (path.endsWith('/api/auth/me')) return Response.json(person)

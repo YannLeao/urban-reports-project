@@ -51,7 +51,7 @@ test.each([['admins', false, 1], ['moderation', true, 1], ['moderation', false, 
   expect(request).toHaveBeenCalledTimes(count)
 })
 test('similar lookup never starts an interval', async () => {
-  request.mockImplementation(async () => Response.json({ items: [], radiusMeters: 100, limit: 5 }))
+  request.mockImplementation(async () => Response.json({ hasSimilar: false }))
   render(<QueryClientProvider client={client}><Similar /></QueryClientProvider>); await tick(); await tick(600_000)
   expect(request).toHaveBeenCalledTimes(1)
 })

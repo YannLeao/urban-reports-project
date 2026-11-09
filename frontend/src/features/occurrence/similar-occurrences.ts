@@ -1,17 +1,10 @@
 import { z } from 'zod'
-import { categoryIdSchema } from './category'
 import type { useAuth } from '../auth/auth'
 
 export type SimilarCriteria = { categoryId: number; latitude: number; longitude: number; excludeOccurrenceId?: string }
 export const similarOccurrencesSchema = z.strictObject({
-  radiusMeters: z.literal(100), limit: z.literal(5),
-  items: z.array(z.strictObject({
-    id: z.uuid(), categoryId: categoryIdSchema, categoryName: z.string().min(1),
-    title: z.string().min(1), neighborhood: z.string(), reference: z.string(),
-    status: z.enum(['PENDING', 'ACCEPTED']), createdAt: z.iso.datetime({ offset: true }),
-    distanceMeters: z.number().finite().min(0).max(100),
-  })).max(5),
-}).refine(value => new Set(value.items.map(item => item.id)).size === value.items.length)
+  hasSimilar: z.boolean(),
+})
 export type SimilarResult = z.infer<typeof similarOccurrencesSchema>
 
 // AuthProvider returns at response headers. Keep body consumption cancelable too.
@@ -55,7 +48,6 @@ export async function querySimilar(request: ReturnType<typeof useAuth>['request'
       const response = await request('/api/occurrences/similar', 'POST', controller.signal,
         JSON.stringify(criteria), { 'Content-Type': 'application/json' })
       const result = similarOccurrencesSchema.parse(await readSimilarJson(response, controller.signal))
-      if (result.items.some(item => item.categoryId !== criteria.categoryId || item.id === criteria.excludeOccurrenceId)) throw new Error('Consulta inválida')
       return result
     })()])
   } finally {
