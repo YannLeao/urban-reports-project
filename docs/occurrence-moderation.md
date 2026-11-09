@@ -28,7 +28,10 @@ vazia. Renderizar texto sem interpretar HTML.
 V7 introduziu estados/histórico; V8 acrescenta identidade administrativa. V16
 converte ocorrências `IN_ANALYSIS` existentes para `ACCEPTED` sem alterar o
 histórico append-only; eventos históricos legados continuam legíveis e são
-rotulados como Aceita.
+rotulados como Aceita. `OccurrenceHistoryStatusConverter`, aplicado somente
+aos dois campos de estado do histórico, traduz IN_ANALYSIS antes de converter
+para o enum atual no detalhe do dono. A projeção administrativa aplica a mesma
+regra; leituras não reescrevem eventos ou comentários legados.
 Conferir numeração de futuras migrations antes de integrar trabalho concorrente.
 Migrations aplicadas permanecem intactas e Hibernate em validate. V7 amplia o
 CHECK de estados, preserva os dados e não fabrica histórico retroativo.

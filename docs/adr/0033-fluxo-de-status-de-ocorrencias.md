@@ -20,7 +20,9 @@ ACCEPTED, pois ambos exigem ação do administrador.
 
 A branch atual usa a migration V16 porque V15 já é
 `V15__password_recovery_tokens.sql` na base vigente. A migration converte
-ocorrências existentes para `ACCEPTED` sem reescrever o histórico append-only.
+ocorrências existentes para `ACCEPTED` sem reescrever o histórico append-only. Um conversor de leitura específico dos
+campos do histórico normaliza IN_ANALYSIS antes da conversão para o enum no
+detalhe do dono; o contrato atual continua sem esse estado legado.
 
 ## Consequências
 
