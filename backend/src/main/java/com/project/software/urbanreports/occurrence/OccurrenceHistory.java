@@ -11,9 +11,9 @@ import org.hibernate.annotations.Immutable;
 public class OccurrenceHistory {
     @Id private UUID id;
     @Column(name = "occurrence_id", nullable = false) private UUID occurrenceId;
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = OccurrenceHistoryStatusConverter.class)
     @Column(name = "previous_status", nullable = false, length = 32) private OccurrenceStatus previousStatus;
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = OccurrenceHistoryStatusConverter.class)
     @Column(name = "new_status", nullable = false, length = 32) private OccurrenceStatus newStatus;
     @Column(name = "moderator_id", nullable = false) private UUID moderatorId;
     @Column(name = "occurred_at", nullable = false) private Instant occurredAt;

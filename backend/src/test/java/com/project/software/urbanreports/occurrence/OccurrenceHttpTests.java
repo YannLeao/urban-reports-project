@@ -89,6 +89,50 @@ class OccurrenceHttpTests {
         return mapper.readTree(response.body()).get("accessToken").asString();
     }
 
+    @Test void bothModerationPathsPersistForAdminAndOwnerAfterFreshHttpReads() throws Exception {
+        String moderator = generalReadAdminToken(); // A separate active ADMIN, never the author.
+        for (boolean reject : List.of(false, true)) {
+            var created = upload(valid(), token);
+            assertThat(created.statusCode()).isEqualTo(201);
+            String id = mapper.readTree(created.body()).get("id").asString();
+            String path = "/api/admin/occurrences/" + id + "/transitions";
+            String target = reject ? "REJECTED" : "ACCEPTED";
+            String comment = reject ? "Justificativa sintética de rejeição" : "Encaminhamento sintético válido";
+            var invalid = send(HttpRequest.newBuilder(uri(path)).header("Authorization", "Bearer " + moderator)
+                    .header("Content-Type", "application/json").header("If-Match", "\"0\"")
+                    .POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(Map.of("target", target)))));
+            assertThat(invalid.statusCode()).isEqualTo(400);
+            var decided = send(HttpRequest.newBuilder(uri(path)).header("Authorization", "Bearer " + moderator)
+                    .header("Content-Type", "application/json").header("If-Match", "\"0\"")
+                    .POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(Map.of("target", target, "reason", comment)))));
+            assertThat(decided.statusCode()).as(decided.body()).isEqualTo(200);
+            if (!reject) {
+                var forbidden = send(HttpRequest.newBuilder(uri(path)).header("Authorization", "Bearer " + moderator)
+                        .header("Content-Type", "application/json").header("If-Match", "\"1\"")
+                        .POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(Map.of("target", "REJECTED", "reason", comment)))));
+                assertThat(forbidden.statusCode()).isEqualTo(409);
+                var resolved = send(HttpRequest.newBuilder(uri(path)).header("Authorization", "Bearer " + moderator)
+                        .header("Content-Type", "application/json").header("If-Match", "\"1\"")
+                        .POST(HttpRequest.BodyPublishers.ofString("{\"target\":\"RESOLVED\",\"reason\":null}")));
+                assertThat(resolved.statusCode()).as(resolved.body()).isEqualTo(200);
+            }
+            for (boolean administrative : List.of(false, true)) {
+                var response = action("/api/" + (administrative ? "admin/" : "") + "occurrences/" + id,
+                        "GET", administrative ? moderator : token, null);
+                assertThat(response.statusCode()).isEqualTo(200);
+                var payload = mapper.readTree(response.body());
+                var detail = administrative ? payload.get("report") : payload;
+                assertThat(detail.get("status").asString()).isEqualTo(reject ? "REJECTED" : "RESOLVED");
+                assertThat(payload.get("history").size()).isEqualTo(reject ? 1 : 2);
+                assertThat(payload.get("history").get(0).get("newStatus").asString()).isEqualTo(target);
+                assertThat(payload.get("history").get(0).get("reason").asString()).isEqualTo(comment);
+                if (!reject) assertThat(payload.get("history").get(1).get("reason").isNull()).isTrue();
+            }
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM occurrence_history WHERE occurrence_id=?::uuid", Long.class, id))
+                    .isEqualTo(reject ? 1 : 2);
+        }
+    }
+
     @Test void locationContractRejectsInvalidPairsBeforeUpload() throws Exception {
         var absent = valid(); absent.removeIf(part -> List.of("latitude", "longitude").contains(part.name()));
         reject(absent, 400);

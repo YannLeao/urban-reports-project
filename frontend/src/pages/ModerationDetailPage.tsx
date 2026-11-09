@@ -18,15 +18,19 @@ import { PrivateRequestError } from '../lib/api'
 
 const actionLabels = { ACCEPTED: 'Aceitar', RESOLVED: 'Resolver', REJECTED: 'Rejeitar', PENDING: 'Pendente' } as const
 export function ModerationDetailPage() {
+  const { id = '' } = useParams()
+  return <ModerationDetail key={id} id={id} />
+}
+
+function ModerationDetail({ id }: { id: string }) {
   const location = useLocation()
   const from: unknown = location.state?.from
   const back = administrativeReturn(from)
-  const { id = '' } = useParams()
   const { state, request } = useAuth()
   const client = useQueryClient()
   const query = useAdministrativeQuery('moderation', id, `/api/admin/occurrences/${id}`, moderationDetailSchema)
   const report = query.data?.report
-  const [rejecting, setRejecting] = useState(false)
+  const [decision, setDecision] = useState<'ACCEPTED' | 'REJECTED' | null>(null)
   const [reason, setReason] = useState('')
   const [reasonError, setReasonError] = useState('')
   const [pending, setPending] = useState(false)
@@ -35,10 +39,10 @@ export function ModerationDetailPage() {
   const busy = useRef(false)
   const controller = useRef<AbortController | null>(null)
   const reasonField = useRef<HTMLTextAreaElement>(null)
-  const rejectionTrigger = useRef<HTMLButtonElement>(null)
+  const decisionTrigger = useRef<HTMLButtonElement | null>(null)
   const summary = useRef<HTMLDivElement>(null)
   useEffect(() => () => controller.current?.abort(), [])
-  useEffect(() => { if (rejecting) reasonField.current?.focus() }, [rejecting])
+  useEffect(() => { if (decision) reasonField.current?.focus() }, [decision])
   useEffect(() => { if (message) summary.current?.focus() }, [message])
   async function transition(target: Occurrence['status']) {
     if (busy.current || !report || state.status !== 'authenticated') return
@@ -50,7 +54,7 @@ export function ModerationDetailPage() {
       const response = await request(`/api/admin/occurrences/${report.id}/transitions`, 'POST', abort.signal, JSON.stringify(command.data), { 'Content-Type': 'application/json', 'If-Match': `"${report.version}"` })
       moderationDetailSchema.parse(await response.json())
       if (abort.signal.aborted) return
-      setRejecting(false); setReason(''); setFailed(false); setMessage('Estado atualizado.')
+      setDecision(null); setReason(''); setFailed(false); setMessage('Estado atualizado.')
       await client.invalidateQueries({ queryKey: ['private', state.user.id, 'moderation'] })
       await client.invalidateQueries({ queryKey: ['private', state.user.id, 'occurrence-report'] })
       await client.invalidateQueries({ queryKey: ['private', state.user.id, 'occurrences'] })
@@ -61,6 +65,7 @@ export function ModerationDetailPage() {
       if (abort.signal.aborted) return
       setFailed(true)
       const conflict = error instanceof PrivateRequestError && [409, 412, 428].includes(error.status)
+      if (conflict) { setDecision(null); setReason(''); setReasonError('') }
       setMessage(conflict ? 'Este relato mudou. Os dados foram recarregados; confira o estado antes de continuar.'
         : 'Não foi possível confirmar a mudança. Consulte o relato antes de tentar novamente.')
       await query.refetch()
@@ -79,12 +84,13 @@ export function ModerationDetailPage() {
       <div className="min-w-0 self-start rounded-card border border-border-subtle bg-surface-raised p-4 sm:p-6"><h2 className="text-title">Acompanhar e decidir</h2>
       {moderationActions[report.status].length === 0 ? <p className="mt-6">Relato finalizado. Não há novas ações disponíveis.</p> : <div className="mt-6 flex flex-wrap gap-3">
         {moderationActions[report.status].map(target => target === 'REJECTED' || target === 'ACCEPTED'
-          ? <Button key={target} ref={target === 'REJECTED' ? rejectionTrigger : undefined} variant="secondary" disabled={pending || rejecting} onClick={() => { setRejecting(true); setReasonError('') }}>{actionLabels[target]}</Button>
-          : <Button key={target} disabled={pending || rejecting} onClick={() => { void transition(target) }}>{actionLabels[target]}</Button>)}
+          ? <Button key={target} variant="secondary" disabled={pending || decision !== null} onClick={event => { decisionTrigger.current = event.currentTarget; setDecision(target); setReason(''); setReasonError('') }}>{actionLabels[target]}</Button>
+          : <Button key={target} disabled={pending || decision !== null} onClick={() => { void transition(target) }}>{actionLabels[target]}</Button>)}
       </div>}
-      {rejecting && <form className="mt-6 grid gap-4" onSubmit={event => { event.preventDefault(); void transition(report.status === 'PENDING' ? 'ACCEPTED' : 'REJECTED') }} noValidate>
-        <Textarea ref={reasonField} label={report.status === 'PENDING' ? 'Comentário de encaminhamento' : 'Motivo da rejeição'} required disabled={pending} value={reason} onChange={event => setReason(event.target.value)} error={reasonError} description={`O autor verá este comentário. Use de 10 a 500 caracteres. ${Array.from(cleanOccurrenceText(reason)).length}/500 caracteres.`} rows={5} />
-        <div className="flex flex-wrap gap-3"><Button type="submit" loading={pending}>{report.status === 'PENDING' ? 'Confirmar aceitação' : 'Confirmar rejeição'}</Button><Button variant="secondary" disabled={pending} onClick={() => { setRejecting(false); rejectionTrigger.current?.focus() }}>Cancelar</Button></div>
+      {decision && <form className="mt-6 grid gap-4" onSubmit={event => { event.preventDefault(); void transition(decision) }} noValidate>
+        <h3 className="text-title">{decision === 'ACCEPTED' ? 'Aceitar relato' : 'Rejeitar relato'}</h3>
+        <Textarea ref={reasonField} label={decision === 'ACCEPTED' ? 'Comentário de encaminhamento' : 'Motivo da rejeição'} required disabled={pending} value={reason} onChange={event => setReason(event.target.value)} error={reasonError} description={`O autor verá este comentário. Use de 10 a 500 caracteres. ${Array.from(cleanOccurrenceText(reason)).length}/500 caracteres.`} rows={5} />
+        <div className="flex flex-wrap gap-3"><Button type="submit" loading={pending}>{decision === 'ACCEPTED' ? 'Confirmar aceitação' : 'Confirmar rejeição'}</Button><Button variant="secondary" disabled={pending} onClick={() => { setDecision(null); setReason(''); setReasonError(''); requestAnimationFrame(() => decisionTrigger.current?.focus()) }}>Cancelar</Button></div>
       </form>}
       <section className="mt-8" aria-label="Histórico de moderação"><h2>Histórico de moderação</h2>
         {query.data!.history.length === 0 ? <p>Nenhuma mudança de estado registrada.</p> : <ol className="grid gap-5 pl-6">{query.data!.history.map(event => <li key={event.id}>

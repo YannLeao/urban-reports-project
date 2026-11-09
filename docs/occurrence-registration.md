@@ -184,7 +184,8 @@ O DTO agora inclui `media` ordenado com IDs/metadados/endpoint; capa é posiçã
 
 O formulário de cadastro/edição oferece revisão informativa antes da gravação.
 `POST /api/occurrences/similar` é consulta JSON de USER ou ADMIN ativo, sem upload,
-com 100 m/mesma categoria/ativos/até cinco e exclusão própria na edição.
+com 100 m/mesma categoria/ativos e exclusão própria na edição. A resposta
+contém somente `hasSimilar` booleano, sem lista ou dados dos candidatos.
 Contrato, minimização, falhas, integração futura e roteiro em
 [sugestões de relatos próximos](similar-occurrences.md).
 

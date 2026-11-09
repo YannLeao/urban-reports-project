@@ -58,11 +58,9 @@ export default function DesignSystemPage() {
         <p>Busy mantém o foco; a ação real impede clique repetido, cancela ao sair e preserva o painel se falhar.</p>
       </Card>
       <Card><h2>Sugestões de relatos próximos</h2>
-        <p>Revisão informativa antes do envio: até cinco ativos da mesma categoria em 100 m, sem mídia ou autoria. Exemplo estático sem consulta; ações abaixo são demonstrativas.</p>
+        <p>Revisão informativa antes do envio: existência de relatos ativos da mesma categoria em 100 m, sem lista ou dados de terceiros. Exemplo estático sem consulta; ações abaixo são demonstrativas.</p>
         <SimilarOccurrencesPanel visible wizard busy={false} status="candidates" onReview={() => {}} onConfirm={() => {}}
-          result={{ radiusMeters: 100, limit: 5, items: [{ id: '00000000-0000-4000-8000-000000000002', categoryId: 2,
-            categoryName: 'Buraco ou pavimentação', title: 'Buraco na esquina (exemplo)', neighborhood: 'Centro', reference: 'Praça de exemplo',
-            status: 'PENDING', createdAt: '2026-10-20T12:00:00Z', distanceMeters: 32.4 }] }} />
+          result={{ hasSimilar: true }} />
       </Card>
       <Card><h2>Fotos ou vídeo</h2>
         <p>Uma a cinco fotos ou um vídeo MP4. Troca de tipo exige confirmação; seleção local sem upload.</p>

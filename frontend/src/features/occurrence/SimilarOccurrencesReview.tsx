@@ -17,7 +17,7 @@ export function SimilarOccurrencesReview({ criteria, visible, busy, onReview, on
   }, [criteria, data, isError, refetch, visible])
   const authError = query.error instanceof PrivateRequestError ? query.error.status : null
   const status = !criteria ? 'not-executed' : query.isFetching || query.isPending ? 'loading' : authError === 403 ? 'forbidden'
-    : authError === 401 ? 'unauthorized' : isError ? 'unavailable' : data?.items.length ? 'candidates' : 'empty'
+    : authError === 401 ? 'unauthorized' : isError ? 'unavailable' : data?.hasSimilar ? 'candidates' : 'empty'
   return <SimilarOccurrencesPanel status={status} result={data} visible={visible} busy={busy}
     onReview={onReview} onConfirm={onConfirm} editing={editing} wizard={wizard} />
 }
@@ -38,10 +38,10 @@ export function SimilarOccurrencesPanel({ status, result, visible, busy, onRevie
         : loading ? <p>Consultando relatos próximos…</p>
         : forbidden ? <p>{status === 'forbidden' ? 'Sua conta não tem acesso à consulta de relatos semelhantes.' : 'Sua sessão terminou. Entre novamente.'}</p>
         : status === 'unavailable' ? <p>Não foi possível consultar relatos semelhantes</p>
-        : status === 'candidates' ? <p>Encontramos relatos próximos da mesma categoria. Algum deles já representa este problema?</p>
+        : status === 'candidates' ? <p>Encontramos relatos próximos da mesma categoria.</p>
         : <p>Não encontramos relatos semelhantes nesta consulta</p>}
     </div>
-    {status === 'candidates' && result && result.items.length > 0 &&
+    {status === 'candidates' && result?.hasSimilar &&
       <p className="text-small text-text-secondary">Há relatos próximos da mesma categoria. Por privacidade, os detalhes dos relatos não são exibidos aqui.</p>}
     <div className="mt-4 flex flex-wrap gap-3">
       <Button type="button" variant="secondary" disabled={busy} onClick={onReview}>Revisar meu relato</Button>

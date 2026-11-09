@@ -1,17 +1,11 @@
 import { expect, test, vi } from 'vitest'
 import { querySimilar, similarOccurrencesSchema } from './similar-occurrences'
 
-const item = { id: 'c50062d3-9ac2-4e70-86fa-eac5249f4d0c', categoryId: 1, categoryName: 'Iluminação pública',
-  title: 'Poste apagado', neighborhood: 'Centro', reference: 'Praça central', status: 'PENDING',
-  createdAt: '2026-10-19T12:00:00Z', distanceMeters: 32.4 }
-const result = { radiusMeters: 100, limit: 5, items: [item] }
-test('dedicated contract rejects non-public, incomplete, nonfinite or excessive data', () => {
-  expect(similarOccurrencesSchema.parse(result)).toEqual(result)
-  for (const invalid of [
-    { ...result, radiusMeters: 99 }, { ...result, limit: 6 }, { ...result, items: Array(6).fill(item) },
-    ...[{ status: 'RESOLVED' }, { distanceMeters: Infinity }, { distanceMeters: NaN }, { distanceMeters: -1 },
-      { distanceMeters: 100.001 }, { createdAt: 'yesterday' }, { id: 'invalid' }, { latitude: 0 }, { authorId: item.id }, { media: [] },
-    ].map(patch => ({ ...result, items: [{ ...item, ...patch }] })),
+test('accepts only a boolean indicator and rejects legacy or expanded responses', () => {
+  for (const hasSimilar of [true, false]) expect(similarOccurrencesSchema.parse({ hasSimilar })).toEqual({ hasSimilar })
+  for (const invalid of [null, {}, { hasSimilar: 'true' }, { hasSimilar: 1 },
+    { radiusMeters: 100, limit: 5, items: [] }, { hasSimilar: true, items: [] },
+    { hasSimilar: true, count: 1 }, { hasSimilar: false, id: 'foreign-id' },
   ]) expect(similarOccurrencesSchema.safeParse(invalid).success).toBe(false)
 })
 test('timeout is bounded at 10s and aborts a stalled request', async () => {

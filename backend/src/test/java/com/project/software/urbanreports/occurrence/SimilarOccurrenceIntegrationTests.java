@@ -41,55 +41,56 @@ class SimilarOccurrenceIntegrationTests {
 
     @BeforeEach void cleanDisposableReports() { jdbc.execute("DELETE FROM occurrences"); }
 
-    @Test void geographyEligibilityOrderingExclusionAndPublicRevalidation() throws Exception {
-        var owner = account(); var other = account(); String token = login(owner.email());
-        var own = report(owner.id(), 1, 0., 0.);
-        var analysis = report(other.id(), 1, 0., 0.);
-        jdbc.update("UPDATE occurrences SET status='ACCEPTED' WHERE id=?", analysis.getId());
-        var rejected = report(owner.id(), 1, 0., 0.);
-        jdbc.update("UPDATE occurrences SET status='REJECTED' WHERE id=?", rejected.getId());
-        var resolved = report(other.id(), 1, 0., 0.);
-        jdbc.update("UPDATE occurrences SET status='RESOLVED' WHERE id=?", resolved.getId());
-        report(other.id(), 2, 0., 0.); report(other.id(), 1, null, null);
-        double edge = Math.toDegrees(100 / SimilarOccurrenceService.EARTH_RADIUS_METERS);
-        var boundary = report(other.id(), 1, edge, 0.);
-        var outside = report(other.id(), 1, Math.toDegrees(100.000001 / SimilarOccurrenceService.EARTH_RADIUS_METERS), 0.);
-        var inside = report(other.id(), 1, -edge * .999999, 0.);
-        var result = search(token, ZERO);
-        assertThat(result.get("items").size()).isEqualTo(4);
-        assertThat(result.toString()).contains(own.getId().toString(), analysis.getId().toString(), boundary.getId().toString(), inside.getId().toString())
-                .doesNotContain(rejected.getId().toString(), resolved.getId().toString(), outside.getId().toString(), owner.id().toString(), other.id().toString(),
-                        "author", "version", "latitude", "longitude", "description", "media", "image", "history", "bucket", "key");
-        assertThat(result.get("items").get(0).get("distanceMeters").asDouble()).isZero();
-        assertThat(result.get("items").get(3).get("distanceMeters").asDouble()).isLessThanOrEqualTo(100);
-        for (int i=0; i<7; i++) report(other.id(), 1, 0., 0.);
-        jdbc.update("UPDATE occurrences SET created_at = ? WHERE status='PENDING'", java.sql.Timestamp.from(Instant.parse("2026-01-01T00:00:00Z")));
-        var excluded = search(token, "{\"categoryId\":1,\"latitude\":0,\"longitude\":0,\"excludeOccurrenceId\":\"" + own.getId() + "\"}");
-        var expected = jdbc.queryForList("SELECT id::text FROM occurrences WHERE category_id=1 AND status IN ('PENDING','ACCEPTED') AND latitude=0 AND longitude=0 AND id<>? ORDER BY created_at DESC,id DESC LIMIT 5", String.class, own.getId());
-        var ids = new ArrayList<String>(); excluded.get("items").forEach(item -> ids.add(item.get("id").asString()));
-        assertThat(ids).containsExactlyElementsOf(expected);
-        assertThat(search(token, "{\"categoryId\":2,\"latitude\":30,\"longitude\":40,\"excludeOccurrenceId\":\"" + own.getId() + "\"}").get("items").size()).isZero();
-        for (var id : List.of(other.id(), UUID.randomUUID(), analysis.getId())) {
-            mvc.perform(post(ENDPOINT).header("Authorization", "Bearer " + token).contentType("application/json")
-                .content("{\"categoryId\":1,\"latitude\":0,\"longitude\":0,\"excludeOccurrenceId\":\""+id+"\"}"))
-                .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("OCCURRENCE_NOT_FOUND")).andExpect(header().string("Cache-Control", "no-store"));
+    @Test void onlyExistenceIsExposedAndEditingExcludesOnlyOwnedReports() throws Exception {
+        var owner = account(); var other = account(); String token = login(other.email());
+        var candidate = report(owner.id(), 1, 0., 0.);
+        assertThat(search(token, ZERO)).isTrue();
+        mvc.perform(get("/api/occurrences/{id}", candidate.getId()).header("Authorization", "Bearer " + token))
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("OCCURRENCE_NOT_FOUND"));
+        assertThat(search(token, "{\"categoryId\":2,\"latitude\":0,\"longitude\":0}")).isFalse();
+        for (String role : List.of("USER", "ADMIN")) {
+            jdbc.update("UPDATE user_accounts SET role=? WHERE id=?", role, other.id());
+            assertThat(search(token, ZERO)).isTrue();
         }
-        jdbc.update("UPDATE occurrences SET status='REJECTED' WHERE id=?", analysis.getId());
-        mvc.perform(get("/api/public/occurrences/{id}", analysis.getId())).andExpect(status().isUnauthorized());
-        mvc.perform(get("/api/public/occurrences/{id}/image", analysis.getId())).andExpect(status().isUnauthorized());
-        mvc.perform(delete("/api/occurrences/{id}", own.getId()).header("Authorization", "Bearer "+token).header("If-Match", "\"0\""))
-                .andExpect(status().isNoContent());
-        mvc.perform(get("/api/public/occurrences/{id}", own.getId())).andExpect(status().isUnauthorized());
+        String ownerToken = login(owner.email());
+        String exclusion = "{\"categoryId\":1,\"latitude\":0,\"longitude\":0,\"excludeOccurrenceId\":\"" + candidate.getId() + "\"}";
+        assertThat(search(ownerToken, exclusion)).isFalse();
+        report(other.id(), 1, 0., 0.);
+        assertThat(search(ownerToken, exclusion)).isTrue();
+        for (var id : List.of(owner.id(), UUID.randomUUID(), candidate.getId())) {
+            mvc.perform(post(ENDPOINT).header("Authorization", "Bearer " + token).contentType("application/json")
+                    .content("{\"categoryId\":1,\"latitude\":0,\"longitude\":0,\"excludeOccurrenceId\":\"" + id + "\"}"))
+                    .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("OCCURRENCE_NOT_FOUND"));
+        }
+    }
+
+    @Test void geographyAndOpenStateEligibilityKeepInclusiveRadiusWithoutRounding() throws Exception {
+        var user = account(); String token = login(user.email());
+        report(user.id(), 2, 0., 0.); report(user.id(), 1, null, null);
+        var rejected = report(user.id(), 1, 0., 0.);
+        var resolved = report(user.id(), 1, 0., 0.);
+        jdbc.update("UPDATE occurrences SET status='REJECTED' WHERE id=?", rejected.getId());
+        jdbc.update("UPDATE occurrences SET status='RESOLVED' WHERE id=?", resolved.getId());
+        report(user.id(), 1, Math.toDegrees(100.000001 / SimilarOccurrenceService.EARTH_RADIUS_METERS), 0.);
+        assertThat(search(token, ZERO)).isFalse();
+        var boundary = report(user.id(), 1, Math.toDegrees(100 / SimilarOccurrenceService.EARTH_RADIUS_METERS), 0.);
+        assertThat(search(token, ZERO)).isTrue();
+        jdbc.update("UPDATE occurrences SET status='ACCEPTED' WHERE id=?", boundary.getId());
+        assertThat(search(token, ZERO)).isTrue();
+        jdbc.update("UPDATE occurrences SET status='RESOLVED' WHERE id=?", boundary.getId());
+        assertThat(search(token, ZERO)).isFalse();
+        report(user.id(), 1, Math.toDegrees(-99.999999 / SimilarOccurrenceService.EARTH_RADIUS_METERS), 0.);
+        assertThat(search(token, ZERO)).isTrue();
     }
 
     @Test void polesAntimeridianSignsAndAxes() throws Exception {
         var user=account(); String token=login(user.email());
         report(user.id(),1,90.,180.); report(user.id(),1,90.,-60.);
-        assertThat(search(token,"{\"categoryId\":1,\"latitude\":90,\"longitude\":0}").get("items").size()).isEqualTo(2);
+        assertThat(search(token,"{\"categoryId\":1,\"latitude\":90,\"longitude\":0}")).isTrue();
         report(user.id(),2,0.,-179.9999);
-        assertThat(search(token,"{\"categoryId\":2,\"latitude\":0,\"longitude\":179.9999}").get("items").size()).isEqualTo(1);
+        assertThat(search(token,"{\"categoryId\":2,\"latitude\":0,\"longitude\":179.9999}")).isTrue();
         report(user.id(),3,-8.336,-36.424); report(user.id(),3,8.336,36.424);
-        assertThat(search(token,"{\"categoryId\":3,\"latitude\":-8.336,\"longitude\":-36.424}").get("items").size()).isEqualTo(1);
+        assertThat(search(token,"{\"categoryId\":3,\"latitude\":-8.336,\"longitude\":-36.424}")).isTrue();
         search(token,"{\"categoryId\":8,\"latitude\":-90,\"longitude\":-180}");
     }
 
@@ -175,10 +176,13 @@ class SimilarOccurrenceIntegrationTests {
         java.nio.file.Files.write(java.nio.file.Path.of("target/similar-query-plan.txt"),plan);
         assertThat(plan).anyMatch(line -> line.contains("Execution Time"));
     }
-    tools.jackson.databind.JsonNode search(String token,String body) throws Exception {
-        return mapper.readTree(mvc.perform(post(ENDPOINT).header("Authorization","Bearer "+token).contentType("application/json").content(body))
-                .andExpect(status().isOk()).andExpect(header().string("Cache-Control","no-store"))
-                .andExpect(jsonPath("$.radiusMeters").value(100)).andExpect(jsonPath("$.limit").value(5)).andReturn().getResponse().getContentAsString());
+    boolean search(String token, String body) throws Exception {
+        String response = mvc.perform(post(ENDPOINT).header("Authorization", "Bearer " + token).contentType("application/json").content(body))
+                .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
+                .andReturn().getResponse().getContentAsString();
+        // Assert the complete HTTP body: no candidate list, identifiers, metadata or count.
+        assertThat(response).isIn("{\"hasSimilar\":true}", "{\"hasSimilar\":false}");
+        return mapper.readTree(response).get("hasSimilar").asBoolean();
     }
     RegistrationResponse account() { return registration.register(new RegistrationRequest("Pessoa teste",UUID.randomUUID()+"@example.com",PASSWORD)); }
     String login(String email) throws Exception {

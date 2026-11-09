@@ -28,7 +28,10 @@ vazia. Renderizar texto sem interpretar HTML.
 V7 introduziu estados/histórico; V8 acrescenta identidade administrativa. V16
 converte ocorrências `IN_ANALYSIS` existentes para `ACCEPTED` sem alterar o
 histórico append-only; eventos históricos legados continuam legíveis e são
-rotulados como Aceita.
+rotulados como Aceita. `OccurrenceHistoryStatusConverter`, aplicado somente
+aos dois campos de estado do histórico, traduz IN_ANALYSIS antes de converter
+para o enum atual no detalhe do dono. A projeção administrativa aplica a mesma
+regra; leituras não reescrevem eventos ou comentários legados.
 Conferir numeração de futuras migrations antes de integrar trabalho concorrente.
 Migrations aplicadas permanecem intactas e Hibernate em validate. V7 amplia o
 CHECK de estados, preserva os dados e não fabrica histórico retroativo.
@@ -74,7 +77,8 @@ ADMIN pendente/desativado e anônimo não moderam.
   e ETag da versão resultante, somente após commit.
 
 JSON limitado a 8192 bytes; extras/tipos coercíveis são recusados. Ausência/null
-de reason é válida fora de rejeição; qualquer string é recusada. Erros seguem
+de reason é válida somente na resolução; aceitação/rejeição exigem comentário.
+Na resolução, qualquer string, inclusive vazia, é recusada. Erros seguem
 ApiErrorResponse: 400 validação, 428 sem If-Match, 412 versão divergente,
 409 transição incompatível, 404 ocorrência ausente, 401/403 conforme sessão/papel.
 A versão é verificada antes de estado para um comando de moderação válido.
@@ -149,3 +153,20 @@ manual devem ser registrados na MR/issue, sem inferir deploy pelo código.
 Consulte [contrato, URL, cache e roteiro dos filtros](occurrence-filters.md).
 Listas e mapas aceitam os mesmos critérios; a administração mantém QUEUE padrão
 e oferece ALL para consultar finalizados, preservando autorização e transições.
+
+## Decisão selecionada no frontend
+
+O detalhe administrativo mantém o alvo escolhido (ACCEPTED/REJECTED) até a
+confirmação; título, campo e payload seguem essa ação, independentemente do
+estado de origem. Cancelar ou navegar para outro relato descarta alvo, comentário
+e erro. Aceitar/Rejeitar validam 10–500 pontos de código e enviam If-Match original;
+Resolver envia RESOLVED com reason null. Conflito recarrega dados e descarta a
+decisão anterior, exigindo nova escolha. O formulário bloqueia ações concorrentes.
+
+`LegacyOccurrenceHistoryHttpTests` inicia PostgreSQL em V15 com relatos aceitos,
+resolvidos e rejeitados e histórico IN_ANALYSIS, aplica V16 no boot e verifica GET
+com sessões reais do dono e de outro ADMIN, ordenação por data/versão e igualdade
+das linhas persistidas. `OccurrenceHttpTests` complementa os dois caminhos novos
+por servidor HTTP real, incluindo comentário obrigatório, transição inválida e
+leitura posterior por ADMIN e dono. Testes frontend usam fetch controlado e não
+comprovam persistência ou publicação por si sós.

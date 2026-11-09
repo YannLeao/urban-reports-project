@@ -20,12 +20,7 @@ it('does not expose identifying details from nearby reports', () => {
     status="candidates"
     visible
     busy={false}
-    result={{ radiusMeters: 100, limit: 5, items: [{
-      id: '3e85aa3d-19e3-42a3-8861-c435ff5908af', categoryId: 1,
-      categoryName: 'Iluminação pública', title: 'Poste apagado na praça',
-      neighborhood: 'Centro', reference: 'Praça central', status: 'PENDING',
-      createdAt: '2026-09-28T12:00:00Z', distanceMeters: 10,
-    }] }}
+    result={{ hasSimilar: true }}
     onReview={vi.fn()}
     onConfirm={vi.fn()}
   />)
