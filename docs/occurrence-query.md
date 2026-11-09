@@ -3,12 +3,13 @@
 O detalhe privado inclui o [histórico de moderação](occurrence-moderation.md),
 com identificação funcional do responsável e justificativa de rejeição.
 Os estados suportados são PENDING, ACCEPTED, RESOLVED e REJECTED; somente
-PENDING permite edição/exclusão. Rejeitados ficam fora das três superfícies
-públicas (lista, detalhe e foto), mantendo acesso privado do autor.
+PENDING permite edição/exclusão. A consulta pública inclui somente ACCEPTED e
+RESOLVED em lista, mapa, detalhe e mídia. PENDING/REJECTED mantêm acesso
+privado do autor.
 
 ## Contrato HTTP
 
-Todas as rotas exigem Bearer com sessão válida. GET /api/occurrences retorna
+As rotas privadas descritas nesta seção exigem Bearer com sessão válida. GET /api/occurrences retorna
 somente relatos do autor autenticado, em createdAt DESC, id DESC, sem paginação.
 GET /api/occurrences/{id} retorna apenas o próprio relato; alheio e inexistente
 retornam o mesmo 404 OCCURRENCE_NOT_FOUND. Parâmetros de autoria são ignorados.
@@ -88,8 +89,8 @@ AdminProvisioningIntegrationTests complementa com fluxo legítimo, autorização
 concorrência, transições e rollback no commit do comando administrativo.
 Testes frontend usam páginas reais, Query/AuthProvider e fetch controlado.
 
-A consulta geral usa `/api/public/occurrences`, inclusive detalhe e foto, exige
-ADMIN e omite rejeitados. O cidadão usa `/api/occurrences`, limitado à autoria;
+A consulta geral usa `/api/public/occurrences`, inclusive detalhe e foto, sem
+exigir login; publica somente ACCEPTED/RESOLVED conforme o [ADR 0034](adr/0034-publicar-ocorrencias-aceitas-e-resolvidas.md). O cidadão usa `/api/occurrences`, limitado à autoria;
 o comando administrativo invalida seus caches no frontend.
 Ambiente publicado, aparelho físico e aceite integral #23 requerem evidências
 próprias na MR/issue.

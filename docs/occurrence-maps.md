@@ -1,8 +1,8 @@
 # Mapas nas consultas e nos detalhes
 
 A #44 complementa a [localização confirmada da #43](occurrence-location.md).
-O mapa geral não é público: as rotas e links de consulta foram removidos do
-percurso de visitantes e cidadãos. A API de ocorrências gerais exige ADMIN;
+O mapa geral é público para visitantes e cidadãos e publica somente relatos
+ACCEPTED/RESOLVED, conforme o [ADR 0034](adr/0034-publicar-ocorrencias-aceitas-e-resolvidas.md);
 `/meus-relatos?visao=mapa` permanece restrito ao autor.
 “Minha localização” oferece uma consulta opcional, somente após ação explícita. Em
 `/meus-relatos?visao=mapa`, a sessão determina o universo próprio. Os detalhes
@@ -12,7 +12,7 @@ isso continua restrito ao formulário autorizado de Pendente.
 
 ## Contrato completo de marcadores
 
-`GET /api/public/occurrences/markers` (ADMIN) e `GET /api/occurrences/markers`
+`GET /api/public/occurrences/markers` (sem login) e `GET /api/occurrences/markers`
 (autor autenticado) retornam:
 
 ```json
@@ -23,7 +23,7 @@ isso continua restrito ao formulário autorizado de Pendente.
       "categoryId": 1,
       "categoryName": "Iluminação pública",
       "title": "Poste apagado na praça",
-      "status": "PENDING",
+      "status": "ACCEPTED",
       "latitude": -23.550520123456,
       "longitude": -46.633308987654
     }
@@ -50,8 +50,8 @@ instrução PostgreSQL, sem joins com histórico que multipliquem ocorrências.
 Cada nova requisição pode observar inserções, exclusões ou moderação posteriores;
 não existe snapshot durável entre respostas/lista/detalhe.
 
-A consulta geral usa exatamente `status <> REJECTED`, como lista/detalhe/foto; contagens
-não incluem rejeitados. O privado filtra `author_id` extraído da sessão revogável,
+A consulta geral usa exatamente `status IN (ACCEPTED, RESOLVED)`, como lista,
+detalhe e mídia; contagens não incluem pendentes nem rejeitados. O privado filtra `author_id` extraído da sessão revogável,
 incluindo os quatro estados do autor. `userId` de query não concede acesso.
 Respostas usam `Cache-Control: no-store`; a resposta geral não contém vínculo do autor,
 e-mail, versão, storage ou auditoria. Não há mudança na precisão pública:
@@ -224,12 +224,12 @@ placeholders em produção. Na raiz, iniciar só o banco: `docker compose up -d 
 Em backend/, com JAVA_HOME21 e configuração local:
 `./mvnw spring-boot:run -Dspring-boot.run.profiles=dev`.
 Em frontend/: `pnpm install --frozen-lockfile` e `pnpm run dev`.
-URLs administrativas usuais: http://localhost:5173/ocorrencias?visao=mapa e
+URLs de consulta usuais: http://localhost:5173/ocorrencias?visao=mapa e
 http://localhost:5173/meus-relatos?visao=mapa. Autenticar apenas para o universo
-próprio; a consulta geral exige sessão ADMIN. GPS só é solicitado pelo controle
+próprio; a consulta geral dispensa sessão. GPS só é solicitado pelo controle
 “Minha localização”; testar aceitar, recusar e indisponibilidade.
 
-1. Abrir a consulta geral como ADMIN e recarregar direto na URL do mapa. Conferir aviso de
+1. Abrir a consulta geral sem login e recarregar direto na URL do mapa. Conferir aviso de
    relatos sem ponto, mapa vazio em Belo Jardim (-8.336, -36.424), zoom 14,
    atribuição, categorias diferentes e seleção com resumo/link seguro ao detalhe.
 2. Abrir detalhe e voltar: preservar modo, página/viewport e seleção. Conferir
@@ -243,8 +243,8 @@ próprio; a consulta geral exige sessão ADMIN. GPS só é solicitado pelo contr
    Falhar refresh da API: pontos anteriores persistem com aviso; recuperar e
    atualizar. Não automatizar pan/zoom para baixar tiles OSM.
 6. Com duas contas reais de teste, conferir mapa próprio isolado, logout e nova
-   sessão. Como ADMIN, rejeitar um ponto e atualizar público: ele deixa de aparecer
-   e não integra totais. Detalhe público antigo retorna indisponível sem autenticação
+   sessão. Como ADMIN, aceitar um ponto pendente e atualizar público: ele passa a aparecer
+   e integra totais. Detalhe de pendente/rejeitado retorna indisponível sem autenticação
    fictícia; autor ainda pode consultar o rejeitado.
 7. Verificar Tab/Enter, setas/+/- e saída do mapa, largura360px, desktop e zoom200%,
    atribuição visível, rotas diretas/reload, Chrome e Firefox quando disponíveis.

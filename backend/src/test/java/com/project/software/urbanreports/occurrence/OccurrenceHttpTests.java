@@ -154,6 +154,7 @@ class OccurrenceHttpTests {
             var created = upload(parts, token);
             assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
             var id = mapper.readTree(created.body()).get("id").asString();
+            jdbc.update("UPDATE occurrences SET status='ACCEPTED' WHERE id=?", UUID.fromString(id));
             for (String path : List.of("/api/occurrences/" + id, "/api/public/occurrences/" + id)) {
                 var response = action(path, "GET", path.startsWith("/api/public/") ? adminToken : token, null);
                 assertThat(response.statusCode()).as(response.body()).isEqualTo(200);
@@ -181,11 +182,13 @@ class OccurrenceHttpTests {
         assertThat(jdbc.queryForObject("SELECT longitude FROM occurrences WHERE id = ?", Double.class, id)).isEqualTo(123.123456789);
         // Model an existing pre-V9 row, without synthesizing any geographic point.
         jdbc.update("UPDATE occurrences SET latitude = NULL, longitude = NULL WHERE id = ?", id);
+        jdbc.update("UPDATE occurrences SET status='ACCEPTED' WHERE id=?", id);
         for (String read : List.of(path, "/api/public/occurrences/" + id)) {
             var legacy = mapper.readTree(action(read, "GET", read.startsWith("/api/public/") ? adminToken : token, null).body());
             assertThat(legacy.get("latitude").isNull()).isTrue();
             assertThat(legacy.get("longitude").isNull()).isTrue();
         }
+        jdbc.update("UPDATE occurrences SET status='PENDING' WHERE id=?", id);
         var legacyEdit = multipart(path, "PUT", omitted, token, "\"2\"");
         assertThat(legacyEdit.statusCode()).isEqualTo(200);
         assertThat(mapper.readTree(legacyEdit.body()).get("latitude").isNull()).isTrue();
@@ -642,6 +645,7 @@ class OccurrenceHttpTests {
         String adminToken = generalReadAdminToken();
         var created = upload(photos(5), token); var ids = mediaIds(created.body());
         String id = mapper.readTree(created.body()).get("id").asString();
+        jdbc.update("UPDATE occurrences SET status='ACCEPTED' WHERE id=?", UUID.fromString(id));
         String privatePath = "/api/occurrences/" + id, publicPath = "/api/public/occurrences/" + id;
         var otherReport = upload(photos(1), token);
         String otherId = mapper.readTree(otherReport.body()).get("id").asString();
@@ -708,7 +712,12 @@ class OccurrenceHttpTests {
     @Autowired jakarta.persistence.EntityManagerFactory entityManagers;
     @Test void pagedListsCountReportsOnceAndBatchFiveMediaWithoutDownloadingBytes() throws Exception {
         when(clock.instant()).thenReturn(NOW.plusSeconds(1));
-        for (int i = 0; i < 3; i++) assertThat(upload(photos(5), token).statusCode()).isEqualTo(201);
+        for (int i = 0; i < 3; i++) {
+            var created = upload(photos(5), token);
+            assertThat(created.statusCode()).isEqualTo(201);
+            UUID published = UUID.fromString(mapper.readTree(created.body()).get("id").asString());
+            jdbc.update("UPDATE occurrences SET status='ACCEPTED' WHERE id=?", published);
+        }
         var stats = entityManagers.unwrap(org.hibernate.SessionFactory.class).getStatistics();
         stats.setStatisticsEnabled(true); stats.clear();
         try {
@@ -716,7 +725,7 @@ class OccurrenceHttpTests {
             var page = publicReports.list(0, 2);
             assertThat(page.items()).hasSize(2);
             assertThat(page.items()).allSatisfy(item -> assertThat(item.media()).hasSize(5));
-            assertThat(page.totalItems()).isEqualTo(jdbc.queryForObject("select count(*) from occurrences where status <> 'REJECTED'", Long.class));
+            assertThat(page.totalItems()).isEqualTo(jdbc.queryForObject("select count(*) from occurrences where status IN ('ACCEPTED', 'RESOLVED')", Long.class));
             assertThat(stats.getPrepareStatementCount()).isLessThanOrEqualTo(4);
             assertThat(stats.getCollectionFetchCount()).isLessThanOrEqualTo(1);
             assertThat(storage.calls).hasValue(puts);
@@ -746,6 +755,43 @@ class OccurrenceHttpTests {
         if (credential != null) request.header("Authorization", "Bearer " + credential);
         return client.send(request.build(), HttpResponse.BodyHandlers.ofByteArray());
     }
+    @Test void anonymousConsultationPublishesOnlyAcceptedAndResolvedAcrossEveryReadSurface() throws Exception {
+        for (var parts : List.of(photos(2), videoParts())) {
+            var created = upload(parts, token);
+            assertThat(created.statusCode()).isEqualTo(201);
+            var body = mapper.readTree(created.body());
+            UUID id = UUID.fromString(body.get("id").asString());
+            String mediaId = body.get("media").get(0).get("id").asString();
+            String base = "/api/public/occurrences/" + id;
+            for (String state : List.of("PENDING", "ACCEPTED", "RESOLVED", "REJECTED")) {
+                jdbc.update("UPDATE occurrences SET status=? WHERE id=?", state, id);
+                boolean published = List.of("ACCEPTED", "RESOLVED").contains(state);
+                assertThat(action(base, "GET", null, null).statusCode()).isEqualTo(published ? 200 : 404);
+                var list = mapper.readTree(action("/api/public/occurrences?size=50", "GET", null, null).body());
+                var listed = new ArrayList<String>(); list.get("items").forEach(item -> listed.add(item.get("id").asString()));
+                assertThat(listed.contains(id.toString())).isEqualTo(published);
+                var markers = mapper.readTree(action("/api/public/occurrences/markers", "GET", null, null).body());
+                var located = new ArrayList<String>(); markers.get("items").forEach(item -> located.add(item.get("id").asString()));
+                assertThat(located.contains(id.toString())).isEqualTo(published);
+                int heads = storage.heads, gets = storage.streamGets;
+                for (String method : List.of("GET", "HEAD")) {
+                    var response = videoRead(base + "/media/" + mediaId, method, "bytes=0-3", null, null);
+                    boolean video = body.get("media").get(0).get("type").asString().equals("VIDEO");
+                    assertThat(response.statusCode()).isEqualTo(published ? (method.equals("GET") && video ? 206 : 200) : 404);
+                }
+                if (!published) {
+                    assertThat(action(base + "/image", "GET", null, null).statusCode()).isEqualTo(404);
+                    assertThat(storage.heads).isEqualTo(heads);
+                    assertThat(storage.streamGets).isEqualTo(gets);
+                } else if (body.get("media").get(0).get("type").asString().equals("IMAGE")) {
+                    assertThat(action(base + "/image", "GET", null, null).statusCode()).isEqualTo(200);
+                }
+            }
+        }
+        for (String path : List.of("/api/public/occurrences", "/api/public/occurrences/markers")) {
+            for (String state : List.of("PENDING", "REJECTED")) assertThat(action(path + "?status=" + state, "GET", null, null).statusCode()).isEqualTo(400);
+        }
+    }
     @Test void videoRoundTripsBytesRangesHeadAuthorizationAndRejectionWithoutDatabaseDuringStorage() throws Exception {
         String adminToken = generalReadAdminToken();
         var created = upload(videoParts(), token);
@@ -754,6 +800,7 @@ class OccurrenceHttpTests {
         var media = body.get("media").get(0);
         assertThat(media.get("type").asString()).isEqualTo("VIDEO");
         assertThat(media.get("durationSeconds").asDouble()).isEqualTo(1);
+        jdbc.update("UPDATE occurrences SET status='ACCEPTED' WHERE id=?", UUID.fromString(id));
         String publicPath = "/api/public/occurrences/" + id + "/media/" + media.get("id").asString();
         byte[] bytes = VideoValidatorTests.fixture("h264-aac");
         int calls = storage.streamGets;
@@ -822,6 +869,7 @@ class OccurrenceHttpTests {
         String adminToken = generalReadAdminToken();
         var response=upload(photos(2),token);assertThat(response.statusCode()).isEqualTo(201);
         var report=mapper.readTree(response.body());String id=report.get("id").asString(),media=report.get("media").get(0).get("id").asString();
+        jdbc.update("UPDATE occurrences SET status='ACCEPTED' WHERE id=?", UUID.fromString(id));
         int heads=storage.heads,gets=storage.streamGets;
         for(String prefix:List.of("/api/occurrences/","/api/public/occurrences/")) {
             var head=videoRead(prefix+id+"/media/"+media,"HEAD","bytes=0-1",prefix.contains("/public/") ? adminToken : token,null);

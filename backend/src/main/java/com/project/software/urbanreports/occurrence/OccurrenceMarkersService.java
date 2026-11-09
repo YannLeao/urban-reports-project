@@ -18,7 +18,9 @@ class OccurrenceMarkersService {
         // One statement: metadata and points share PostgreSQL's statement snapshot.
         // Select only map fields; no entities, images, identity, version or history.
         var args = new java.util.ArrayList<Object>();
-        String predicate = authorId == null ? "o.status IN (?, ?, ?)" : "o.author_id = ?";
+        String predicate = authorId == null
+                ? "o.status IN (" + String.join(", ", java.util.Collections.nCopies(OccurrenceFilters.PUBLIC_STATES.size(), "?")) + ")"
+                : "o.author_id = ?";
         if (authorId == null) OccurrenceFilters.PUBLIC_STATES.forEach(state -> args.add(state.name()));
         else args.add(authorId);
         if (filters.categoryId() != null) { predicate += " AND o.category_id = ?"; args.add(filters.categoryId()); }

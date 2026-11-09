@@ -76,6 +76,8 @@ class OccurrenceMarkersIntegrationTests {
         assertThat(owned).contains(rejected.getId().toString()).doesNotContain(resolved.getId().toString(), analysis.getId().toString());
         mvc.perform(get("/api/occurrences/markers").header("Authorization", "Bearer " + otherToken))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(2)).andExpect(jsonPath("$.located").value(2));
+        // Model the editable author fixture separately from the published read fixture.
+        jdbc.update("UPDATE occurrences SET status='PENDING' WHERE id=?", zero.getId());
         mvc.perform(delete("/api/occurrences/{id}", zero.getId()).header("Authorization", "Bearer " + firstToken).header("If-Match", "\"0\""))
                 .andExpect(status().isNoContent());
         mvc.perform(get("/api/public/occurrences/markers").header("Authorization", "Bearer " + adminToken)).andExpect(status().isOk())
@@ -98,6 +100,8 @@ class OccurrenceMarkersIntegrationTests {
         var report = new Occurrence(author, categories.findById(category).orElseThrow(), "Relato para mapa", null,
                 "Centro", "Praça central", "occurrences/" + UUID.randomUUID() + ".png", Instant.now());
         report.locate(point);
-        return reports.saveAndFlush(report);
+        reports.saveAndFlush(report);
+        jdbc.update("UPDATE occurrences SET status='ACCEPTED' WHERE id=?", report.getId());
+        return report;
     }
 }

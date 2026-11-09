@@ -40,7 +40,7 @@ public class PublicOccurrenceService {
 
     @Transactional(readOnly = true)
     public PublicOccurrenceResponse find(UUID id) {
-        return occurrences.findByIdAndStatusNot(id, OccurrenceStatus.REJECTED).map(PublicOccurrenceResponse::from)
+        return occurrences.findByIdAndStatusIn(id, OccurrenceFilters.PUBLIC_STATES).map(PublicOccurrenceResponse::from)
                 .orElseThrow(() -> new OccurrenceNotFoundException(id));
     }
 
@@ -48,7 +48,7 @@ public class PublicOccurrenceService {
     public StoredImageContent image(UUID id) { return media(id, null); }
     @Transactional(readOnly = true)
     public StoredImageContent media(UUID id, UUID mediaId) {
-        var report = occurrences.findByIdAndStatusNot(id, OccurrenceStatus.REJECTED)
+        var report = occurrences.findByIdAndStatusIn(id, OccurrenceFilters.PUBLIC_STATES)
                 .orElseThrow(() -> new OccurrenceNotFoundException(id));
         String key = mediaId == null ? report.getImageKey() : report.mediaKey(mediaId);
         return images.loadOccurrence(key);
