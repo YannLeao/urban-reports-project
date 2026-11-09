@@ -13,48 +13,43 @@ export function OccurrenceVideo(props: Props) {
   const { state, request } = useAuth()
   const media = props.report.media?.[0]
   const owner = state.status === 'authenticated' ? state.user.id : 'anonymous'
-  return media?.type === 'VIDEO' ? <Player key={`${owner}/${props.report.id}/${media.id}/${props.publicView}/${props.administrative}`} {...props} request={request} /> : null
+  const version = 'version' in props.report ? props.report.version : props.report.createdAt
+  return media?.type === 'VIDEO' ? <Player key={`${owner}/${props.report.id}/${version}/${media.id}/${props.publicView}/${props.administrative}`} {...props} request={request} /> : null
 }
 function Player({ report, publicView, administrative, request }: Props & { request: ReturnType<typeof useAuth>['request'] }) {
   const media = report.media![0]
+  const path = `/api/${publicView ? 'public/' : administrative ? 'admin/' : ''}occurrences/${report.id}/media/${media.id}`
   const [src, setSrc] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useState(true)
   const [error, setError] = useState(false)
-  const download = useRef<AbortController | null>(null)
-  const objectUrl = useRef<string | null>(null)
+  const [attempt, setAttempt] = useState(0)
   const player = useRef<HTMLVideoElement>(null)
+  useEffect(() => {
+    const controller = new AbortController()
+    let objectUrl: string | null = null
+    // Defer until after StrictMode's effect replay, without starting two downloads.
+    void Promise.resolve().then(async () => {
+      if (controller.signal.aborted) return
+      setBusy(true); setError(false); setSrc(null)
+      try {
+        if (publicView) setSrc(`${getApiUrl()}${path}`)
+        else {
+          const response = await request(path, 'GET', controller.signal)
+          const blob = await readVideo(response, controller.signal)
+          if (controller.signal.aborted) return
+          objectUrl = URL.createObjectURL(blob); setSrc(objectUrl)
+        }
+      } catch { if (!controller.signal.aborted) { setError(true); setBusy(false) } }
+    })
+    return () => { controller.abort(); if (objectUrl) URL.revokeObjectURL(objectUrl) }
+  }, [path, publicView, request, attempt])
   useEffect(() => {
     const element = player.current
     return () => { if (element) { element.pause(); element.removeAttribute('src'); element.load() } }
   }, [src])
-  const path = `/api/${publicView ? 'public/' : administrative ? 'admin/' : ''}occurrences/${report.id}/media/${media.id}`
-  useEffect(() => {
-    return () => {
-      download.current?.abort()
-      if (objectUrl.current) URL.revokeObjectURL(objectUrl.current)
-    }
-  }, [])
-  async function load() {
-    if (download.current) return
-    const controller = new AbortController(); download.current = controller
-    setBusy(true); setError(false)
-    try {
-      if (publicView) setSrc(`${getApiUrl()}${path}`)
-      else {
-        const response = await request(path, 'GET', controller.signal)
-        const blob = await readVideo(response, controller.signal)
-        if (controller.signal.aborted) return
-        const url = URL.createObjectURL(blob); objectUrl.current = url; setSrc(url)
-      }
-    } catch { if (!controller.signal.aborted) setError(true) }
-    finally { if (!controller.signal.aborted) { setBusy(false); download.current = null } }
-  }
   return <section aria-label="Reproduzir vídeo do relato" className="my-4 grid min-w-0 gap-3">
-    {src ? <video ref={player} src={src} controls playsInline preload="none" className="max-h-[32rem] w-full rounded-card bg-surface-raised" aria-label={`Vídeo do problema: ${report.title}`} onError={() => {
-      setError(true); setSrc(null); if (objectUrl.current) { URL.revokeObjectURL(objectUrl.current); objectUrl.current = null }
-    }} /> : <VideoPlaceholder duration={media.type === 'VIDEO' ? media.durationSeconds : undefined} />}
-    {!publicView && <p className="text-small text-text-secondary">O vídeo carrega inteiro antes de tocar (até 25 MiB).</p>}
-    {error && <Alert tone="danger" role="alert">Não foi possível carregar o vídeo. Tente novamente; o relato pode ter mudado.</Alert>}
-    {!src && <Button disabled={busy} loading={busy} onClick={() => { void load() }}>{busy ? 'Carregando vídeo…' : error ? 'Tentar carregar novamente' : 'Carregar vídeo'}</Button>}
+    {src && !error ? <video ref={player} src={src} controls playsInline preload="metadata" className="max-h-[32rem] min-h-48 w-full rounded-card bg-surface-raised" aria-label={`Vídeo do problema: ${report.title}`} onLoadedMetadata={() => setBusy(false)} onCanPlay={() => setBusy(false)} onWaiting={() => setBusy(true)} onPlaying={() => setBusy(false)} onError={() => { setError(true); setBusy(false) }} /> : <VideoPlaceholder duration={media.type === 'VIDEO' ? media.durationSeconds : undefined} />}
+    {busy && !error && <p role="status" className="m-0 flex items-center gap-2 text-small text-text-secondary"><span aria-hidden="true" className="size-4 animate-spin rounded-pill border-2 border-border-subtle border-t-brand-default motion-reduce:animate-none" />Carregando vídeo…</p>}
+    {error && <><Alert tone="danger" role="alert">Não foi possível carregar o vídeo. Tente novamente; o relato pode ter mudado.</Alert><Button variant="secondary" onClick={() => setAttempt(value => value + 1)}>Tentar carregar novamente</Button></>}
   </section>
 }
