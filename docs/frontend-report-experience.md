@@ -52,7 +52,9 @@ não passa a carregar fotografias. URLs privadas são temporárias, em memória,
 com cancelamento e revogação no ciclo de vida existente.
 
 O detalhe próprio aproxima o último evento real do conteúdo, destaca a razão
-real de rejeição e mantém o histórico integral na ordem fornecida pela API.
+real de rejeição e mantém o histórico integral na ordem fornecida pela API,
+com trilha vertical compartilhada com a administração. A galeria própria/admin
+mostra todas as miniaturas e amplia a foto ativa sem outro download.
 Não cria evento inicial. Editar/excluir aparecem somente em PENDING; exclusão
 mantém diálogo identificando o relato, irreversibilidade, foco em Cancelar e
 retorno ao acionador. Mapa fica em expansão secundária, com coordenadas textuais;
@@ -65,7 +67,9 @@ sob demanda, com ordem e paginação da API. `?pagina=N` preserva a página no
 retorno do detalhe e em refresh. Não há novos filtros ou busca. Detalhe distribui
 evidência e decisões em colunas no desktop, mantendo ordem linear no mobile,
 foco/contador/erros de rejeição e aviso de que o autor verá a justificativa.
-Não há mapa administrativo.
+Não há mapa administrativo. Registrar ocorrência e Relatório administrativo
+ficam como ações distintas na fila; navegação primária ADMIN conserva Fila,
+Meus relatos e Conta, com notificações no cabeçalho.
 
 O relatório destaca somente total, média de resolução e proporção de rejeitadas.
 Definições, valor bruto em segundos e amostra ficam em expansão acessível;

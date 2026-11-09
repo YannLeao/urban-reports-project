@@ -3,11 +3,13 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../auth/auth'
 import type { Occurrence } from './occurrence'
 
-export function OccurrencePhoto({ report, full = false, administrative = false, thumbnail = false, flush = false, mediaId, active = true, onPreview, alt }: { report: Occurrence; full?: boolean; administrative?: boolean; thumbnail?: boolean; flush?: boolean; mediaId?: string; active?: boolean; onPreview?: (url: string | null) => void; alt?: string }) {
+export function OccurrencePhoto({ report, full = false, administrative = false, thumbnail = false, flush = false, mediaId, active = true, onPreview, alt, onLoadError }: { report: Occurrence; full?: boolean; administrative?: boolean; thumbnail?: boolean; flush?: boolean; mediaId?: string; active?: boolean; onPreview?: (url: string | null) => void; alt?: string; onLoadError?: () => void }) {
   if (report.media?.[0]?.type === 'VIDEO') return <VideoPlaceholder compact={thumbnail} flush={flush} duration={report.media[0].durationSeconds} />
-  return <Photo report={report} full={full} thumbnail={thumbnail} flush={flush} administrative={administrative} mediaId={mediaId} active={active} onPreview={onPreview} alt={alt} />
+  return <Photo report={report} full={full} thumbnail={thumbnail} flush={flush} administrative={administrative} mediaId={mediaId} active={active} onPreview={onPreview} alt={alt} onLoadError={onLoadError} />
 }
-function Photo({ report, full = false, administrative = false, thumbnail = false, flush = false, mediaId, active = true, onPreview, alt }: { report: Occurrence; full?: boolean; administrative?: boolean; thumbnail?: boolean; flush?: boolean; mediaId?: string; active?: boolean; onPreview?: (url: string | null) => void; alt?: string }) {
+function Photo({ report, full = false, administrative = false, thumbnail = false, flush = false, mediaId, active = true, onPreview, alt, onLoadError }: { report: Occurrence; full?: boolean; administrative?: boolean; thumbnail?: boolean; flush?: boolean; mediaId?: string; active?: boolean; onPreview?: (url: string | null) => void; alt?: string; onLoadError?: () => void }) {
+  const errorListener = useRef(onLoadError)
+  errorListener.current = onLoadError
   const listener = useRef(onPreview)
   listener.current = onPreview
   const objectUrl = useRef<string | null>(null)
@@ -43,11 +45,11 @@ function Photo({ report, full = false, administrative = false, thumbnail = false
       const url = URL.createObjectURL(blob)
       objectUrl.current = url; listener.current?.(url)
       setPhoto({ key, url }); setFailed(null)
-    })().catch(() => { if (!controller.signal.aborted) setFailed(key) })
+    })().catch(() => { if (!controller.signal.aborted) { setFailed(key); errorListener.current?.() } })
     return () => { controller.abort() }
   }, [owner, visible, key, report.id, request, administrative, mediaId, active])
   return <div ref={container} className={`flex items-center justify-center overflow-hidden bg-surface-raised ${thumbnail ? 'size-20 shrink-0 rounded-control' : flush ? 'aspect-[4/3] rounded-t-card' : 'my-4 aspect-[4/3] rounded-card'}`}>
-    {photo?.key === key ? <img className={full ? 'h-full w-full object-contain' : 'h-full w-full object-cover'} src={photo.url} alt={alt ?? `Foto do problema: ${report.title}`} />
+    {photo?.key === key ? <img className={full ? 'h-full w-full object-contain' : 'h-full w-full object-cover'} src={photo.url} alt={alt ?? `Foto do problema: ${report.title}`} onError={() => { setPhoto(null); setFailed(key); listener.current?.(null); errorListener.current?.() }} />
       : <p className={thumbnail ? 'p-1 text-center text-small text-text-secondary' : 'p-4 text-small text-text-secondary'} role="status">{failed === key ? thumbnail ? 'Foto não abriu' : 'Não foi possível carregar a foto.' : 'Carregando foto…'}</p>}
   </div>
 }

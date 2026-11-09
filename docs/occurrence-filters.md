@@ -6,7 +6,7 @@ valores permitidos. Não há busca textual, período, multisseleção ou ordena�
 
 | GET | Parâmetros novos | Universo e ordem |
 | --- | --- | --- |
-| `/api/public/occurrences` | `categoryId`, `status` | Público: PENDING/ACCEPTED/RESOLVED; createdAt DESC, id DESC |
+| `/api/public/occurrences` | `categoryId`, `status` | Público: ACCEPTED/RESOLVED; createdAt DESC, id DESC |
 | `/api/public/occurrences/markers` | `categoryId`, `status` | Mesmo público, conjunto completo |
 | `/api/occurrences` | `categoryId`, `status` | Autor da sessão, quatro estados, array completo; createdAt DESC, id DESC |
 | `/api/occurrences/markers` | `categoryId`, `status` | Mesmo autor, conjunto completo |
@@ -107,3 +107,7 @@ Nenhum índice ou migration é pressuposto necessário.
 7. Após revisão e aval explícito, publicar API compatível antes do frontend e
    homologar no ambiente publicado separadamente. Não há variáveis/secrets novos.
    Pipeline remoto, deploy e teste físico não são comprovados pelos checks locais.
+
+Na consulta pública, Aceitas/Resolvidas são botões com ícones e `aria-pressed`.
+Categorias têm atalhos com pinos canônicos e seletor completo. URL, mapa,
+paginação e limpeza preservam o mesmo contrato de filtros.

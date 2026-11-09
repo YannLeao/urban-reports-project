@@ -109,21 +109,22 @@ test('saved editor reuses completed previews for navigation and thumbnails witho
   expect(URL.revokeObjectURL).not.toHaveBeenCalled()
   view.unmount(); expect(URL.revokeObjectURL).toHaveBeenCalledWith(first)
 })
-test('private gallery downloads only selected photo, cancels stale requests and revokes URLs across account change', async () => {
+test('private detail loads its thumbnails once and revokes completed and pending resources across account change', async () => {
   let resolve!: (response: Response) => void
   request.mockImplementationOnce(() => new Promise<Response>(done => { resolve = done }))
     .mockImplementation(async () => new Response('synthetic', { headers: { 'Content-Type': 'image/png' } }))
   const view = render(<OccurrenceGallery report={report} />)
-  await waitFor(() => expect(request).toHaveBeenCalledTimes(1))
+  await waitFor(() => expect(request).toHaveBeenCalledTimes(3))
   const signal = request.mock.calls[0][2] as AbortSignal | undefined
-  await userEvent.click(screen.getByRole('button', { name: 'Próxima foto' }))
-  expect(signal?.aborted).toBe(true)
-  await screen.findByRole('img')
-  const url = screen.getByRole('img').getAttribute('src')
+  await userEvent.click(screen.getByRole('button', { name: 'Selecionar foto 2' }))
+  expect(signal?.aborted).toBe(false)
+  await screen.findByRole('img', { name: `Foto 2 do problema: ${report.title}` })
+  const url = screen.getByRole('img', { name: `Foto 2 do problema: ${report.title}` }).getAttribute('src')
   await act(async () => resolve(new Response('late', { headers: { 'Content-Type': 'image/png' } })))
-  expect(screen.getByRole('img')).toHaveAttribute('src', url)
+  expect(screen.getByRole('img', { name: `Foto 2 do problema: ${report.title}` })).toHaveAttribute('src', url)
   identity.user.id = 'other'; view.rerender(<OccurrenceGallery report={report} />)
   await waitFor(() => expect(URL.revokeObjectURL).toHaveBeenCalledWith(url))
+  expect(signal?.aborted).toBe(true)
   view.unmount()
 })
 test('public gallery selects application media endpoint and single photo has no navigation', async () => {
@@ -141,9 +142,9 @@ test('a failed private photo does not carry its error into the next selected pho
   let resolve!: (response: Response) => void
   request.mockRejectedValueOnce(new Error('synthetic failure')).mockImplementationOnce(() => new Promise<Response>(done => { resolve = done }))
   render(<OccurrenceGallery report={report} />)
-  await screen.findByText('Não foi possível carregar a foto.')
-  await userEvent.click(screen.getByRole('button', { name: 'Próxima foto' }))
-  expect(screen.getByText('Carregando foto…')).toBeVisible()
+  await screen.findByText('Não foi possível carregar a foto. Você pode escolher outra imagem.')
+  await userEvent.click(screen.getByRole('button', { name: 'Selecionar foto 2' }))
+  expect(screen.getAllByText('Carregando foto…').find(element => !element.closest('[hidden]'))!).toBeVisible()
   await act(async () => resolve(new Response('synthetic', { headers: { 'Content-Type': 'image/png' } })))
-  expect(screen.getByRole('img')).toBeVisible()
+  expect(screen.getByRole('img', { name: `Foto 2 do problema: ${report.title}` })).toBeVisible()
 })

@@ -131,12 +131,13 @@ HEAD e aquisição do GET precedem o prazo async. `abort()` evita drenagem do ob
 restante no cliente Apache. Os prazos async e de I/O do socket são independentes; timeout async não
 garante encerramento físico instantâneo, e limites do proxy dependem do ambiente.
 
-No detalhe privado, clique inicia fetch Bearer com AbortSignal e leitura limitada
+No detalhe privado, a montagem inicia automaticamente fetch Bearer com AbortSignal e leitura limitada
 em andamento; somente após receber tudo cria Blob/object URL. O vídeo inteiro
 carrega antes de tocar. Troca de conta/relato/mídia e desmontagem abortam leitura,
 limpam player e revogam URL. Não há cache persistente nem token em URL. Público
-aponta, após clique, ao endpoint da aplicação para Range nativo do navegador.
-Players usam controls/playsinline/preload=none, sem autoplay. Cards/mapas mostram
+aponta automaticamente ao endpoint da aplicação para Range nativo do navegador.
+Players usam controls/playsinline/preload=metadata, sem autoplay. Há indicador de
+carregamento até os metadados e durante espera; falha permite tentativa manual. Cards/mapas mostram
 placeholder com ícone/duração e não pedem MP4 ou `/image` para VIDEO.
 
 **Bytes originais são preservados, inclusive possíveis tags/localização.**
@@ -224,8 +225,9 @@ docker run --rm --network none --memory=512m --cpus=1 \
 Em ambiente local com contas sintéticas e storage controlado:
 
 1. Criar com vídeo. Esperar PENDING, VIDEO/duração/dimensões no DTO, placeholder
-   nos cards/mapa e nenhum download até clicar no detalhe. Testar próprio, ADMIN
-   ativo e público. Privado carrega inteiro, público permite seek por Range.
+   nos cards/mapa, sem download nessas prévias. Abrir detalhe e conferir preparação
+   automática, sem botão Carregar vídeo nem autoplay. Testar próprio, ADMIN
+   ativo e público após aceite. Privado carrega inteiro, público permite seek por Range.
 2. Criar 1 e 5 fotos; editar PENDING fotos → vídeo → fotos. Cancelar confirmação
    preserva seleção; falha/412 preserva rascunho e mídia salva; sucesso troca toda
    a coleção e agenda retiradas. Reordenação de fotos continua funcionando.
@@ -248,7 +250,7 @@ Em ambiente local com contas sintéticas e storage controlado:
    200 completo e 200 completo. Asserts de bytes exatos, ausência de transação e
    limites estão nos testes HTTP/fake; configuração não prova comportamento R2.
 5. Logout/troca de conta durante download removem vídeo anterior; outra conta
-   não lê mídia privada. Rejeitar relato bloqueia novos GET/HEAD/Range públicos.
+   não lê mídia privada. Pendente/rejeitado bloqueia novos GET/HEAD/Range públicos.
 6. Teclado/foco do diálogo, 360 px/desktop e zoom 200%; erro do player permite
    repetir. Registrar navegador e aparelho realmente utilizados. Chrome/Edge/
    Firefox desktop, Chrome Android e Safari iOS são a matriz de homologação;

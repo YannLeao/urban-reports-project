@@ -4,7 +4,7 @@ import { SimilarOccurrencesReview } from '../features/occurrence/SimilarOccurren
 import { queryReturn } from '../features/occurrence/map-navigation'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { VideoPlaceholder } from '../features/occurrence/VideoPlaceholder'
-import { OccurrencePhoto } from '../features/occurrence/OccurrencePhoto'
+import { ReviewPhotos } from '../features/occurrence/ReviewPhotos'
 import { LocationPicker } from '../features/location/LocationPicker'
 import type { GeographicPoint } from '../features/location/point'
 import { z } from 'zod'
@@ -290,13 +290,7 @@ export function ReportOccurrencePage({ existing: initialExisting }: { existing?:
               {cleanOccurrenceText(description) && <p className="whitespace-pre-wrap">{description}</p>}
               <p>{neighborhood} · {reference}</p><p>{location ? 'Local confirmado no mapa.' : 'Relato legado sem ponto confirmado.'}</p>
               <p>{mode === 'VIDEO' ? 'Um vídeo' : `${photos.length} ${photos.length === 1 ? 'foto' : 'fotos'} · primeira foto como capa`}</p>
-              {mode === 'VIDEO' ? <VideoPlaceholder /> : <div className="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-3">
-                {photos.map((photo, index) => <div key={photo.key} className="min-w-0 overflow-hidden rounded-control border border-border-subtle [&>div]:my-0 [&>div]:aspect-square">
-                  {previews[photo.key] ? <img src={previews[photo.key]} alt={`Foto ${index + 1} de ${photos.length} do relato em revisão${index === 0 ? ' (capa)' : ''}`} className="aspect-square h-full w-full object-contain" />
-                    : photo.file ? <p className="p-3 text-small text-text-secondary">Prévia indisponível.</p>
-                    : existing ? <OccurrencePhoto report={existing} mediaId={photo.id} full active alt={`Foto ${index + 1} de ${photos.length} do relato em revisão${index === 0 ? ' (capa)' : ''}`} /> : null}
-                </div>)}
-              </div>}
+              {mode === 'VIDEO' ? <VideoPlaceholder /> : <ReviewPhotos photos={photos} previews={previews} existing={existing} active={step === 4} disabled={pending} />}
               <div className="flex flex-wrap gap-2">
                 <Button variant="quiet" disabled={pending} onClick={() => go(1)}>Editar mídia</Button>
                 <Button variant="quiet" disabled={pending} onClick={() => go(2)}>Editar local</Button>

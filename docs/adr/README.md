@@ -65,3 +65,5 @@ um novo ADR que substitui o anterior.
 
 - [0032 — Restringir consultas gerais de ocorrências](0032-restringir-consultas-gerais-de-ocorrencias.md)
 - [0033 — Adotar fluxo explícito de status de ocorrências](0033-fluxo-de-status-de-ocorrencias.md)
+
+- [0034 — Publicar ocorrências aceitas e resolvidas](0034-publicar-ocorrencias-aceitas-e-resolvidas.md)

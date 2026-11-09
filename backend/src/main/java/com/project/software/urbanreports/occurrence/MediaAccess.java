@@ -16,7 +16,7 @@ public class MediaAccess {
     @Transactional(readOnly = true)
     public Reference authorize(AuthenticatedIdentity actor, String surface, UUID id, UUID mediaId) {
         Occurrence report;
-        if (surface.equals("public")) report = reports.findByIdAndStatusNot(id, OccurrenceStatus.REJECTED)
+        if (surface.equals("public")) report = reports.findByIdAndStatusIn(id, OccurrenceFilters.PUBLIC_STATES)
             .orElseThrow(() -> new OccurrenceNotFoundException(id));
         else if (surface.equals("admin")) {
             access.check(actor, AccountRole.ADMIN);

@@ -49,11 +49,11 @@ class OccurrenceFiltersIntegrationTests {
         jdbc.update("INSERT INTO occurrence_media(id,occurrence_id,object_key,kind,position) SELECT gen_random_uuid(), id, 'occurrences/' || gen_random_uuid() || '.png','IMAGE',0 FROM occurrences");
         });
         mvc.perform(publicGet("/api/public/occurrences", adminToken)).andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalItems").value(3072)).andExpect(jsonPath("$.items.length()").value(20));
+                .andExpect(jsonPath("$.totalItems").value(2048)).andExpect(jsonPath("$.items.length()").value(20));
         for (int category = 1; category <= 8; category++) {
             mvc.perform(publicGet("/api/public/occurrences", adminToken).param("categoryId", "" + category)).andExpect(status().isOk())
-                    .andExpect(jsonPath("$.totalItems").value(384));
-            for (String state : List.of("PENDING", "ACCEPTED", "RESOLVED")) {
+                    .andExpect(jsonPath("$.totalItems").value(256));
+            for (String state : List.of("ACCEPTED", "RESOLVED")) {
                 mvc.perform(publicGet("/api/public/occurrences", adminToken).param("categoryId", "" + category).param("status", state))
                         .andExpect(status().isOk()).andExpect(jsonPath("$.totalItems").value(128));
             }
@@ -146,7 +146,7 @@ class OccurrenceFiltersIntegrationTests {
         var evidence = new StringBuilder("PostgreSQL 17 descartável; 4096 relatos, oito categorias, quatro estados, dois autores.\n");
         record PlanContext(String predicate, String order, Object[] args) {}
         for (var context : List.of(
-                new PlanContext("o.status IN (?, ?, ?)", "DESC", new Object[]{"PENDING", "ACCEPTED", "RESOLVED"}),
+                new PlanContext("o.status IN (?, ?)", "DESC", new Object[]{"ACCEPTED", "RESOLVED"}),
                 new PlanContext("o.author_id=?", "DESC", new Object[]{author}),
                 new PlanContext("o.status IN (?, ?)", "ASC", new Object[]{"PENDING", "ACCEPTED"}),
                 new PlanContext("TRUE", "ASC", new Object[]{}))) {
@@ -173,6 +173,6 @@ class OccurrenceFiltersIntegrationTests {
                 .content(mapper.writeValueAsString(Map.of("email",email,"password",PASSWORD)))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).get("accessToken").asString();
     }
     org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder publicGet(String path, String token, Object... variables) {
-        return get(path, variables).header("Authorization", "Bearer " + token);
+        return get(path, variables);
     }
 }

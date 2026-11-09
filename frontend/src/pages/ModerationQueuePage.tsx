@@ -10,6 +10,7 @@ import { buttonStyles } from '../components/ui/button-styles'
 import { moderationQueueSchema, useAdministrativeQuery } from '../features/administration/administration'
 import { OccurrencePhoto } from '../features/occurrence/OccurrencePhoto'
 import { occurrenceDate } from '../features/occurrence/occurrence'
+import { Icon } from '../components/ui/Icon'
 
 export function ModerationQueuePage() {
   const [params, setParams] = useSearchParams()
@@ -21,7 +22,13 @@ export function ModerationQueuePage() {
   const query = useAdministrativeQuery('moderation', { page, size: 20, ...filters }, `/api/admin/occurrences?page=${page}&size=20&${filterQuery(filters, true)}`, moderationQueueSchema)
   const data = deniedRead(query.error) ? undefined : query.data
   return <section className="py-8" aria-labelledby="queue-title">
-    <h1 id="queue-title">{filters.scope === 'ALL' ? 'Todos os relatos' : 'Fila de moderação'}</h1><p>Relatos dos mais antigos aos mais recentes.</p>
+    <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+      <div><p className="mb-2 text-small font-bold text-brand-default">Área administrativa</p><h1 id="queue-title">{filters.scope === 'ALL' ? 'Todos os relatos' : 'Fila de moderação'}</h1><p className="mb-0 text-text-secondary">Relatos dos mais antigos aos mais recentes.</p></div>
+      <div className="grid w-full gap-2 sm:w-auto sm:justify-items-end">
+        <Link className={buttonStyles()} to="/registrar-ocorrencia"><Icon name="plus" />Registrar ocorrência</Link>
+        <Link className={buttonStyles('quiet')} to="/administracao/relatorio"><Icon name="chart" />Relatório administrativo</Link>
+      </div>
+    </div>
     <OccurrenceFilters context="admin" total={data?.totalItems} />
     {query.isPending && <p role="status">Carregando fila…</p>}
     {query.isError && <Alert tone="danger" role="alert">{data ? 'Não foi possível atualizar. A fila anterior foi mantida.' : 'Não conseguimos carregar a fila.'} <Button onClick={() => { void query.refetch() }}>Tentar novamente</Button></Alert>}

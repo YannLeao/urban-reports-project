@@ -1,8 +1,9 @@
 # Fotografias de relatos: contrato e operação
 
 Refs #52. Modo fotos: coleção ordenada de **1 a 5 fotos**; posição zero é capa em cards,
-mapas e painéis. Galerias pública/própria/admin mostram a selecionada com navegação
-por botões. Seleção incremental na galeria (`multiple`) e captura nativa compartilham
+mapas e painéis. Detalhes próprio/admin mostram a capa inicialmente, todas as
+miniaturas na ordem gravada e seleção com indicação textual/símbolo além da borda.
+A galeria geral legada conserva sua apresentação anterior. Seleção incremental na galeria (`multiple`) e captura nativa compartilham
 o mesmo conjunto; seleção permanece na etapa até Continuar. O editor mostra
 uma foto inteira ativa, contador e miniaturas em faixa horizontal. Chevrons
 navegam sem reordenar; lixeira remove a ativa e seleciona vizinha. Usar como capa
@@ -173,3 +174,35 @@ Este guia continua descrevendo a galeria de fotos. No modo vídeo, `/image` reto
 público usa streaming/HEAD/Range. Multipart permite 25 MiB por arquivo, mantendo
 5 MiB para fotos na aplicação. API/schema V14 e workers devem preceder o frontend;
 veja o roteiro de publicação coordenada no contrato de vídeo.
+
+## Galeria de detalhes e ampliação
+
+`OccurrenceGallery` reutiliza `OccurrencePhoto` privado para carregar cada foto
+uma vez por usuário/superfície/relato/versão/coleção. Os donos dos recursos ficam
+montados enquanto o detalhe existe; miniaturas, destaque e modal compartilham
+as mesmas object URLs. Trocar a seleção ou abrir/fechar o modal não baixa bytes
+novamente. Logout, troca de contexto/versão e unmount cancelam requests pendentes
+e revogam URLs. Nada é persistido no storage do navegador ou exposto em URL com token.
+
+Somente detalhes que exibem a coleção carregam todas as fotos (até cinco arquivos,
+25 MiB de bytes no limite atual); listas e mapas conservam a capa sob demanda.
+Não há novos thumbnails do servidor nem transformação dos originais. Miniaturas
+usam recorte; destaque/modal usam object-contain e quadro estável para evitar
+saltos entre proporções. Falha de fetch/decodificação preserva o quadro e permite
+selecionar outra foto. Uma foto dispensa navegação de miniaturas redundante.
+
+`PhotoLightbox` usa Dialog nativo, nome acessível, botão Fechar visível, foco
+inicial em Fechar, Tab/Shift+Tab contidos e Escape nativo. Ao fechar, retorna ao
+acionador. Não existe navegação interna independente: a foto ativa permanece
+selecionada. Modal ajusta largura/altura à viewport e não altera ordem/capa.
+
+`ReviewPhotos` exibe todas as fotos e amplia previews locais existentes sem criar
+novas URLs ou enviar arquivos. Na edição, reutiliza as previews concluídas do
+seletor; mantém um carregador próprio apenas para fotos salvas ainda sem preview,
+ativo na revisão, com cancelamento ao sair. Concluídas permanecem até desmontagem.
+Vídeo conserva sua prévia/placeholder/player atuais; continua exclusivo de fotos.
+
+Cobertura: `OccurrenceGallery.test.tsx`, `PhotoCollectionPicker.test.tsx`,
+`OccurrenceVideo.test.tsx`, `ReportOccurrencePage.test.tsx` e `MyReportsPage.test.tsx`.
+Revisar no navegador uma/cinco fotos variadas, erro e vídeo, selecionar/ampliar por
+teclado, Escape/retorno de foco e 360/768/1440 px. Fetch controlado não homologa R2.

@@ -1,3 +1,4 @@
+import { withEmptyNotifications } from '../test/notification-fixture'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -11,7 +12,7 @@ const item = {
   id: '3e85aa3d-19e3-42a3-8861-c435ff5908af', categoryId: 1,
   categoryName: 'Iluminação pública', title: 'Poste apagado na praça',
   description: 'A iluminação está apagada e dificulta a passagem à noite.',
-  neighborhood: 'Centro', reference: 'Praça central', status: 'PENDING',
+  neighborhood: 'Centro', reference: 'Praça central', status: 'ACCEPTED',
   createdAt: '2026-09-28T12:00:00Z',
 }
 const pageOf = (items: unknown[], page = 0, totalPages = 1) => ({ items, page, size: 20, totalItems: items.length, totalPages })
@@ -21,7 +22,7 @@ const publicCalls = () => fetchMock.mock.calls.filter(([url]) => String(url).inc
 beforeEach(() => {
   sessionStorage.clear()
   fetchMock.mockReset()
-  vi.stubGlobal('fetch', (url: Parameters<typeof fetch>[0], init?: RequestInit) => String(url).endsWith('/api/public/occurrence-categories') ? Promise.resolve(Response.json([{ id: 1, name: 'Iluminação pública' }, { id: 2, name: 'Buraco ou pavimentação' }])) : String(url).endsWith('/auth/me') ? Promise.resolve(Response.json({ id: 'a50062d3-9ac2-4e70-86fa-eac5249f4d0c', name: 'Admin', email: 'admin@example.com', role: 'ADMIN' })) : fetchMock(url, init))
+  vi.stubGlobal('fetch', withEmptyNotifications((url: Parameters<typeof fetch>[0], init?: RequestInit) => String(url).endsWith('/api/public/occurrence-categories') ? Promise.resolve(Response.json([{ id: 1, name: 'Iluminação pública' }, { id: 2, name: 'Buraco ou pavimentação' }])) : String(url).endsWith('/auth/me') ? Promise.resolve(Response.json({ id: 'a50062d3-9ac2-4e70-86fa-eac5249f4d0c', name: 'Admin', email: 'admin@example.com', role: 'ADMIN' })) : fetchMock(url, init), false))
   vi.stubEnv('VITE_API_URL', 'https://api.example.com')
 })
 function renderPage(path: string) {
@@ -30,9 +31,11 @@ function renderPage(path: string) {
   return render(<QueryClientProvider client={client}><AuthProvider><MemoryRouter initialEntries={[path]}><App /></MemoryRouter></AuthProvider></QueryClientProvider>)
 }
 
-test('visitante não acessa a área de relatos gerais', async () => {
+test('visitante consulta relatos gerais sem login', async () => {
+  fetchMock.mockResolvedValue(Response.json(pageOf([item])))
   render(<QueryClientProvider client={new QueryClient()}><AuthProvider><MemoryRouter initialEntries={['/ocorrencias']}><App /></MemoryRouter></AuthProvider></QueryClientProvider>)
-  expect(await screen.findByRole('heading', { name: 'Entrar' })).toBeVisible()
+  expect(await screen.findByRole('heading', { name: item.title })).toBeVisible()
+  expect(screen.queryByRole('heading', { name: 'Entrar' })).toBeNull()
 })
 
 test('lista pública carrega sem credenciais e liga ao detalhe', async () => {
@@ -40,7 +43,7 @@ test('lista pública carrega sem credenciais e liga ao detalhe', async () => {
   renderPage('/ocorrencias')
   expect(await screen.findByRole('heading', { name: item.title })).toBeVisible()
   expect(screen.getByText('Centro')).toBeVisible()
-  expect(screen.getByText('Pendente', { selector: 'span' })).toBeVisible()
+  expect(screen.getByText('Aceita', { selector: 'span' })).toBeVisible()
   expect(screen.getByRole('link', { name: item.title })).toHaveAttribute('href', `/ocorrencias/${item.id}`)
   const [url, options] = publicCalls()[0]
   expect(String(url)).toBe('https://api.example.com/api/public/occurrences?page=0&size=20')

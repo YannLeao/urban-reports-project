@@ -29,7 +29,7 @@ export function useNotifications(page = 0) {
   const userId = state.status === 'authenticated' ? state.user.id : null
   const query = useQuery({
     queryKey: ['private', userId, 'notifications', page],
-    enabled: userId !== null && state.status === 'authenticated' && state.user.role === 'USER',
+    enabled: userId !== null && state.status === 'authenticated' && ['USER', 'ADMIN'].includes(state.user.role),
     queryFn: async ({ signal }) => pageSchema.parse(await (await request(`/api/notifications?page=${page}&size=20`, 'GET', signal)).json()),
     retry: false,
     staleTime: 0,

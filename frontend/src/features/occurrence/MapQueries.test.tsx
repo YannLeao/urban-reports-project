@@ -1,3 +1,4 @@
+import { withEmptyNotifications } from '../../test/notification-fixture'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -25,7 +26,7 @@ const set = { items: markers, total: 63, located: 61, unlocated: 2 }
 beforeEach(() => {
   sessionStorage.clear(); fetchMock.mockReset()
   window.history.replaceState(null, '', '/')
-  vi.stubGlobal('fetch', (url: Parameters<typeof fetch>[0], init?: RequestInit) => String(url).endsWith('/api/public/occurrence-categories') ? Promise.resolve(Response.json([{ id: 1, name: 'Iluminação pública' }, { id: 2, name: 'Buraco ou pavimentação' }])) : String(url).endsWith('/auth/me') && sessionStorage.getItem(STORAGE_KEY)?.includes('admin-token') ? Promise.resolve(Response.json({ id: 'a50062d3-9ac2-4e70-86fa-eac5249f4d0c', name: 'Admin', email: 'admin@example.com', role: 'ADMIN' })) : fetchMock(url, init))
+  vi.stubGlobal('fetch', withEmptyNotifications((url: Parameters<typeof fetch>[0], init?: RequestInit) => String(url).endsWith('/api/public/occurrence-categories') ? Promise.resolve(Response.json([{ id: 1, name: 'Iluminação pública' }, { id: 2, name: 'Buraco ou pavimentação' }])) : String(url).endsWith('/auth/me') && sessionStorage.getItem(STORAGE_KEY)?.includes('admin-token') ? Promise.resolve(Response.json({ id: 'a50062d3-9ac2-4e70-86fa-eac5249f4d0c', name: 'Admin', email: 'admin@example.com', role: 'ADMIN' })) : fetchMock(url, init), false))
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} })
   vi.stubEnv('VITE_API_URL', 'https://api.example.com')
 })

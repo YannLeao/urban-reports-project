@@ -11,10 +11,11 @@ import { buttonStyles } from '../components/ui/button-styles'
 import { useAuth } from '../features/auth/auth'
 import { moderationDetailSchema, useAdministrativeQuery } from '../features/administration/administration'
 import { OccurrenceGallery } from '../features/occurrence/OccurrenceGallery'
-import { occurrenceDate, occurrenceStatusLabel, type Occurrence } from '../features/occurrence/occurrence'
+import { occurrenceDate, type Occurrence } from '../features/occurrence/occurrence'
 import { moderationActions, transitionSchema } from '../features/occurrence/moderation'
 import { cleanOccurrenceText } from '../features/occurrence/occurrence-text'
 import { PrivateRequestError } from '../lib/api'
+import { OccurrenceHistory } from '../features/occurrence/OccurrenceHistory'
 
 const actionLabels = { ACCEPTED: 'Aceitar', RESOLVED: 'Resolver', REJECTED: 'Rejeitar', PENDING: 'Pendente' } as const
 export function ModerationDetailPage() {
@@ -77,7 +78,7 @@ function ModerationDetail({ id }: { id: string }) {
     {query.isError && <Alert tone="danger" role="alert">Não conseguimos consultar este relato. <Button onClick={() => { void query.refetch() }}>Tentar novamente</Button></Alert>}
     {message && <Alert className="my-5" tone={failed ? 'warning' : 'success'} role={failed ? 'alert' : 'status'} ref={summary} tabIndex={-1}>{message}</Alert>}
     {!query.isError && report && <>
-      <h1 id="moderation-title" className="mt-6">{report.title}</h1><OccurrenceStatus status={report.status} />
+      <h1 id="moderation-title" className="mt-6">{report.title}</h1><div role="group" aria-label="Estado atual do relato" className="flex flex-wrap items-center gap-2"><span className="text-small text-text-secondary">Estado atual</span><OccurrenceStatus status={report.status} /></div>
       <div className="mt-5 grid min-w-0 gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
       <div className="min-w-0"><OccurrenceGallery report={report} administrative />
       <Card><dl className="grid gap-4"><div><dt className="font-bold">Categoria</dt><dd className="m-0">{report.categoryName}</dd></div><div><dt className="font-bold">Localização</dt><dd className="m-0">{report.neighborhood} · {report.reference}</dd></div>{report.description && <div><dt className="font-bold">Detalhes</dt><dd className="m-0 whitespace-pre-wrap">{report.description}</dd></div>}<div><dt className="font-bold">Registro</dt><dd className="m-0">{occurrenceDate(report.createdAt)}</dd></div></dl></Card></div>
@@ -92,14 +93,8 @@ function ModerationDetail({ id }: { id: string }) {
         <Textarea ref={reasonField} label={decision === 'ACCEPTED' ? 'Comentário de encaminhamento' : 'Motivo da rejeição'} required disabled={pending} value={reason} onChange={event => setReason(event.target.value)} error={reasonError} description={`O autor verá este comentário. Use de 10 a 500 caracteres. ${Array.from(cleanOccurrenceText(reason)).length}/500 caracteres.`} rows={5} />
         <div className="flex flex-wrap gap-3"><Button type="submit" loading={pending}>{decision === 'ACCEPTED' ? 'Confirmar aceitação' : 'Confirmar rejeição'}</Button><Button variant="secondary" disabled={pending} onClick={() => { setDecision(null); setReason(''); setReasonError(''); requestAnimationFrame(() => decisionTrigger.current?.focus()) }}>Cancelar</Button></div>
       </form>}
-      <section className="mt-8" aria-label="Histórico de moderação"><h2>Histórico de moderação</h2>
-        {query.data!.history.length === 0 ? <p>Nenhuma mudança de estado registrada.</p> : <ol className="grid gap-5 pl-6">{query.data!.history.map(event => <li key={event.id}>
-          <p className="mb-1 font-bold">{occurrenceStatusLabel(event.previousStatus)} → {occurrenceStatusLabel(event.newStatus)}</p>
-          <p className="text-small">{event.responsible} · <time dateTime={event.occurredAt}>{occurrenceDate(event.occurredAt)}</time></p>
-          {event.reason && <p className="whitespace-pre-wrap">Comentário: {event.reason}</p>}
-        </li>)}</ol>}
-      </section>
       </div></div>
+      <OccurrenceHistory events={query.data!.history} currentStatus={report.status} administrative />
     </>}
   </section>
 }

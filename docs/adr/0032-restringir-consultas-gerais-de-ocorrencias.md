@@ -1,5 +1,8 @@
 # ADR 0032: Restringir consultas gerais de ocorrências
 
+> A restrição de consulta geral foi substituída pelo [ADR 0034](0034-publicar-ocorrencias-aceitas-e-resolvidas.md).
+> A resposta mínima de semelhantes permanece vigente.
+
 ## Contexto
 
 Exibir todos os relatos para visitantes e cidadãos expõe uma visão geral da
